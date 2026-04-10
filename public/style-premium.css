@@ -2365,3 +2365,142 @@ body {
     box-sizing: border-box;
   }
 }
+
+/* ==================== MOBİL REALS TAM EKRAN ==================== */
+@media (max-width: 768px) {
+  .shorts-container {
+    min-height: calc(100vh - var(--ytd-masthead-height) - 60px);
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .shorts-player-wrap {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    width: 100%;
+    height: calc(100vh - var(--ytd-masthead-height) - 60px);
+  }
+
+  .shorts-video-box {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    flex: 1;
+  }
+
+  .shorts-video-box video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Sağ aksiyonlar reals'ta sağ kenara yapış */
+  .shorts-player-wrap > div:last-child {
+    position: absolute;
+    right: 8px;
+    bottom: 80px;
+    gap: 16px;
+  }
+
+  /* Sol ses kontrolü */
+  .shorts-left-controls {
+    position: absolute;
+    left: 8px;
+    bottom: 120px;
+    z-index: 10;
+  }
+}
+
+/* ==================== WHATSAPP CHAT STİLİ ==================== */
+.chat-msg {
+  display: flex;
+  max-width: 78%;
+  margin-bottom: 2px;
+}
+
+.chat-msg-me {
+  align-self: flex-end;
+  flex-direction: row;
+  justify-content: flex-end;
+  max-width: 78%;
+}
+
+.chat-msg-them {
+  align-self: flex-start;
+  max-width: 78%;
+}
+
+.chat-bubble {
+  padding: 8px 12px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  cursor: context-menu;
+  word-break: break-word;
+  position: relative;
+  max-width: 100%;
+}
+
+.chat-msg-me .chat-bubble {
+  background: linear-gradient(135deg, #ff0033, #cc0022);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-msg-them .chat-bubble {
+  background: #1e2a3a;
+  color: var(--yt-spec-text-primary);
+  border-bottom-left-radius: 4px;
+}
+
+/* Chat input WhatsApp stili */
+.chat-input-area {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--yt-spec-raised-background);
+}
+
+.chat-textarea {
+  flex: 1;
+  background: rgba(255,255,255,0.08);
+  border: none;
+  border-radius: 20px;
+  padding: 10px 16px;
+  color: var(--yt-spec-text-primary);
+  font-size: 14px;
+  resize: none;
+  max-height: 120px;
+  min-height: 40px;
+  outline: none;
+  font-family: inherit;
+}
+
+.chat-send-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #ff0033;
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.chat-photo-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--yt-spec-text-secondary);
+  cursor: pointer;
+  font-size: 18px;
+  flex-shrink: 0;
+}
