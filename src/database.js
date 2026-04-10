@@ -37,6 +37,8 @@ db.exec(`
     channel_type TEXT,
     channel_tags TEXT,
     links TEXT,
+    account_type TEXT DEFAULT 'channel',
+    is_private_account INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   )
@@ -274,6 +276,20 @@ try {
   db.prepare('ALTER TABLE videos ADD COLUMN is_hidden INTEGER DEFAULT 0').run();
 } catch(e) {}
 
+// is_ad kolonu ekle (yoksa)
+try {
+  db.prepare('ALTER TABLE videos ADD COLUMN is_ad INTEGER DEFAULT 0').run();
+} catch(e) {}
+
+// account_type ve is_private_account kolonları ekle (yoksa)
+try {
+  db.prepare('ALTER TABLE channels ADD COLUMN account_type TEXT DEFAULT "channel"').run();
+} catch(e) {}
+
+try {
+  db.prepare('ALTER TABLE channels ADD COLUMN is_private_account INTEGER DEFAULT 0').run();
+} catch(e) {}
+
 // Yorum beğeni tablosu
 db.exec(`
   CREATE TABLE IF NOT EXISTS comment_likes (
@@ -292,6 +308,34 @@ db.exec(`
 try {
   db.prepare('ALTER TABLE comments ADD COLUMN parent_id INTEGER DEFAULT NULL').run();
 } catch(e) {} // Zaten varsa hata verir, ignore
+
+// Engelleme tablosu
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_blocks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    blocker_id INTEGER NOT NULL,
+    blocked_id INTEGER NOT NULL,
+    blocked_ip TEXT,
+    blocked_device TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(blocker_id, blocked_id),
+    FOREIGN KEY (blocker_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (blocked_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+// Yorum sabitleme ve askıya alma için kolonlar ekle
+try {
+  db.prepare('ALTER TABLE comments ADD COLUMN is_pinned INTEGER DEFAULT 0').run();
+} catch(e) {}
+
+try {
+  db.prepare('ALTER TABLE comments ADD COLUMN is_hidden INTEGER DEFAULT 0').run();
+} catch(e) {}
+
+try {
+  db.prepare('ALTER TABLE comments ADD COLUMN liked_by_owner INTEGER DEFAULT 0').run();
+} catch(e) {}
 
 console.log('TeaTube veritabanı hazır!');
 

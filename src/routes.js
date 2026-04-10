@@ -406,12 +406,36 @@ router.get('/follow-requests/:userId', (req, res) => {
 // Kanal gizlilik durumunu kontrol et
 router.get('/channel-privacy/:channelId', (req, res) => {
   try {
-    const channel = db.prepare('SELECT user_id FROM channels WHERE id = ?').get(req.params.channelId);
+    const channel = db.prepare('SELECT user_id, is_private_account FROM channels WHERE id = ?').get(req.params.channelId);
     if (!channel) return res.status(404).json({ error: 'Kanal bulunamadı' });
     const settings = db.prepare('SELECT is_private FROM user_settings WHERE user_id = ?').get(channel.user_id);
-    res.json({ is_private: settings?.is_private || 0 });
+    res.json({ is_private: settings?.is_private || channel.is_private_account || 0 });
   } catch(e) {
     res.status(500).json({ error: 'Kontrol edilemedi' });
+  }
+});
+
+// Hesap türünü değiştir (Kişisel Hesap / Kanal)
+router.put('/account-type/:channelId', (req, res) => {
+  try {
+    const { accountType } = req.body;
+    if (!['personal', 'channel'].includes(accountType)) {
+      return res.status(400).json({ error: 'Geçersiz hesap türü' });
+    }
+    db.prepare('UPDATE channels SET account_type = ? WHERE id = ?').run(accountType, req.params.channelId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Hesap türü değiştirilemedi' });
+  }
+});
+
+// Hesap türünü getir
+router.get('/account-type/:channelId', (req, res) => {
+  try {
+    const channel = db.prepare('SELECT account_type FROM channels WHERE id = ?').get(req.params.channelId);
+    res.json({ account_type: channel?.account_type || 'channel' });
+  } catch(e) {
+    res.status(500).json({ error: 'Hesap türü alınamadı' });
   }
 });
 
@@ -533,13 +557,13 @@ router.post('/video', uploadDisk.fields([{ name: 'video' }, { name: 'banner' }])
   const bannerPath = req.files?.banner?.[0]?.path;
   
   try {
-    const { channelId, title, description, videoType, tags, commentsEnabled, likesVisible, isShort } = req.body;
+    const { channelId, title, description, videoType, tags, commentsEnabled, likesVisible, isShort, isAd } = req.body;
 
     if (!req.files || !req.files.video || !req.files.banner) {
       return res.status(400).json({ error: 'Video ve banner gerekli' });
     }
 
-    console.log('Video yükleme başladı:', title, '- Boyut:', (req.files.video[0].size / 1024 / 1024).toFixed(1) + 'MB', isShort ? '[SHORTS]' : '');
+    console.log('Video yükleme başladı:', title, '- Boyut:', (req.files.video[0].size / 1024 / 1024).toFixed(1) + 'MB', isShort ? '[SHORTS]' : '', isAd ? '[AD]' : '');
 
     // Banner yükle
     const bannerBuffer = fs.readFileSync(bannerPath);
@@ -551,16 +575,18 @@ router.post('/video', uploadDisk.fields([{ name: 'video' }, { name: 'banner' }])
     console.log('Video yüklendi:', videoUrl);
 
     const result = db.prepare(
-      'INSERT INTO videos (channel_id, title, description, video_url, banner_url, video_type, tags, comments_enabled, likes_visible, is_short) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(channelId, title, description, videoUrl, bannerUrl, videoType, tags, commentsEnabled || 1, likesVisible || 1, isShort ? 1 : 0);
+      'INSERT INTO videos (channel_id, title, description, video_url, banner_url, video_type, tags, comments_enabled, likes_visible, is_short, is_ad) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(channelId, title, description, videoUrl, bannerUrl, videoType, tags, commentsEnabled || 1, likesVisible || 1, isShort ? 1 : 0, isAd ? 1 : 0);
 
-    // Abonelere bildirim
-    const subscribers = db.prepare('SELECT user_id FROM subscriptions WHERE channel_id = ?').all(channelId);
-    const channel = db.prepare('SELECT channel_name FROM channels WHERE id = ?').get(channelId);
-    if (channel) {
-      for (const sub of subscribers) {
-        db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-          .run(sub.user_id, 'new_video', `${channel.channel_name} yeni video yükledi: ${title}`, result.lastInsertRowid);
+    // Reklam değilse abonelere bildirim
+    if (!isAd) {
+      const subscribers = db.prepare('SELECT user_id FROM subscriptions WHERE channel_id = ?').all(channelId);
+      const channel = db.prepare('SELECT channel_name FROM channels WHERE id = ?').get(channelId);
+      if (channel) {
+        for (const sub of subscribers) {
+          db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
+            .run(sub.user_id, 'new_video', `${channel.channel_name} yeni video yükledi: ${title}`, result.lastInsertRowid);
+        }
       }
     }
 
@@ -1590,14 +1616,14 @@ router.post('/upload-chat-photo', upload.single('photo'), async (req, res) => {
 // Fotoğraf paylaşımı (kanal gönderisi olarak)
 router.post('/photo', upload.single('photo'), async (req, res) => {
   try {
-    const { channelId, title, description } = req.body;
+    const { channelId, title, description, isAd } = req.body;
     if (!req.file) return res.status(400).json({ error: 'Fotoğraf gerekli' });
 
     const photoUrl = await cloudinary.uploadProfilePhoto(req.file.buffer, req.file.originalname);
 
     const result = db.prepare(
-      'INSERT INTO videos (channel_id, title, description, video_url, banner_url, video_type, tags, comments_enabled, likes_visible, is_short) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, 0)'
-    ).run(channelId, title || 'Fotoğraf', description || '', photoUrl, photoUrl, 'Fotoğraf', 'foto');
+      'INSERT INTO videos (channel_id, title, description, video_url, banner_url, video_type, tags, comments_enabled, likes_visible, is_short, is_ad) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, 0, ?)'
+    ).run(channelId, title || 'Fotoğraf', description || '', photoUrl, photoUrl, 'Fotoğraf', 'foto', isAd ? 1 : 0);
 
     res.json({ success: true, photoId: result.lastInsertRowid });
   } catch(e) {
@@ -1948,3 +1974,187 @@ router.put('/video/:videoId', (req, res) => {
     res.status(500).json({ error: 'Video güncellenemedi' });
   }
 });
+
+// ==================== ENGELLEME SİSTEMİ ====================
+
+// Kullanıcı engelle
+router.post('/block-user', (req, res) => {
+  try {
+    const { blockerId, blockedId, blockedIp, blockedDevice } = req.body;
+    
+    if (blockerId === blockedId) {
+      return res.status(400).json({ error: 'Kendinizi engelleyemezsiniz' });
+    }
+
+    db.prepare('INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id, blocked_ip, blocked_device) VALUES (?, ?, ?, ?)')
+      .run(blockerId, blockedId, blockedIp, blockedDevice);
+
+    res.json({ success: true });
+  } catch(e) {
+    console.error(e);
+    res.status(500).json({ error: 'Engelleme başarısız' });
+  }
+});
+
+// Engeli kaldır
+router.delete('/block-user/:blockerId/:blockedId', (req, res) => {
+  try {
+    db.prepare('DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?')
+      .run(req.params.blockerId, req.params.blockedId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Engel kaldırılamadı' });
+  }
+});
+
+// Engellenen kullanıcıları getir
+router.get('/blocked-users/:userId', (req, res) => {
+  try {
+    const blocked = db.prepare(`
+      SELECT ub.*, u.username, u.nickname, u.profile_photo
+      FROM user_blocks ub
+      JOIN users u ON ub.blocked_id = u.id
+      WHERE ub.blocker_id = ?
+      ORDER BY ub.created_at DESC
+    `).all(req.params.userId);
+    res.json(blocked);
+  } catch(e) {
+    res.status(500).json({ error: 'Engellenenler alınamadı' });
+  }
+});
+
+// Engel kontrolü
+router.get('/is-blocked/:userId/:targetId', (req, res) => {
+  try {
+    const block = db.prepare('SELECT id FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?')
+      .get(req.params.userId, req.params.targetId);
+    res.json({ isBlocked: !!block });
+  } catch(e) {
+    res.status(500).json({ error: 'Kontrol edilemedi' });
+  }
+});
+
+// IP/Cihaz bazlı engel kontrolü
+router.post('/check-block', (req, res) => {
+  try {
+    const { userId, targetId, ip, device } = req.body;
+    
+    // Direkt engel kontrolü
+    const directBlock = db.prepare('SELECT id FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?')
+      .get(targetId, userId);
+    
+    if (directBlock) {
+      return res.json({ isBlocked: true, reason: 'user' });
+    }
+
+    // IP bazlı engel kontrolü
+    if (ip) {
+      const ipBlock = db.prepare('SELECT id FROM user_blocks WHERE blocker_id = ? AND blocked_ip = ?')
+        .get(targetId, ip);
+      if (ipBlock) {
+        return res.json({ isBlocked: true, reason: 'ip' });
+      }
+    }
+
+    // Cihaz bazlı engel kontrolü
+    if (device) {
+      const deviceBlock = db.prepare('SELECT id FROM user_blocks WHERE blocker_id = ? AND blocked_device = ?')
+        .get(targetId, device);
+      if (deviceBlock) {
+        return res.json({ isBlocked: true, reason: 'device' });
+      }
+    }
+
+    res.json({ isBlocked: false });
+  } catch(e) {
+    res.status(500).json({ error: 'Kontrol edilemedi' });
+  }
+});
+
+// ==================== YORUM YÖNETİMİ ====================
+
+// Yorumu sabitle/sabitlemeyi kaldır
+router.put('/comment/:commentId/pin', (req, res) => {
+  try {
+    const { userId, videoId } = req.body;
+    const comment = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.commentId);
+    
+    if (!comment) {
+      return res.status(404).json({ error: 'Yorum bulunamadı' });
+    }
+
+    // Video sahibi mi kontrol et
+    const video = db.prepare('SELECT channel_id FROM videos WHERE id = ?').get(videoId);
+    const channel = db.prepare('SELECT user_id FROM channels WHERE id = ?').get(video.channel_id);
+    
+    if (channel.user_id !== userId) {
+      return res.status(403).json({ error: 'Yetkisiz' });
+    }
+
+    // Diğer sabitlemeleri kaldır
+    db.prepare('UPDATE comments SET is_pinned = 0 WHERE video_id = ?').run(videoId);
+    
+    // Bu yorumu sabitle
+    db.prepare('UPDATE comments SET is_pinned = 1 WHERE id = ?').run(req.params.commentId);
+
+    res.json({ success: true });
+  } catch(e) {
+    console.error(e);
+    res.status(500).json({ error: 'Sabitleme başarısız' });
+  }
+});
+
+// Yorumu askıya al/geri al
+router.put('/comment/:commentId/hide', (req, res) => {
+  try {
+    const { userId, videoId, isHidden } = req.body;
+    const comment = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.commentId);
+    
+    if (!comment) {
+      return res.status(404).json({ error: 'Yorum bulunamadı' });
+    }
+
+    // Video sahibi mi kontrol et
+    const video = db.prepare('SELECT channel_id FROM videos WHERE id = ?').get(videoId);
+    const channel = db.prepare('SELECT user_id FROM channels WHERE id = ?').get(video.channel_id);
+    
+    if (channel.user_id !== userId) {
+      return res.status(403).json({ error: 'Yetkisiz' });
+    }
+
+    db.prepare('UPDATE comments SET is_hidden = ? WHERE id = ?').run(isHidden ? 1 : 0, req.params.commentId);
+
+    res.json({ success: true });
+  } catch(e) {
+    console.error(e);
+    res.status(500).json({ error: 'İşlem başarısız' });
+  }
+});
+
+// Yorumu video sahibi beğendi olarak işaretle
+router.put('/comment/:commentId/owner-like', (req, res) => {
+  try {
+    const { userId, videoId, liked } = req.body;
+    const comment = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.commentId);
+    
+    if (!comment) {
+      return res.status(404).json({ error: 'Yorum bulunamadı' });
+    }
+
+    // Video sahibi mi kontrol et
+    const video = db.prepare('SELECT channel_id FROM videos WHERE id = ?').get(videoId);
+    const channel = db.prepare('SELECT user_id FROM channels WHERE id = ?').get(video.channel_id);
+    
+    if (channel.user_id !== userId) {
+      return res.status(403).json({ error: 'Yetkisiz' });
+    }
+
+    db.prepare('UPDATE comments SET liked_by_owner = ? WHERE id = ?').run(liked ? 1 : 0, req.params.commentId);
+
+    res.json({ success: true });
+  } catch(e) {
+    console.error(e);
+    res.status(500).json({ error: 'İşlem başarısız' });
+  }
+});
+

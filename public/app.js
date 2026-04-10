@@ -534,6 +534,9 @@ function showPage(page) {
     case 'settings':
       loadSettingsPage();
       break;
+    case 'terms':
+      loadTermsPage();
+      break;
     case 'subscriptions':
       loadSubscriptionsPage();
       break;
@@ -1644,17 +1647,6 @@ function renderShortsPlayer() {
       <div class="shorts-player-wrap">
 
         <!-- Ses Kontrolü (sağ alt) -->
-        <div class="shorts-left-controls" style="position:absolute; right:12px; bottom:100px; left:auto; z-index:20; display:flex; flex-direction:row; align-items:center; gap:8px; background:rgba(0,0,0,0.4); border-radius:20px; padding:6px 10px;">
-          <button class="shorts-action-btn" id="shortMuteBtn" onclick="toggleShortMute()" title="Ses" style="width:32px; height:32px; min-width:unset; background:none; box-shadow:none;">
-            <i class="fas fa-volume-up" id="shortVolumeIcon" style="font-size:16px;"></i>
-          </button>
-          <input type="range" id="shortVolumeSlider" min="0" max="100" value="100"
-                 class="shorts-volume-slider"
-                 style="writing-mode:horizontal-tb; width:80px; height:4px;"
-                 oninput="setShortVolume(this.value)"
-                 title="Ses seviyesi" />
-        </div>
-
         <!-- Video Kutusu -->
         <div class="shorts-video-box" onclick="toggleShortPlay()">
           <video id="shortsVideo" src="${v.video_url}" autoplay loop playsinline
@@ -1745,22 +1737,6 @@ function renderShortsPlayer() {
   checkShortLikeStatus(v.id);
   saveWatchProgress(v.id, 0, 0);
 
-  // Kaydedilmiş ses seviyesini uygula
-  const videoEl = document.getElementById('shortsVideo');
-  if (videoEl) {
-    const savedVol = parseFloat(localStorage.getItem('tea_volume') ?? '1');
-    const savedMuted = localStorage.getItem('tea_muted') === 'true';
-    videoEl.volume = savedVol;
-    videoEl.muted = savedMuted;
-    const slider = document.getElementById('shortVolumeSlider');
-    const icon = document.getElementById('shortVolumeIcon');
-    if (slider) slider.value = savedMuted ? 0 : savedVol * 100;
-    if (icon) {
-      if (savedMuted || savedVol === 0) icon.className = 'fas fa-volume-mute';
-      else if (savedVol < 0.5) icon.className = 'fas fa-volume-down';
-      else icon.className = 'fas fa-volume-up';
-    }
-  }
 }
 
 function toggleShortPlay() {
@@ -1789,37 +1765,6 @@ function toggleShortPlay() {
     overlay.style.opacity = '1';
     setTimeout(() => { overlay.style.opacity = '0'; }, 600);
   }
-}
-
-function toggleShortMute() {
-  const video = document.getElementById('shortsVideo');
-  const icon = document.getElementById('shortVolumeIcon');
-  const slider = document.getElementById('shortVolumeSlider');
-  if (!video) return;
-
-  video.muted = !video.muted;
-  if (icon) icon.className = video.muted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
-  if (slider) slider.value = video.muted ? 0 : video.volume * 100;
-  localStorage.setItem('tea_muted', video.muted);
-}
-
-function setShortVolume(val) {
-  const video = document.getElementById('shortsVideo');
-  const icon = document.getElementById('shortVolumeIcon');
-  if (!video) return;
-
-  const volume = val / 100;
-  video.volume = volume;
-  video.muted = volume === 0;
-
-  if (icon) {
-    if (volume === 0) icon.className = 'fas fa-volume-mute';
-    else if (volume < 0.5) icon.className = 'fas fa-volume-down';
-    else icon.className = 'fas fa-volume-up';
-  }
-
-  localStorage.setItem('tea_volume', volume);
-  localStorage.setItem('tea_muted', volume === 0);
 }
 
 function toggleShortDesc() {
@@ -2236,7 +2181,7 @@ async function showPhotoPage(video) {
 
   checkLikeStatus(video.id);
   checkSubscriptionStatus(video.channel_id);
-  if (video.comments_enabled) loadComments(video.id);
+  if (video.comments_enabled) loadComments(video.id, video.user_id);
   saveWatchProgress(video.id, 0, 0);
   document.querySelectorAll('.guide-item').forEach(i => i.classList.remove('active'));
 
@@ -2379,7 +2324,7 @@ async function playVideo(videoId) {
     // Beğeni ve abonelik durumu
     checkLikeStatus(video.id);
     checkSubscriptionStatus(video.channel_id);
-    if (video.comments_enabled) loadComments(video.id);
+    if (video.comments_enabled) loadComments(video.id, video.user_id);
     saveWatchProgress(video.id, 0, 0);
     
     const videoEl = document.getElementById('mainVideoPlayer');
@@ -2615,7 +2560,7 @@ async function toggleSaved(videoId) {
   }
 }
 
-async function loadComments(videoId) {
+async function loadComments(videoId, videoOwnerId = null) {
   try {
     const response = await fetch(`${API_URL}/comments/${videoId}?userId=${currentUser.id}`);
     const comments = await response.json();
@@ -2628,25 +2573,41 @@ async function loadComments(videoId) {
       return;
     }
 
-    commentsList.innerHTML = comments.map(c => renderComment(c, videoId)).join('');
+    // Sabitlenen yorumu en üste al
+    const pinnedComments = comments.filter(c => c.is_pinned === 1);
+    const regularComments = comments.filter(c => c.is_pinned !== 1);
+    const sortedComments = [...pinnedComments, ...regularComments];
+
+    commentsList.innerHTML = sortedComments.map(c => renderComment(c, videoId, false, videoOwnerId)).join('');
   } catch (error) {
     console.error('Yorumlar yükleme hatası:', error);
   }
 }
 
-function renderComment(c, videoId, isReply = false) {
+function renderComment(c, videoId, isReply = false, videoOwnerId = null) {
   const likeActive = c.user_like === 1 ? 'color:#4caf50;' : '';
   const dislikeActive = c.user_like === -1 ? 'color:#f44336;' : '';
+  const isOwner = videoOwnerId && currentUser && currentUser.id === videoOwnerId;
+  const isPinned = c.is_pinned === 1;
+  const isHidden = c.is_hidden === 1;
+  const likedByOwner = c.liked_by_owner === 1;
+  
+  // Askıya alınmış yorumları sadece video sahibi görebilir
+  if (isHidden && !isOwner) return '';
+  
   return `
-    <div style="display:flex; gap:12px; margin-bottom:${isReply ? '12px' : '20px'}; ${isReply ? 'margin-left:48px;' : ''}">
+    <div style="display:flex; gap:12px; margin-bottom:${isReply ? '12px' : '20px'}; ${isReply ? 'margin-left:48px;' : ''} ${isPinned ? 'background:rgba(255,0,51,0.05); padding:12px; border-radius:8px; border-left:3px solid var(--yt-spec-brand-background-solid);' : ''} ${isHidden ? 'opacity:0.5;' : ''}">
       <img src="${getProfilePhotoUrl(c.profile_photo)}" style="width:${isReply ? '28px' : '36px'}; height:${isReply ? '28px' : '36px'}; border-radius:50%; object-fit:cover; flex-shrink:0;" />
       <div style="flex:1;">
+        ${isPinned ? '<div style="font-size:11px; color:var(--yt-spec-brand-background-solid); margin-bottom:4px; font-weight:600;"><i class="fas fa-thumbtack"></i> SABİTLENDİ</div>' : ''}
+        ${isHidden ? '<div style="font-size:11px; color:#ff9800; margin-bottom:4px; font-weight:600;"><i class="fas fa-eye-slash"></i> ASKIDA</div>' : ''}
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
           <span style="font-size:13px; font-weight:500;">${c.nickname}</span>
+          ${likedByOwner ? '<span style="font-size:11px; background:rgba(255,0,51,0.15); color:var(--yt-spec-brand-background-solid); padding:2px 6px; border-radius:10px; font-weight:600;"><i class="fas fa-heart"></i> Beğenildi</span>' : ''}
           <span style="font-size:12px; color:var(--yt-spec-text-secondary);">${c.created_at || ''}</span>
         </div>
         <p style="font-size:14px; line-height:1.5; margin-bottom:8px;">${c.comment_text}</p>
-        <div style="display:flex; align-items:center; gap:16px;">
+        <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
           <button onclick="likeComment(${c.id}, 1, ${videoId})" style="background:none; border:none; cursor:pointer; font-size:13px; color:var(--yt-spec-text-secondary); display:flex; align-items:center; gap:4px; ${likeActive}">
             <i class="fas fa-thumbs-up"></i> ${c.likes || 0}
           </button>
@@ -2656,9 +2617,19 @@ function renderComment(c, videoId, isReply = false) {
           ${!isReply ? `<button onclick="toggleReplyBox(${c.id}, ${videoId})" style="background:none; border:none; cursor:pointer; font-size:13px; color:var(--yt-spec-text-secondary);">
             <i class="fas fa-reply"></i> Yanıtla
           </button>` : ''}
-          ${!isReply && c.reply_count > 0 ? `<button onclick="loadReplies(${c.id}, ${videoId})" id="repliesBtn_${c.id}" style="background:none; border:none; cursor:pointer; font-size:13px; color:var(--yt-spec-call-to-action);">
+          ${!isReply && c.reply_count > 0 ? `<button onclick="loadReplies(${c.id}, ${videoId}, ${videoOwnerId})" id="repliesBtn_${c.id}" style="background:none; border:none; cursor:pointer; font-size:13px; color:var(--yt-spec-call-to-action);">
             <i class="fas fa-chevron-down"></i> ${c.reply_count} yanıt
           </button>` : ''}
+          ${isOwner && !isReply ? `
+            <button onclick="showCommentMenu(${c.id}, ${videoId}, ${isPinned}, ${isHidden}, ${likedByOwner})" style="background:none; border:none; cursor:pointer; font-size:13px; color:var(--yt-spec-text-secondary);">
+              <i class="fas fa-ellipsis-v"></i>
+            </button>
+          ` : ''}
+          ${currentUser && c.user_id !== currentUser.id ? `
+            <button onclick="blockUserFromComment(${c.user_id}, '${c.nickname}')" style="background:none; border:none; cursor:pointer; font-size:13px; color:var(--yt-spec-text-secondary);">
+              <i class="fas fa-ban"></i>
+            </button>
+          ` : ''}
         </div>
         <div id="replyBox_${c.id}" style="display:none; margin-top:8px;">
           <div style="display:flex; gap:8px;">
@@ -2681,7 +2652,7 @@ function toggleReplyBox(commentId, videoId) {
   }
 }
 
-async function loadReplies(commentId, videoId) {
+async function loadReplies(commentId, videoId, videoOwnerId = null) {
   const btn = document.getElementById(`repliesBtn_${commentId}`);
   const container = document.getElementById(`replies_${commentId}`);
   
@@ -2694,7 +2665,7 @@ async function loadReplies(commentId, videoId) {
   try {
     const res = await fetch(`${API_URL}/comment-replies/${commentId}?userId=${currentUser.id}`);
     const replies = await res.json();
-    container.innerHTML = replies.map(r => renderComment(r, videoId, true)).join('');
+    container.innerHTML = replies.map(r => renderComment(r, videoId, true, videoOwnerId)).join('');
     if (btn) btn.innerHTML = `<i class="fas fa-chevron-up"></i> Yanıtları gizle`;
   } catch(e) {}
 }
@@ -3675,75 +3646,37 @@ async function showHistoryTab(tab) {
 
 // Algoritma sayfası
 async function loadAlgorithmPage() {
-  try {
-    const response = await fetch(`${API_URL}/algorithm/${currentUser.id}`);
-    const data = await response.json();
-
-    const pageContent = document.getElementById('pageContent');
-    pageContent.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 class="section-header" style="margin:0;">Algoritmam</h2>
-        <button class="yt-btn yt-btn-secondary" onclick="resetAlgorithm()"><i class="fas fa-redo"></i> Sıfırla</button>
-      </div>
-      
-      <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-        <h3>Video Türleri</h3>
-        <div id="algorithmTypes" style="margin-top: 15px;"></div>
-      </div>
-      
-      <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px;">
-        <h3>Etiketler</h3>
-        <div id="algorithmTags" style="margin-top: 15px;"></div>
-      </div>
-    `;
-
-    const types = data.filter(d => d.tag === '');
-    const tags = data.filter(d => d.tag !== '');
-
-    const typesContainer = document.getElementById('algorithmTypes');
-    if (types.length === 0) {
-      typesContainer.innerHTML = '<p style="color: var(--text-secondary);">Henüz veri yok</p>';
-    } else {
-      typesContainer.innerHTML = types.map(t => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 8px;">
-          <span>${t.video_type}</span>
-          <span style="color: var(--accent); font-weight: 600;">Ağırlık: ${t.weight.toFixed(1)}</span>
+  const pageContent = document.getElementById('pageContent');
+  pageContent.innerHTML = `
+    <div style="text-align:center; padding:80px 20px;">
+      <div style="width:120px; height:120px; background:linear-gradient(135deg, rgba(255,0,51,0.1), rgba(255,0,51,0.05)); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 24px; position:relative;">
+        <i class="fas fa-brain" style="font-size:48px; color:var(--yt-spec-brand-background-solid);"></i>
+        <div style="position:absolute; top:-8px; right:-8px; width:40px; height:40px; background:var(--yt-spec-brand-background-solid); border-radius:50%; display:flex; align-items:center; justify-content:center;">
+          <i class="fas fa-clock" style="font-size:18px; color:white;"></i>
         </div>
-      `).join('');
-    }
-
-    const tagsContainer = document.getElementById('algorithmTags');
-    if (tags.length === 0) {
-      tagsContainer.innerHTML = '<p style="color: var(--text-secondary);">Henüz veri yok</p>';
-    } else {
-      tagsContainer.innerHTML = tags.map(t => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 8px;">
-          <span>${t.tag}</span>
-          <span style="color: var(--accent); font-weight: 600;">Ağırlık: ${t.weight.toFixed(1)}</span>
+      </div>
+      <h2 style="font-size:28px; font-weight:700; margin-bottom:12px; background:linear-gradient(135deg, var(--yt-spec-brand-background-solid), #ff6b6b); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">
+        Çok Yakında
+      </h2>
+      <p style="color:var(--yt-spec-text-secondary); font-size:16px; line-height:1.6; max-width:500px; margin:0 auto 32px;">
+        Kişiselleştirilmiş algoritma sistemi üzerinde çalışıyoruz. Yakında senin için özel içerikler önereceğiz!
+      </p>
+      <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+        <div style="background:var(--yt-spec-raised-background); padding:16px 24px; border-radius:12px; min-width:140px;">
+          <i class="fas fa-chart-line" style="color:var(--yt-spec-brand-background-solid); font-size:24px; margin-bottom:8px; display:block;"></i>
+          <p style="font-size:13px; color:var(--yt-spec-text-secondary);">Akıllı Öneriler</p>
         </div>
-      `).join('');
-    }
-  } catch (error) {
-    console.error('Algoritma yükleme hatası:', error);
-  }
-}
-
-async function resetAlgorithm() {
-  if (!confirm('Algoritmayı sıfırlamak istediğinize emin misiniz?')) {
-    return;
-  }
-
-  try {
-    await fetch(`${API_URL}/algorithm/${currentUser.id}`, {
-      method: 'DELETE'
-    });
-
-    alert('Algoritma sıfırlandı');
-    loadAlgorithmPage();
-  } catch (error) {
-    console.error('Algoritma sıfırlama hatası:', error);
-    alert('Algoritma sıfırlanamadı');
-  }
+        <div style="background:var(--yt-spec-raised-background); padding:16px 24px; border-radius:12px; min-width:140px;">
+          <i class="fas fa-heart" style="color:var(--yt-spec-brand-background-solid); font-size:24px; margin-bottom:8px; display:block;"></i>
+          <p style="font-size:13px; color:var(--yt-spec-text-secondary);">Beğeni Analizi</p>
+        </div>
+        <div style="background:var(--yt-spec-raised-background); padding:16px 24px; border-radius:12px; min-width:140px;">
+          <i class="fas fa-magic" style="color:var(--yt-spec-brand-background-solid); font-size:24px; margin-bottom:8px; display:block;"></i>
+          <p style="font-size:13px; color:var(--yt-spec-text-secondary);">Kişiselleştirme</p>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // Ayarlar sayfası
@@ -3835,8 +3768,31 @@ async function loadSettingsPage() {
             Gizli hesapta videolarına ve fotoğraflarına sadece takip ettiklerin erişebilir. Takip etmek için istek gönderilmesi gerekir.
           </p>
         </div>
+
+        <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:20px; margin-top:20px;">
+          <h3 class="settings-card-title" style="margin-bottom:12px;"><i class="fas fa-user-circle" style="margin-right:8px; color:var(--yt-spec-brand-background-solid);"></i>Hesap Türü</h3>
+          <div style="display:flex; gap:12px; margin-bottom:12px;">
+            <label class="yt-radio-label" style="flex:1; padding:16px; background:var(--yt-spec-raised-background); border-radius:8px; cursor:pointer; border:2px solid transparent;" id="accountTypeChannel">
+              <input type="radio" name="accountType" value="channel" class="yt-radio" onchange="updateAccountType('channel')" />
+              <div style="margin-left:8px;">
+                <div style="font-weight:600; margin-bottom:4px;"><i class="fas fa-tv" style="margin-right:6px;"></i>Kanal</div>
+                <div style="font-size:12px; color:var(--yt-spec-text-secondary);">Takipçiler "abone" olarak görünür</div>
+              </div>
+            </label>
+            <label class="yt-radio-label" style="flex:1; padding:16px; background:var(--yt-spec-raised-background); border-radius:8px; cursor:pointer; border:2px solid transparent;" id="accountTypePersonal">
+              <input type="radio" name="accountType" value="personal" class="yt-radio" onchange="updateAccountType('personal')" />
+              <div style="margin-left:8px;">
+                <div style="font-weight:600; margin-bottom:4px;"><i class="fas fa-user" style="margin-right:6px;"></i>Kişisel Hesap</div>
+                <div style="font-size:12px; color:var(--yt-spec-text-secondary);">Takipçiler "takipçi" olarak görünür</div>
+              </div>
+            </label>
+          </div>
+          <p style="font-size:12px; color:var(--yt-spec-text-secondary); line-height:1.5;">
+            Hesap türünü değiştirerek profilinizin nasıl görüneceğini belirleyebilirsiniz.
+          </p>
+        </div>
         
-        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:20px;">
           <button class="yt-btn yt-btn-secondary"  onclick="clearSearchHistory()">Arama Geçmişini Temizle</button>
           <button class="yt-btn yt-btn-secondary"  onclick="clearWatchHistory()">İzleme Geçmişini Temizle</button>
         </div>
@@ -3844,13 +3800,31 @@ async function loadSettingsPage() {
       
       <div class="settings-card">
         <h3 class="settings-card-title">Güvenlik</h3>
-        <button class="yt-btn yt-btn-secondary"  onclick="showLoginAttempts()">Giriş Denemelerini Göster</button>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <button class="yt-btn yt-btn-secondary" onclick="showLoginAttempts()">Giriş Denemelerini Göster</button>
+          <button class="yt-btn yt-btn-secondary" onclick="showBlockedUsers()">Engellenen Kullanıcılar</button>
+        </div>
       </div>
       
       <button class="yt-btn" style="width:auto; padding:0 24px; background: linear-gradient(135deg,#dc3545,#a71d2a); box-shadow: 0 2px 8px rgba(220,53,69,0.3);" onclick="logout()">
         <i class="fas fa-sign-out-alt" style="margin-right:8px;"></i>Çıkış Yap
       </button>
     `;
+    
+    // Account type'ı yükle
+    if (currentChannel) {
+      const accountTypeRes = await fetch(`${API_URL}/account-type/${currentChannel.id}`).catch(() => null);
+      if (accountTypeRes && accountTypeRes.ok) {
+        const accountTypeData = await accountTypeRes.json();
+        const accountType = accountTypeData.account_type || 'channel';
+        const radio = document.querySelector(`input[name="accountType"][value="${accountType}"]`);
+        if (radio) {
+          radio.checked = true;
+          const label = radio.closest('.yt-radio-label');
+          if (label) label.style.borderColor = 'var(--yt-spec-brand-background-solid)';
+        }
+      }
+    }
   } catch (error) {
     console.error('Ayarlar yükleme hatası:', error);
   }
@@ -4108,6 +4082,43 @@ async function clearWatchHistory() {
   } catch (error) {
     console.error('İzleme geçmişi temizleme hatası:', error);
     alert('İzleme geçmişi temizlenemedi');
+  }
+}
+
+async function updateAccountType(accountType) {
+  if (!currentChannel) {
+    showToast('Önce kanal oluşturun', 'error');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/account-type/${currentChannel.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountType })
+    });
+
+    if (response.ok) {
+      showToast('Hesap türü güncellendi', 'success');
+      
+      // Radio label'ları güncelle
+      document.querySelectorAll('.yt-radio-label').forEach(label => {
+        label.style.borderColor = 'transparent';
+      });
+      const selectedLabel = document.querySelector(`input[value="${accountType}"]`)?.closest('.yt-radio-label');
+      if (selectedLabel) selectedLabel.style.borderColor = 'var(--yt-spec-brand-background-solid)';
+      
+      // Sidebar'daki "Hesabım" yazısını güncelle
+      const myChannelLabel = document.getElementById('myChannelLabel');
+      if (myChannelLabel) {
+        myChannelLabel.textContent = accountType === 'personal' ? 'Hesabım' : 'Kanalım';
+      }
+    } else {
+      showToast('Hesap türü güncellenemedi', 'error');
+    }
+  } catch (error) {
+    console.error('Hesap türü güncelleme hatası:', error);
+    showToast('Bir hata oluştu', 'error');
   }
 }
 
@@ -4610,19 +4621,25 @@ function showToast(message, type = 'info') {
 // Kanal görüntüleme
 async function viewChannel(channelId) {
   try {
-    const [channelRes, videosRes, supportersRes, privRes] = await Promise.all([
+    const [channelRes, videosRes, supportersRes, privRes, accountTypeRes] = await Promise.all([
       fetch(`${API_URL}/channel/${channelId}`),
       fetch(`${API_URL}/videos/channel/${channelId}`),
       fetch(`${API_URL}/supporter-channels/${channelId}`),
-      fetch(`${API_URL}/channel-privacy/${channelId}`)
+      fetch(`${API_URL}/channel-privacy/${channelId}`),
+      fetch(`${API_URL}/account-type/${channelId}`)
     ]);
     const channel = await channelRes.json();
     const allVideos = await videosRes.json();
     const supporters = await supportersRes.json().catch(() => []);
     const privData = await privRes.json().catch(() => ({ is_private: 0 }));
+    const accountTypeData = await accountTypeRes.json().catch(() => ({ account_type: 'channel' }));
 
     const isPrivate = privData.is_private === 1;
     const isOwner = currentChannel && currentChannel.user_id === channel.user_id;
+    const isPersonal = accountTypeData.account_type === 'personal';
+    const subscriberLabel = isPersonal ? 'takipçi' : 'abone';
+    const subscribeButtonLabel = isPersonal ? 'Takip Et' : 'Abone Ol';
+    const unsubscribeButtonLabel = isPersonal ? 'Takipten Çık' : 'Abonelikten Çık';
 
     // Gizli hesap: arkadaş değilse içerikleri gizle
     let isFriend = false;
@@ -4651,9 +4668,9 @@ async function viewChannel(channelId) {
         <img src="${getProfilePhotoUrl(channel.profile_photo)}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid var(--yt-spec-base-background); flex-shrink:0;" />
         <div style="flex:1; padding-bottom:4px;">
           <h2 style="font-size:22px; font-weight:600; margin-bottom:2px;">${channel.channel_name} ${isPrivate ? '<i class="fas fa-lock" style="font-size:14px; color:var(--yt-spec-text-secondary);"></i>' : ''}</h2>
-          <p style="color: var(--yt-spec-text-secondary); font-size:13px;">@${channel.username} • ${isPrivate && !isOwner && !isFriend ? '? takipçi' : channel.subscriber_count + (isPrivate ? ' takipçi' : ' abone')} • ${isPrivate && !isOwner && !isFriend ? '? gönderi' : channel.video_count + ' video'}</p>
+          <p style="color: var(--yt-spec-text-secondary); font-size:13px;">@${channel.username} • ${isPrivate && !isOwner && !isFriend ? '? ' + subscriberLabel : channel.subscriber_count + ' ' + subscriberLabel} • ${isPrivate && !isOwner && !isFriend ? '? gönderi' : channel.video_count + ' video'}</p>
         </div>
-        ${!isOwner ? `<button class="yt-btn" id="channelSubscribeBtn" onclick="toggleSubscribe(${channel.id})" style="flex-shrink:0; margin-bottom:4px;">${isPrivate ? 'Takip Et' : 'Abone Ol'}</button>` : ''}
+        ${!isOwner ? `<button class="yt-btn" id="channelSubscribeBtn" onclick="toggleSubscribe(${channel.id})" style="flex-shrink:0; margin-bottom:4px;">${subscribeButtonLabel}</button>` : ''}
       </div>
 
       <!-- Gizli hesap uyarısı -->
@@ -4765,9 +4782,15 @@ async function checkChannelSubscriptionStatus(channelId) {
     ]);
     const subData = await subRes.json();
     const privData = await privRes.json().catch(() => ({ is_private: 0 }));
+    
+    // Account type'ı al
+    const accountTypeRes = await fetch(`${API_URL}/account-type/${channelId}`).catch(() => null);
+    const accountTypeData = accountTypeRes ? await accountTypeRes.json().catch(() => ({ account_type: 'channel' })) : { account_type: 'channel' };
+    const isPersonal = accountTypeData.account_type === 'personal';
+    const unsubscribeLabel = isPersonal ? 'Takipten Çık' : 'Abonelikten Çık';
 
     if (subData.subscribed) {
-      btn.textContent = 'Abonelikten Çık';
+      btn.textContent = unsubscribeLabel;
       btn.classList.add('yt-btn-secondary');
     } else if (privData.is_private) {
       // Bekleyen takip isteği var mı?
@@ -5404,3 +5427,396 @@ console.log('%cVideo Paylaşım Platformu', 'color: #666; font-size: 14px;');
 console.log('%c⚠️ Bu konsolu kullanarak kod çalıştırmayın!', 'color: #ff0000; font-size: 16px; font-weight: bold;');
 
 
+
+
+// Kullanım Koşulları Sayfası
+function loadTermsPage() {
+  const pageContent = document.getElementById('pageContent');
+  pageContent.innerHTML = `
+    <div style="max-width: 900px; margin: 0 auto; padding: 20px;">
+      <h2 class="section-header">Kullanım Koşulları</h2>
+      
+      <div class="settings-card">
+        <h3 class="settings-card-title">Tea KVKK Açıklama Metni</h3>
+        <h4 style="color: var(--yt-spec-text-primary); margin: 20px 0 12px; font-size: 16px;">Kişisel Verilerin Korunması ve İşlenmesine İlişkin Açıklama</h4>
+        <p style="color: var(--yt-spec-text-secondary); line-height: 1.6; margin-bottom: 20px;">
+          Tea uygulamasına üye olarak veya giriş yaparak, aşağıdaki kişisel veri işleme yöntemlerini ve haklarınızı kabul etmiş olursunuz.
+        </p>
+        
+        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">Toplanan Kişisel Veriler</h4>
+        <ul style="color: var(--yt-spec-text-secondary); line-height: 1.8; padding-left: 24px; margin-bottom: 20px;">
+          <li>Kullanıcı adı, takma ad, şifre (hashlenmiş), IP adresi</li>
+          <li>Profil fotoğrafı</li>
+          <li>Video yükleme sırasında gönderilen banner ve video URL bilgileri</li>
+          <li>Abonelik, favori ve kaydedilen videolarla ilgili bilgiler</li>
+          <li>Uygulama içi kullanım istatistikleri (izlenen videolar, etkileşimler)</li>
+          <li>Mesajlaşma ve arkadaşlık verileri</li>
+        </ul>
+        
+        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">Veri İşleme Amaçları</h4>
+        <ul style="color: var(--yt-spec-text-secondary); line-height: 1.8; padding-left: 24px; margin-bottom: 20px;">
+          <li>Kullanıcı kimliğini doğrulamak ve hesap güvenliğini sağlamak</li>
+          <li>Kullanıcı deneyimini iyileştirmek ve öneri algoritmasını çalıştırmak</li>
+          <li>Uygulama içi hataları ve güvenlik tehditlerini tespit etmek</li>
+          <li>Beta sürecinde sistem testleri ve performans ölçümleri yapmak</li>
+          <li>Kullanıcılar arası iletişimi sağlamak</li>
+        </ul>
+        
+        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">Veri Saklama Süresi</h4>
+        <p style="color: var(--yt-spec-text-secondary); line-height: 1.6; margin-bottom: 20px;">
+          Kullanıcı verileri, hesabınız aktif olduğu sürece ve uygulama faaliyetleri boyunca saklanır. Kullanıcı hesabı silinirse, kişisel veriler makul bir süre içerisinde sistemden kalıcı olarak silinir.
+        </p>
+        
+        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">Veri Paylaşımı</h4>
+        <p style="color: var(--yt-spec-text-secondary); line-height: 1.6; margin-bottom: 20px;">
+          Kullanıcı verileri üçüncü taraflarla paylaşılmaz. Sadece yasal zorunluluk hâlinde veya sistem güvenliği için yetkili kişilerle paylaşılır.
+        </p>
+        
+        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">Veri Güvenliği Önlemleri</h4>
+        <ul style="color: var(--yt-spec-text-secondary); line-height: 1.8; padding-left: 24px; margin-bottom: 20px;">
+          <li>Şifreler bcrypt ile hashlenir, düz metin olarak saklanmaz</li>
+          <li>IP adresleri yalnızca güvenlik ve erişim logları için kaydedilir</li>
+          <li>Veritabanı ve depolama servisleri SSL/TLS ile korunur</li>
+          <li>Depolama servisleri (Cloudinary, Firebase) veri güvenliği standartlarına uygundur</li>
+          <li>Başarısız giriş denemeleri takip edilir ve otomatik IP engelleme yapılır</li>
+        </ul>
+        
+        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">Kullanıcı Hakları</h4>
+        <ul style="color: var(--yt-spec-text-secondary); line-height: 1.8; padding-left: 24px; margin-bottom: 20px;">
+          <li>Kendi kişisel verilerinize erişme ve doğrulama</li>
+          <li>Yanlış veya eksik verilerin düzeltilmesini talep etme</li>
+          <li>Verilerinizin silinmesini talep etme</li>
+          <li>Veri işleme ve paylaşımı ile ilgili itirazda bulunma</li>
+          <li>Arama ve izleme geçmişinizi istediğiniz zaman temizleme</li>
+          <li>Hesabınızı gizli yaparak içeriklerinizi sadece takipçilerinizle paylaşma</li>
+        </ul>
+        
+        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">İçerik Yönetimi</h4>
+        <ul style="color: var(--yt-spec-text-secondary); line-height: 1.8; padding-left: 24px; margin-bottom: 20px;">
+          <li>Yüklediğiniz videolar ve fotoğraflar üzerinde tam kontrole sahipsiniz</li>
+          <li>İçeriklerinizi istediğiniz zaman düzenleyebilir veya silebilirsiniz</li>
+          <li>Yorumları ve beğenileri kapatma/açma seçeneğiniz vardır</li>
+          <li>İçeriklerinizi gizleyerek sadece siz görebilirsiniz</li>
+        </ul>
+        
+        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">Onay ve Kabul</h4>
+        <p style="color: var(--yt-spec-text-secondary); line-height: 1.6; margin-bottom: 20px;">
+          Tea'a giriş yaparak veya üye olarak, yukarıda belirtilen kişisel veri işleme kurallarını ve güvenlik önlemlerini kabul etmiş olursunuz.
+        </p>
+        
+        <div style="background: rgba(255,0,51,0.1); border-left: 3px solid var(--yt-spec-brand-background-solid); padding: 16px; border-radius: 8px; margin-top: 24px;">
+          <p style="color: var(--yt-spec-text-primary); font-weight: 500; margin-bottom: 8px;">
+            <i class="fas fa-info-circle" style="margin-right: 8px;"></i>Önemli Not
+          </p>
+          <p style="color: var(--yt-spec-text-secondary); line-height: 1.6; font-size: 14px;">
+            Bu kullanım koşulları, Tea platformunun beta sürümü için geçerlidir. Kullanım koşulları güncellendiğinde, değişiklikler bu sayfada yayınlanacaktır.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Kullanım koşullarını modal olarak göster (kayıt ekranı için)
+function showTermsPage() {
+  const termsText = `
+    <div style="max-height: 60vh; overflow-y: auto; padding-right: 8px;">
+      <h3 style="color: var(--yt-spec-text-primary); margin-bottom: 16px;">Tea KVKK Açıklama Metni</h3>
+      <h4 style="color: var(--yt-spec-text-primary); margin: 20px 0 12px; font-size: 15px;">Kişisel Verilerin Korunması ve İşlenmesine İlişkin Açıklama</h4>
+      <p style="color: var(--yt-spec-text-secondary); line-height: 1.6; margin-bottom: 16px; font-size: 14px;">
+        Tea uygulamasına üye olarak veya giriş yaparak, aşağıdaki kişisel veri işleme yöntemlerini ve haklarınızı kabul etmiş olursunuz.
+      </p>
+      
+      <h4 style="color: var(--yt-spec-text-primary); margin: 20px 0 10px; font-size: 14px;">Toplanan Kişisel Veriler</h4>
+      <ul style="color: var(--yt-spec-text-secondary); line-height: 1.7; padding-left: 20px; margin-bottom: 16px; font-size: 13px;">
+        <li>Kullanıcı adı, takma ad, şifre (hashlenmiş), IP adresi</li>
+        <li>Profil fotoğrafı</li>
+        <li>Video yükleme sırasında gönderilen banner ve video URL bilgileri</li>
+        <li>Abonelik, favori ve kaydedilen videolarla ilgili bilgiler</li>
+        <li>Uygulama içi kullanım istatistikleri (izlenen videolar, etkileşimler)</li>
+        <li>Mesajlaşma ve arkadaşlık verileri</li>
+      </ul>
+      
+      <h4 style="color: var(--yt-spec-text-primary); margin: 20px 0 10px; font-size: 14px;">Veri İşleme Amaçları</h4>
+      <ul style="color: var(--yt-spec-text-secondary); line-height: 1.7; padding-left: 20px; margin-bottom: 16px; font-size: 13px;">
+        <li>Kullanıcı kimliğini doğrulamak ve hesap güvenliğini sağlamak</li>
+        <li>Kullanıcı deneyimini iyileştirmek ve öneri algoritmasını çalıştırmak</li>
+        <li>Uygulama içi hataları ve güvenlik tehditlerini tespit etmek</li>
+        <li>Beta sürecinde sistem testleri ve performans ölçümleri yapmak</li>
+        <li>Kullanıcılar arası iletişimi sağlamak</li>
+      </ul>
+      
+      <h4 style="color: var(--yt-spec-text-primary); margin: 20px 0 10px; font-size: 14px;">Veri Saklama Süresi</h4>
+      <p style="color: var(--yt-spec-text-secondary); line-height: 1.6; margin-bottom: 16px; font-size: 13px;">
+        Kullanıcı verileri, hesabınız aktif olduğu sürece ve uygulama faaliyetleri boyunca saklanır. Kullanıcı hesabı silinirse, kişisel veriler makul bir süre içerisinde sistemden kalıcı olarak silinir.
+      </p>
+      
+      <h4 style="color: var(--yt-spec-text-primary); margin: 20px 0 10px; font-size: 14px;">Veri Paylaşımı</h4>
+      <p style="color: var(--yt-spec-text-secondary); line-height: 1.6; margin-bottom: 16px; font-size: 13px;">
+        Kullanıcı verileri üçüncü taraflarla paylaşılmaz. Sadece yasal zorunluluk hâlinde veya sistem güvenliği için yetkili kişilerle paylaşılır.
+      </p>
+      
+      <h4 style="color: var(--yt-spec-text-primary); margin: 20px 0 10px; font-size: 14px;">Veri Güvenliği Önlemleri</h4>
+      <ul style="color: var(--yt-spec-text-secondary); line-height: 1.7; padding-left: 20px; margin-bottom: 16px; font-size: 13px;">
+        <li>Şifreler bcrypt ile hashlenir, düz metin olarak saklanmaz</li>
+        <li>IP adresleri yalnızca güvenlik ve erişim logları için kaydedilir</li>
+        <li>Veritabanı ve depolama servisleri SSL/TLS ile korunur</li>
+        <li>Depolama servisleri (Cloudinary, Firebase) veri güvenliği standartlarına uygundur</li>
+        <li>Başarısız giriş denemeleri takip edilir ve otomatik IP engelleme yapılır</li>
+      </ul>
+      
+      <h4 style="color: var(--yt-spec-text-primary); margin: 20px 0 10px; font-size: 14px;">Kullanıcı Hakları</h4>
+      <ul style="color: var(--yt-spec-text-secondary); line-height: 1.7; padding-left: 20px; margin-bottom: 16px; font-size: 13px;">
+        <li>Kendi kişisel verilerinize erişme ve doğrulama</li>
+        <li>Yanlış veya eksik verilerin düzeltilmesini talep etme</li>
+        <li>Verilerinizin silinmesini talep etme</li>
+        <li>Veri işleme ve paylaşımı ile ilgili itirazda bulunma</li>
+        <li>Arama ve izleme geçmişinizi istediğiniz zaman temizleme</li>
+        <li>Hesabınızı gizli yaparak içeriklerinizi sadece takipçilerinizle paylaşma</li>
+      </ul>
+      
+      <h4 style="color: var(--yt-spec-text-primary); margin: 20px 0 10px; font-size: 14px;">İçerik Yönetimi</h4>
+      <ul style="color: var(--yt-spec-text-secondary); line-height: 1.7; padding-left: 20px; margin-bottom: 16px; font-size: 13px;">
+        <li>Yüklediğiniz videolar ve fotoğraflar üzerinde tam kontrole sahipsiniz</li>
+        <li>İçeriklerinizi istediğiniz zaman düzenleyebilir veya silebilirsiniz</li>
+        <li>Yorumları ve beğenileri kapatma/açma seçeneğiniz vardır</li>
+        <li>İçeriklerinizi gizleyerek sadece siz görebilirsiniz</li>
+      </ul>
+      
+      <h4 style="color: var(--yt-spec-text-primary); margin: 20px 0 10px; font-size: 14px;">Onay ve Kabul</h4>
+      <p style="color: var(--yt-spec-text-secondary); line-height: 1.6; margin-bottom: 16px; font-size: 13px;">
+        Tea'a giriş yaparak veya üye olarak, yukarıda belirtilen kişisel veri işleme kurallarını ve güvenlik önlemlerini kabul etmiş olursunuz.
+      </p>
+      
+      <div style="background: rgba(255,0,51,0.1); border-left: 3px solid var(--yt-spec-brand-background-solid); padding: 12px; border-radius: 6px; margin-top: 20px;">
+        <p style="color: var(--yt-spec-text-primary); font-weight: 500; margin-bottom: 6px; font-size: 13px;">
+          <i class="fas fa-info-circle" style="margin-right: 6px;"></i>Önemli Not
+        </p>
+        <p style="color: var(--yt-spec-text-secondary); line-height: 1.6; font-size: 12px;">
+          Bu kullanım koşulları, Tea platformunun beta sürümü için geçerlidir. Kullanım koşulları güncellendiğinde, değişiklikler bu sayfada yayınlanacaktır.
+        </p>
+      </div>
+    </div>
+  `;
+  
+  showModal(termsText, 'Kullanım Koşulları');
+}
+
+
+// Yorum menüsünü göster (video sahibi için)
+function showCommentMenu(commentId, videoId, isPinned, isHidden, likedByOwner) {
+  const menu = document.createElement('div');
+  menu.style.cssText = `
+    position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6);
+    display:flex; align-items:flex-end;
+  `;
+  menu.innerHTML = `
+    <div style="width:100%; background:var(--yt-spec-raised-background); border-radius:20px 20px 0 0; padding:20px 16px 32px;">
+      <div style="width:40px; height:4px; background:rgba(255,255,255,0.2); border-radius:2px; margin:0 auto 20px;"></div>
+      
+      <button onclick="togglePinComment(${commentId}, ${videoId}, ${!isPinned}); document.getElementById('commentMenu').remove();"
+        style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
+        <div style="width:44px; height:44px; background:rgba(255,0,51,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
+          <i class="fas fa-thumbtack" style="color:#ff0033; font-size:18px;"></i>
+        </div>
+        <div style="text-align:left;">
+          <p style="font-weight:600; margin-bottom:2px;">${isPinned ? 'Sabitlemeyi Kaldır' : 'Yorumu Sabitle'}</p>
+          <p style="font-size:12px; color:var(--yt-spec-text-secondary);">${isPinned ? 'Sabitlemeyi kaldır' : 'Yorumu en üste sabitle'}</p>
+        </div>
+      </button>
+      
+      <button onclick="toggleHideComment(${commentId}, ${videoId}, ${!isHidden}); document.getElementById('commentMenu').remove();"
+        style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
+        <div style="width:44px; height:44px; background:rgba(255,165,0,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
+          <i class="fas fa-eye-slash" style="color:orange; font-size:18px;"></i>
+        </div>
+        <div style="text-align:left;">
+          <p style="font-weight:600; margin-bottom:2px;">${isHidden ? 'Askıdan Kaldır' : 'Askıya Al'}</p>
+          <p style="font-size:12px; color:var(--yt-spec-text-secondary);">${isHidden ? 'Yorumu tekrar göster' : 'Yorumu gizle'}</p>
+        </div>
+      </button>
+      
+      <button onclick="toggleOwnerLike(${commentId}, ${videoId}, ${!likedByOwner}); document.getElementById('commentMenu').remove();"
+        style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
+        <div style="width:44px; height:44px; background:rgba(255,0,51,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
+          <i class="fas fa-heart" style="color:#ff0033; font-size:18px;"></i>
+        </div>
+        <div style="text-align:left;">
+          <p style="font-weight:600; margin-bottom:2px;">${likedByOwner ? 'Beğeniyi Kaldır' : 'Beğen'}</p>
+          <p style="font-size:12px; color:var(--yt-spec-text-secondary);">${likedByOwner ? 'Beğeni işaretini kaldır' : 'Yorumu beğenildi olarak işaretle'}</p>
+        </div>
+      </button>
+      
+      <button onclick="document.getElementById('commentMenu').remove()"
+        style="width:100%; background:rgba(255,255,255,0.06); border:none; color:var(--yt-spec-text-secondary); padding:14px; border-radius:10px; font-size:14px; cursor:pointer; margin-top:8px;">
+        İptal
+      </button>
+    </div>
+  `;
+  menu.id = 'commentMenu';
+  menu.addEventListener('click', e => { if (e.target === menu) menu.remove(); });
+  document.body.appendChild(menu);
+}
+
+// Yorumu sabitle/sabitlemeyi kaldır
+async function togglePinComment(commentId, videoId, pin) {
+  try {
+    const res = await fetch(`${API_URL}/comment/${commentId}/pin`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id, videoId, pin })
+    });
+    if (res.ok) {
+      showToast(pin ? 'Yorum sabitlendi' : 'Sabitleme kaldırıldı', 'success');
+      // Video detayını yeniden yükle
+      const videoData = await fetch(`${API_URL}/video/${videoId}?userId=${currentUser.id}`).then(r => r.json());
+      loadComments(videoId, videoData.user_id);
+    }
+  } catch(e) {
+    showToast('Hata', 'error');
+  }
+}
+
+// Yorumu askıya al/kaldır
+async function toggleHideComment(commentId, videoId, hide) {
+  try {
+    const res = await fetch(`${API_URL}/comment/${commentId}/hide`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id, videoId, isHidden: hide })
+    });
+    if (res.ok) {
+      showToast(hide ? 'Yorum askıya alındı' : 'Askıdan kaldırıldı', 'success');
+      const videoData = await fetch(`${API_URL}/video/${videoId}?userId=${currentUser.id}`).then(r => r.json());
+      loadComments(videoId, videoData.user_id);
+    }
+  } catch(e) {
+    showToast('Hata', 'error');
+  }
+}
+
+// Video sahibi beğenisi
+async function toggleOwnerLike(commentId, videoId, liked) {
+  try {
+    const res = await fetch(`${API_URL}/comment/${commentId}/owner-like`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id, videoId, liked })
+    });
+    if (res.ok) {
+      showToast(liked ? 'Yorum beğenildi olarak işaretlendi' : 'Beğeni kaldırıldı', 'success');
+      const videoData = await fetch(`${API_URL}/video/${videoId}?userId=${currentUser.id}`).then(r => r.json());
+      loadComments(videoId, videoData.user_id);
+    }
+  } catch(e) {
+    showToast('Hata', 'error');
+  }
+}
+
+// Kullanıcı engelleme
+async function blockUserFromComment(userId, nickname) {
+  if (!confirm(`${nickname} kullanıcısını engellemek istediğinize emin misiniz? Bu kullanıcı size mesaj gönderemez, yorumlarınızı göremez ve içeriklerinize erişemez.`)) {
+    return;
+  }
+
+  try {
+    // Cihaz ID'si oluştur (tarayıcı fingerprint)
+    const deviceId = await getDeviceId();
+    
+    // IP adresini al (backend'de de alınacak ama frontend'den de gönderelim)
+    const res = await fetch(`${API_URL}/block-user`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        blockerId: currentUser.id,
+        blockedId: userId,
+        blockedDevice: deviceId
+      })
+    });
+
+    if (res.ok) {
+      showToast(`${nickname} engellendi`, 'success');
+    } else {
+      showToast('Engelleme başarısız', 'error');
+    }
+  } catch(e) {
+    showToast('Hata', 'error');
+  }
+}
+
+// Cihaz ID'si oluştur (basit fingerprint)
+async function getDeviceId() {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.textBaseline = 'top';
+  ctx.font = '14px Arial';
+  ctx.fillText('fingerprint', 2, 2);
+  const canvasData = canvas.toDataURL();
+  
+  const data = [
+    navigator.userAgent,
+    navigator.language,
+    screen.width + 'x' + screen.height,
+    new Date().getTimezoneOffset(),
+    canvasData.substring(0, 100)
+  ].join('|');
+  
+  // Basit hash
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const char = data.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return 'device_' + Math.abs(hash).toString(36);
+}
+
+// Engellenen kullanıcıları göster
+async function showBlockedUsers() {
+  try {
+    const res = await fetch(`${API_URL}/blocked-users/${currentUser.id}`);
+    const blocked = await res.json();
+
+    const content = `
+      <h3 style="margin-bottom:16px;">Engellenen Kullanıcılar</h3>
+      ${blocked.length === 0 ? '<p style="color:var(--yt-spec-text-secondary);">Henüz engellenmiş kullanıcı yok</p>' : ''}
+      ${blocked.map(b => `
+        <div style="display:flex; align-items:center; gap:12px; padding:12px; background:var(--yt-spec-raised-background); border-radius:8px; margin-bottom:8px;">
+          <img src="${getProfilePhotoUrl(b.profile_photo)}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;" />
+          <div style="flex:1;">
+            <p style="font-weight:500;">${b.nickname}</p>
+            <p style="font-size:12px; color:var(--yt-spec-text-secondary);">@${b.username}</p>
+          </div>
+          <button class="yt-btn yt-btn-secondary" onclick="unblockUser(${b.blocked_id}, '${b.nickname}')" style="padding:8px 16px; font-size:13px;">
+            Engeli Kaldır
+          </button>
+        </div>
+      `).join('')}
+    `;
+
+    showModal(content, 'Engellenen Kullanıcılar');
+  } catch(e) {
+    showToast('Hata', 'error');
+  }
+}
+
+// Engeli kaldır
+async function unblockUser(blockedId, nickname) {
+  if (!confirm(`${nickname} kullanıcısının engelini kaldırmak istediğinize emin misiniz?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/block-user/${currentUser.id}/${blockedId}`, {
+      method: 'DELETE'
+    });
+
+    if (res.ok) {
+      showToast('Engel kaldırıldı', 'success');
+      closeModal();
+      showBlockedUsers();
+    }
+  } catch(e) {
+    showToast('Hata', 'error');
+  }
+}

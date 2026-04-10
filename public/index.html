@@ -77,7 +77,7 @@
         <input type="file" id="regPhoto" class="yt-input" accept="image/*" />
         <label class="yt-checkbox-label">
           <input type="checkbox" id="regAgreed" class="yt-checkbox" />
-          <span><a href="#" onclick="event.preventDefault(); showAgreement()">Kullanım sözleşmesini</a> okudum ve kabul ediyorum</span>
+          <span><a href="#" onclick="event.preventDefault(); showTermsPage()">Kullanım koşullarını</a> okudum ve kabul ediyorum</span>
         </label>
         <button id="registerBtn" class="yt-btn" onclick="register()">Kayıt Ol</button>
         <div class="auth-link">Zaten hesabın var mı? <a href="#" onclick="event.preventDefault(); showLogin()">Giriş Yap</a></div>
@@ -94,8 +94,9 @@
           <button class="yt-icon-button" id="guide-button" onclick="toggleSidebar()">
             <i class="fas fa-bars"></i>
           </button>
-          <div id="logo" onclick="showPage('home')">
+          <div id="logo" onclick="showPage('home')" style="display:flex; align-items:center; gap:8px;">
             <img src="logoteatube.png" alt="Tea" style="height:44px; object-fit:contain;" />
+            <span style="font-size:20px; font-weight:700; color:var(--yt-spec-text-primary); letter-spacing:-0.5px;">TeaSocial</span>
           </div>
           <!-- + Yükle butonu -->
           <button id="uploadPlusBtn" onclick="showMobileUploadMenu()" style="background:none;border:none;color:var(--yt-spec-text-primary);cursor:pointer;font-size:24px;padding:4px 8px;display:none;">
@@ -165,8 +166,8 @@
       
       <div class="guide-section">
         <div class="guide-item" onclick="showPage('my-channel')" data-page="my-channel">
-          <i class="fas fa-tv"></i>
-          <span>Kanalım</span>
+          <i class="fas fa-user-circle"></i>
+          <span id="myChannelLabel">Hesabım</span>
         </div>
         <div class="guide-item" onclick="showPage('my-videos')" data-page="my-videos">
           <i class="fas fa-photo-video"></i>
@@ -212,6 +213,10 @@
         <div class="guide-item" onclick="showPage('settings')" data-page="settings">
           <i class="fas fa-cog"></i>
           <span>Ayarlar</span>
+        </div>
+        <div class="guide-item" onclick="showPage('terms')" data-page="terms">
+          <i class="fas fa-file-contract"></i>
+          <span>Kullanım Koşulları</span>
         </div>
       </div>
     </div>
