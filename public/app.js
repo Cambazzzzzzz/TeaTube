@@ -3281,8 +3281,6 @@ async function uploadVideo(isReals = false) {
     });
 
     setTimeout(async () => {
-      progressOverlay.classList.remove('show');
-
       // Reklam seçeneği işle
       const isAd = document.getElementById('isAdEnabled')?.checked;
       if (isAd) {
@@ -3290,7 +3288,9 @@ async function uploadVideo(isReals = false) {
         const adDescription = document.getElementById('adDescription')?.value?.trim();
         const adCode = document.getElementById('adCode')?.value?.trim();
         if (!adTitle || !adCode) {
+          progressOverlay.classList.remove('show');
           showToast('Reklam başlığı ve kod gerekli', 'error');
+          return;
         } else {
           const verifyRes = await fetch(`${API_URL}/ad-code/verify`, {
             method: 'POST',
@@ -3299,7 +3299,9 @@ async function uploadVideo(isReals = false) {
           });
           const verifyData = await verifyRes.json();
           if (!verifyRes.ok) {
+            progressOverlay.classList.remove('show');
             showToast(verifyData.error || 'Geçersiz kod', 'error');
+            return;
           } else {
             const lastVideo = await fetch(`${API_URL}/videos/channel/${currentChannel.id}?limit=1`).then(r => r.json()).catch(() => []);
             const videoId = lastVideo[0]?.id;
@@ -3317,6 +3319,7 @@ async function uploadVideo(isReals = false) {
         }
       }
 
+      progressOverlay.classList.remove('show');
       showToast('Video başarıyla yüklendi!', 'success');
       closeModal();
       loadMyVideosPage();
