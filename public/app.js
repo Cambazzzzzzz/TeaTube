@@ -1862,6 +1862,10 @@ async function checkShortLikeStatus(videoId) {
 
 // Anasayfa
 async function loadHomePage() {
+  if (window.innerWidth <= 768) {
+    return loadMobileHomePage();
+  }
+
   const pageContent = document.getElementById('pageContent');
   pageContent.innerHTML = `
     <!-- Kategori Filtreleri -->
@@ -1882,14 +1886,63 @@ async function loadHomePage() {
       <button class="category-chip" onclick="filterCategory(this, 'Spor highlights')">Spor</button>
       <button class="category-chip" onclick="filterCategory(this, 'Seyahat vlog')">Seyahat</button>
     </div>
-
     <div id="homeContent" style="margin-top: 24px;"></div>
     <div id="homeLoading" style="display:none; text-align:center; padding:40px;">
       <div class="yt-spinner" style="margin:auto;"></div>
     </div>
   `;
-
   loadHomeVideos('');
+}
+
+// ==================== MOBİL ANASAYFA (Instagram stili) ====================
+async function loadMobileHomePage() {
+  const pageContent = document.getElementById('pageContent');
+  pageContent.innerHTML = `<div class="yt-loading"><div class="yt-spinner"></div></div>`;
+
+  try {
+    // Sadece fotoğraf ve reals çek, uzun video yok
+    const [photos, reals] = await Promise.all([
+      fetch(`${API_URL}/videos?limit=40`).then(r => r.json()).catch(() => []),
+      fetch(`${API_URL}/shorts`).then(r => r.json()).catch(() => [])
+    ]);
+
+    const photoItems = photos.filter(v => v.video_type === 'Fotoğraf');
+    const realsItems = reals.slice(0, 20);
+
+    pageContent.innerHTML = `
+      <div class="mobile-feed">
+
+        <!-- Reals Stories Bar -->
+        ${realsItems.length > 0 ? `
+          <div class="mobile-stories-bar">
+            ${realsItems.map(v => `
+              <div class="mobile-story" onclick="openShortFromHome(${v.id})">
+                <div class="mobile-story-ring">
+                  <img src="${getProfilePhotoUrl(v.profile_photo)}" />
+                </div>
+                <p>${v.channel_name?.split(' ')[0] || 'Tea'}</p>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        <!-- Fotoğraf Feed (kare grid) -->
+        <div class="mobile-photo-grid" id="mobilePhotoGrid">
+          ${photoItems.length === 0
+            ? '<p style="text-align:center;color:var(--yt-spec-text-secondary);padding:40px 0;grid-column:1/-1;">Henüz içerik yok</p>'
+            : photoItems.map(v => `
+              <div class="mobile-photo-item" onclick="playVideo(${v.id})">
+                <img src="${v.video_url}" alt="${v.title}" loading="lazy" />
+                ${v.likes > 0 ? `<div class="mobile-photo-likes"><i class="fas fa-heart"></i> ${v.likes}</div>` : ''}
+              </div>
+            `).join('')
+          }
+        </div>
+      </div>
+    `;
+  } catch(e) {
+    pageContent.innerHTML = '<p style="text-align:center;padding:40px;color:var(--yt-spec-text-secondary);">Yüklenemedi</p>';
+  }
 }
 
 async function filterCategory(btn, category) {
