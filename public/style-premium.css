@@ -2263,3 +2263,105 @@ body {
   .mobile-nav-btn i { font-size: 18px; }
   .mobile-nav-btn span { font-size: 9px; }
 }
+
+/* ==================== MOBİL MESAJLAR ==================== */
+
+.mobile-messages-page {
+  height: calc(100vh - var(--ytd-masthead-height) - 60px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.mobile-friends-row {
+  display: flex;
+  gap: 12px;
+  padding: 8px 16px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.mobile-friends-row::-webkit-scrollbar { display: none; }
+
+.mobile-friend-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 64px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-chat-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s;
+}
+.mobile-chat-row:active { background: rgba(255,255,255,0.05); }
+
+/* Tam ekran chat */
+.mobile-chat-fullscreen {
+  position: fixed;
+  inset: 0;
+  top: var(--ytd-masthead-height);
+  bottom: 60px; /* alt nav */
+  background: var(--yt-spec-base-background);
+  display: flex;
+  flex-direction: column;
+  z-index: 500;
+  overflow: hidden;
+}
+
+.mobile-chat-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: var(--yt-spec-raised-background);
+  flex-shrink: 0;
+  min-height: 56px;
+}
+
+.mobile-chat-fullscreen .chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-chat-fullscreen .chat-input-wrapper {
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  background: var(--yt-spec-raised-background);
+  padding: 8px;
+}
+
+/* Profil butonları taşmasın */
+@media (max-width: 480px) {
+  .profile-page [style*="display: flex"][style*="gap: 10px"] {
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+  .profile-page .yt-btn {
+    font-size: 12px;
+    padding: 0 10px;
+    height: 32px;
+  }
+
+  /* Genel taşma engeli */
+  #pageContent {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
