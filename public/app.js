@@ -1360,7 +1360,15 @@ function renderShortsPlayer() {
                 <p style="font-size:12px; color:rgba(255,255,255,0.7);">${v.subscriber_count} abone</p>
               </div>
             </div>
-            <p style="font-size:14px; line-height:1.4;">${v.title}</p>
+            <p style="font-size:14px; line-height:1.4; cursor:pointer; user-select:none;" onclick="toggleShortDesc()" id="shortTitleEl">
+              ${v.title}
+              ${v.description ? `<i class="fas fa-chevron-down" id="shortDescChevron" style="font-size:11px; margin-left:6px; opacity:0.7; transition:transform 0.2s;"></i>` : ''}
+            </p>
+            ${v.description ? `
+              <div id="shortDescEl" style="display:none; margin-top:8px; font-size:13px; color:rgba(255,255,255,0.8); line-height:1.5; max-height:120px; overflow-y:auto;">
+                ${v.description}
+              </div>
+            ` : ''}
           </div>
         </div>
 
@@ -1496,6 +1504,15 @@ function setShortVolume(val) {
 
   localStorage.setItem('tea_volume', volume);
   localStorage.setItem('tea_muted', volume === 0);
+}
+
+function toggleShortDesc() {
+  const desc = document.getElementById('shortDescEl');
+  const chevron = document.getElementById('shortDescChevron');
+  if (!desc) return;
+  const isOpen = desc.style.display !== 'none';
+  desc.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
 }
 
 function nextShort() {
