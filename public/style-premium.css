@@ -73,9 +73,9 @@ body {
 #start {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex: 0 0 auto;
-  width: 240px;
+  min-width: 0;
 }
 
 /* Center - Arama: her zaman tam ortada */
@@ -87,6 +87,13 @@ body {
   max-width: 560px;
   display: flex;
   justify-content: center;
+  pointer-events: none;
+}
+
+#center form {
+  pointer-events: all;
+  width: 100%;
+  max-width: 480px;
 }
 
 /* End - Sağ butonlar: sabit sağda */
@@ -2073,9 +2080,10 @@ body {
   .video-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   #center { margin: 0 8px; }
 
-  /* Header */
-  #masthead-container { padding: 0 8px; }
+  /* Header — start sabit küçük */
+  #start { gap: 8px; }
   #logo img { height: 32px !important; }
+  #logo span { font-size: 15px; }
 
   /* Watch page */
   .watch-page { flex-direction: column; }
@@ -2113,9 +2121,12 @@ body {
 }
 
 @media (max-width: 480px) {
-  /* Header — arama gizle, sadece ikon */
+  /* Header — arama gizle, arama ikonu göster */
   #center { display: none; }
   #end { gap: 4px; }
+
+  /* Arama ikonu mobilde göster */
+  #mobileSearchBtn { display: flex !important; }
 
   /* Video grid tek kolon */
   .video-grid { grid-template-columns: 1fr; }
@@ -2138,6 +2149,7 @@ body {
   /* Masthead */
   #masthead-container { gap: 4px; }
   #logo img { height: 28px !important; }
+  #logo span { display: none; }
 
   /* Guide items */
   .guide-item span { font-size: 12px; }

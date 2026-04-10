@@ -7,6 +7,28 @@ let currentChannel = null;
 let currentPage = 'home';
 let sidebarOpen = true;
 
+// Mobil arama toggle
+function toggleMobileSearch() {
+  const center = document.getElementById('center');
+  if (!center) return;
+  const isVisible = center.style.display === 'flex';
+  if (isVisible) {
+    center.style.cssText = '';
+  } else {
+    center.style.display = 'flex';
+    center.style.position = 'fixed';
+    center.style.top = 'var(--ytd-masthead-height)';
+    center.style.left = '0';
+    center.style.right = '0';
+    center.style.transform = 'none';
+    center.style.background = 'var(--yt-spec-base-background)';
+    center.style.padding = '8px 12px';
+    center.style.zIndex = '2021';
+    center.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+    setTimeout(() => document.getElementById('searchInput')?.focus(), 100);
+  }
+}
+
 // Sidebar toggle
 function toggleSidebar() {
   const guide = document.getElementById('guide');
