@@ -1751,7 +1751,7 @@ function displayVideos(videos, containerId) {
 // Profil fotoğrafı URL'sini düzelt
 function getProfilePhotoUrl(photo) {
   if (!photo || photo === '?') {
-    return 'teatube.png';
+    return 'logoteatube.png';
   }
   return photo;
 }
