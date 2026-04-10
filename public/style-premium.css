@@ -1018,19 +1018,6 @@ body {
   #center { display: none; }
   .auth-container { padding: 32px 24px; }
 }
-    margin: 0 8px;
-  }
-}
-
-@media (max-width: 480px) {
-  #center {
-    display: none;
-  }
-  
-  .auth-container {
-    padding: 32px 24px;
-  }
-}
 
 /* ==================== CATEGORY BAR ==================== */
 .category-bar {
@@ -2077,4 +2064,138 @@ body {
   border-color: var(--yt-spec-brand-background-solid);
   background: rgba(255,0,51,0.1);
   color: var(--yt-spec-brand-background-solid);
+}
+
+/* ==================== MOBİL UYUM ==================== */
+
+@media (max-width: 768px) {
+  /* Video grid */
+  .video-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  #center { margin: 0 8px; }
+
+  /* Header */
+  #masthead-container { padding: 0 8px; }
+  #logo img { height: 32px !important; }
+
+  /* Watch page */
+  .watch-page { flex-direction: column; }
+  .watch-primary { width: 100%; }
+  .watch-secondary { width: 100%; }
+
+  /* Messages */
+  .messages-layout { flex-direction: column; height: auto; }
+  .messages-sidebar { width: 100%; height: 200px; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .messages-chat { height: calc(100vh - 300px); }
+
+  /* Shorts */
+  .shorts-container { padding: 0; }
+  .shorts-player-wrap { max-width: 100%; }
+
+  /* Profile */
+  .profile-page { padding: 0; }
+
+  /* Settings */
+  .settings-card { padding: 16px; }
+
+  /* Modal */
+  .yt-modal-content { width: 95% !important; max-width: 95% !important; padding: 20px 16px; }
+
+  /* Auth */
+  .auth-container { padding: 32px 20px; width: 100%; max-width: 100%; border-radius: 0; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+  .auth-screen { align-items: flex-start; }
+
+  /* Upload type buttons */
+  .upload-type-btn { padding: 10px 4px; font-size: 12px; }
+  .upload-type-btn small { display: none; }
+
+  /* Shorts grid */
+  .shorts-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  /* Header — arama gizle, sadece ikon */
+  #center { display: none; }
+  #end { gap: 4px; }
+
+  /* Video grid tek kolon */
+  .video-grid { grid-template-columns: 1fr; }
+
+  /* Shorts grid tek kolon */
+  .shorts-grid { grid-template-columns: 1fr; }
+
+  /* Auth */
+  .auth-container { padding: 24px 16px; }
+  .auth-logo h1 { font-size: 24px; }
+
+  /* Watch actions */
+  .watch-actions { flex-wrap: wrap; gap: 6px; }
+  .watch-action-btn { font-size: 12px; padding: 6px 10px; }
+
+  /* Category bar */
+  .category-bar { gap: 6px; }
+  .category-chip { font-size: 12px; padding: 6px 12px; }
+
+  /* Masthead */
+  #masthead-container { gap: 4px; }
+  #logo img { height: 28px !important; }
+
+  /* Guide items */
+  .guide-item span { font-size: 12px; }
+
+  /* Section header */
+  .section-header { font-size: 18px; }
+
+  /* Buttons */
+  .yt-btn { font-size: 13px; }
+
+  /* Modal full screen on mobile */
+  .yt-modal-content { 
+    width: 100% !important; 
+    max-width: 100% !important; 
+    border-radius: 16px 16px 0 0; 
+    position: fixed; 
+    bottom: 0; 
+    left: 0; 
+    right: 0;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  #modal { align-items: flex-end; }
+
+  /* Profile page */
+  .profile-page { padding: 0 4px; }
+
+  /* Messages full screen */
+  .messages-layout { height: calc(100vh - 56px); }
+  .messages-sidebar { height: 160px; }
+  .messages-chat { height: calc(100vh - 220px); }
+
+  /* Chat input */
+  .chat-input-wrapper { padding: 8px; }
+  .chat-textarea { font-size: 14px; }
+
+  /* Float chat widget */
+  .float-chat-widget { width: calc(100vw - 16px) !important; right: 8px !important; bottom: 8px !important; }
+}
+
+/* Mobil alt navigasyon (telefon için) */
+@media (max-width: 768px) {
+  #content {
+    padding-bottom: 64px;
+  }
+}
+
+/* Dokunmatik iyileştirmeler */
+@media (hover: none) and (pointer: coarse) {
+  .yt-btn { min-height: 44px; }
+  .yt-input { min-height: 44px; font-size: 16px; } /* iOS zoom engelle */
+  .yt-select { min-height: 44px; font-size: 16px; }
+  .guide-item { min-height: 44px; }
+  .category-chip { min-height: 36px; }
+  .video-card { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .short-card { -webkit-tap-highlight-color: transparent; }
+}
+
+@media (max-width: 480px) {
+  #logo span { display: none; }
 }

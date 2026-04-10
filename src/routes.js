@@ -588,7 +588,7 @@ router.get('/videos', (req, res) => {
       JOIN channels c ON v.channel_id = c.id
       JOIN users u ON c.user_id = u.id
       LEFT JOIN user_settings us ON us.user_id = c.user_id
-      WHERE COALESCE(us.is_private, 0) = 0
+      WHERE COALESCE(us.is_private, 0) = 0 AND COALESCE(v.is_hidden, 0) = 0
       ORDER BY v.created_at DESC
       LIMIT ? OFFSET ?
     `).all(limit, offset);
@@ -1901,5 +1901,50 @@ router.delete('/ad/:adId', (req, res) => {
     res.json({ success: true });
   } catch(e) {
     res.status(500).json({ error: 'Reklam silinemedi' });
+  }
+});
+
+// ==================== VİDEO YÖNETİM ====================
+
+// Video sil
+router.delete('/video/:videoId', (req, res) => {
+  try {
+    const { channelId } = req.body;
+    // Sahiplik kontrolü
+    const video = db.prepare('SELECT channel_id FROM videos WHERE id = ?').get(req.params.videoId);
+    if (!video) return res.status(404).json({ error: 'Video bulunamadı' });
+    if (channelId && video.channel_id != channelId) return res.status(403).json({ error: 'Yetkisiz' });
+    db.prepare('DELETE FROM videos WHERE id = ?').run(req.params.videoId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Video silinemedi' });
+  }
+});
+
+// Video güncelle (başlık, açıklama, yorumlar, beğeniler, gizlilik)
+router.put('/video/:videoId', (req, res) => {
+  try {
+    const { title, description, commentsEnabled, likesVisible, isHidden, channelId } = req.body;
+    const video = db.prepare('SELECT channel_id FROM videos WHERE id = ?').get(req.params.videoId);
+    if (!video) return res.status(404).json({ error: 'Video bulunamadı' });
+    if (channelId && video.channel_id != channelId) return res.status(403).json({ error: 'Yetkisiz' });
+
+    // is_hidden kolonu yoksa ekle
+    try { db.prepare('ALTER TABLE videos ADD COLUMN is_hidden INTEGER DEFAULT 0').run(); } catch(e) {}
+
+    db.prepare(`
+      UPDATE videos SET
+        title = COALESCE(?, title),
+        description = COALESCE(?, description),
+        comments_enabled = COALESCE(?, comments_enabled),
+        likes_visible = COALESCE(?, likes_visible),
+        is_hidden = COALESCE(?, is_hidden)
+      WHERE id = ?
+    `).run(title ?? null, description ?? null, commentsEnabled ?? null, likesVisible ?? null, isHidden ?? null, req.params.videoId);
+
+    res.json({ success: true });
+  } catch(e) {
+    console.error(e);
+    res.status(500).json({ error: 'Video güncellenemedi' });
   }
 });

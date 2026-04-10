@@ -269,6 +269,11 @@ try {
   db.prepare('ALTER TABLE videos ADD COLUMN is_short INTEGER DEFAULT 0').run();
 } catch(e) {}
 
+// is_hidden kolonu ekle (yoksa)
+try {
+  db.prepare('ALTER TABLE videos ADD COLUMN is_hidden INTEGER DEFAULT 0').run();
+} catch(e) {}
+
 // Yorum beğeni tablosu
 db.exec(`
   CREATE TABLE IF NOT EXISTS comment_likes (

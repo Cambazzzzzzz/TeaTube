@@ -48,15 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadUserData();
   }
   
-  // Kayıt checkbox kontrolü
-  const regAgreed = document.getElementById('regAgreed');
-  const registerBtn = document.getElementById('registerBtn');
-  if (regAgreed && registerBtn) {
-    regAgreed.addEventListener('change', () => {
-      registerBtn.disabled = !regAgreed.checked;
-    });
-  }
-  
   // Başlangıçta sidebar durumunu ayarla
   if (window.innerWidth <= 1312) {
     const guide = document.getElementById('guide');
@@ -168,11 +159,6 @@ async function register() {
     return;
   }
 
-  if (!agreed) {
-    alert('Kullanım sözleşmesini kabul etmelisiniz');
-    return;
-  }
-
   const formData = new FormData();
   formData.append('username', username);
   formData.append('nickname', nickname);
@@ -191,8 +177,16 @@ async function register() {
     const data = await response.json();
 
     if (response.ok) {
-      alert('Kayıt başarılı! Giriş yapabilirsiniz.');
+      showToast('Kayıt başarılı!', 'success');
       showLogin();
+      // Kayıt sonrası giriş yap ve kanal oluşturma ekranını göster
+      setTimeout(() => {
+        document.getElementById('loginUsername').value = username;
+        document.getElementById('loginPassword').value = password;
+        login().then(() => {
+          // login içinde loadUserData çağrılıyor, kanal yoksa showCreateChannelAfterRegister çağrılacak
+        });
+      }, 500);
     } else {
       alert(data.error || 'Kayıt başarısız');
     }
@@ -265,8 +259,13 @@ async function loadUserData() {
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
 
-    // Anasayfayı yükle
-    showPage('home');
+    // Kanal yoksa oluşturma ekranı göster, varsa anasayfa
+    if (!currentChannel) {
+      showPage('home');
+      setTimeout(() => showCreateChannelOnboarding(), 300);
+    } else {
+      showPage('home');
+    }
   } catch (error) {
     console.error('Kullanıcı verisi yükleme hatası:', error);
   }
@@ -644,7 +643,12 @@ function openChat(friendId, friendName, friendPhoto) {
   if (friendEl) friendEl.classList.add('active');
 
   const chatArea = document.getElementById('chatArea');
-  if (!chatArea) { showPage('messages'); return; }
+  if (!chatArea) {
+    // Mesajlar sayfasına geç, sonra chat'i aç
+    showPage('messages');
+    setTimeout(() => openChat(friendId, friendName, friendPhoto), 400);
+    return;
+  }
 
   chatArea.innerHTML = `
     <!-- Chat Header -->
@@ -1747,7 +1751,7 @@ function displayVideos(videos, containerId) {
 // Profil fotoğrafı URL'sini düzelt
 function getProfilePhotoUrl(photo) {
   if (!photo || photo === '?') {
-    return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="36" height="36"%3E%3Ccircle cx="18" cy="18" r="18" fill="%23666"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" font-size="18" fill="%23fff"%3E?%3C/text%3E%3C/svg%3E';
+    return 'teatube.png';
   }
   return photo;
 }
@@ -2514,26 +2518,16 @@ async function loadAcceptedPartners() {
   } catch(e) {}
 }
 
-// Kanalım sayfası - kanal yoksa otomatik oluştur
+// Kanalım sayfası - kanal yoksa onboarding göster
 async function loadMyChannelPage() {
   const pageContent = document.getElementById('pageContent');
   pageContent.innerHTML = `<div class="yt-loading"><div class="yt-spinner"></div></div>`;
 
-  // Kanal yoksa otomatik oluştur
+  // Kanal yoksa onboarding göster
   if (!currentChannel) {
-    try {
-      const formData = new FormData();
-      formData.append('userId', currentUser.id);
-      formData.append('channelName', currentUser.nickname + "'in Kanalı");
-      formData.append('about', '');
-      formData.append('agreed', 'true');
-      const res = await fetch(`${API_URL}/channel`, { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.channelId) {
-        const chRes = await fetch(`${API_URL}/channel/user/${currentUser.id}`);
-        currentChannel = await chRes.json();
-      }
-    } catch(e) { console.error(e); }
+    showCreateChannelOnboarding();
+    showPage('home');
+    return;
   }
 
   loadProfilePage();
@@ -3003,7 +2997,18 @@ async function uploadPhoto() {
 async function loadMyVideosPage() {
   if (!currentChannel) {
     const pageContent = document.getElementById('pageContent');
-    pageContent.innerHTML = '<p>Önce bir kanal oluşturmalısınız</p>';
+    pageContent.innerHTML = `
+      <div style="text-align:center; padding:60px 20px;">
+        <div style="width:80px; height:80px; background:rgba(255,0,51,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">
+          <i class="fas fa-play" style="font-size:32px; color:#ff0033;"></i>
+        </div>
+        <h2 style="font-size:22px; font-weight:700; margin-bottom:10px;">Henüz kanalın yok</h2>
+        <p style="color:var(--yt-spec-text-secondary); margin-bottom:24px;">İçerik paylaşmaya başlamak için bir kanal oluştur</p>
+        <button class="yt-btn" style="height:48px; padding:0 32px; font-size:15px;" onclick="showCreateChannelOnboarding()">
+          <i class="fas fa-plus" style="margin-right:8px;"></i>Kanal Oluştur
+        </button>
+      </div>
+    `;
     return;
   }
 
@@ -3014,16 +3019,128 @@ async function loadMyVideosPage() {
     const pageContent = document.getElementById('pageContent');
     pageContent.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 class="section-header" style="margin: 0;">Videolarım</h2>
+        <h2 class="section-header" style="margin: 0;">İçeriklerim</h2>
         <button class="yt-btn" onclick="showUploadVideoModal()"><i class="fas fa-upload"></i> Yükle</button>
       </div>
-      <div id="myVideos" class="video-grid"></div>
+      <div id="myVideos"></div>
     `;
 
-    displayVideos(videos, 'myVideos');
+    renderMyVideos(videos);
   } catch (error) {
     console.error('Videolar yükleme hatası:', error);
   }
+}
+
+function renderMyVideos(videos) {
+  const container = document.getElementById('myVideos');
+  if (!container) return;
+  if (!videos || videos.length === 0) {
+    container.innerHTML = '<p style="color:var(--yt-spec-text-secondary); padding:20px 0;">Henüz içerik yok. Yükle butonuna bas!</p>';
+    return;
+  }
+  container.innerHTML = videos.map(v => `
+    <div style="display:flex; align-items:center; gap:12px; padding:12px; background:var(--yt-spec-raised-background); border-radius:10px; margin-bottom:10px; ${v.is_hidden ? 'opacity:0.5;' : ''}">
+      <img src="${v.banner_url}" style="width:100px; height:60px; object-fit:cover; border-radius:6px; flex-shrink:0; cursor:pointer;" onclick="playVideo(${v.id})" />
+      <div style="flex:1; min-width:0;">
+        <p style="font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${v.title}</p>
+        <div style="display:flex; gap:12px; margin-top:4px; flex-wrap:wrap;">
+          <span style="font-size:12px; color:var(--yt-spec-text-secondary);"><i class="fas fa-eye"></i> ${v.views}</span>
+          <span style="font-size:12px; color:var(--yt-spec-text-secondary);"><i class="fas fa-thumbs-up"></i> ${v.likes}</span>
+          ${v.is_hidden ? '<span style="font-size:11px; background:rgba(255,165,0,0.2); color:orange; padding:2px 6px; border-radius:4px;">Gizli</span>' : ''}
+          ${!v.comments_enabled ? '<span style="font-size:11px; background:rgba(255,0,0,0.15); color:#ff6b6b; padding:2px 6px; border-radius:4px;">Yorumlar kapalı</span>' : ''}
+        </div>
+      </div>
+      <button onclick="showVideoManageMenu(${v.id}, '${v.title.replace(/'/g,"\\'")}', ${v.comments_enabled}, ${v.likes_visible}, ${v.is_hidden || 0})"
+        style="background:none; border:none; color:var(--yt-spec-text-secondary); cursor:pointer; padding:8px; border-radius:6px; flex-shrink:0;"
+        title="Yönet">
+        <i class="fas fa-ellipsis-v" style="font-size:16px;"></i>
+      </button>
+    </div>
+  `).join('');
+}
+
+function showVideoManageMenu(videoId, title, commentsEnabled, likesVisible, isHidden) {
+  showModal(`
+    <p style="font-size:13px; color:var(--yt-spec-text-secondary); margin-bottom:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${title}</p>
+
+    <div class="yt-form-group">
+      <label class="yt-form-label">Başlık</label>
+      <input type="text" id="editVTitle" class="yt-input" value="${title}" />
+    </div>
+    <div class="yt-form-group">
+      <label class="yt-form-label">Açıklama</label>
+      <textarea id="editVDesc" class="yt-textarea" placeholder="Açıklama..."></textarea>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+      <label class="yt-checkbox-label">
+        <input type="checkbox" id="editVComments" class="yt-checkbox" ${commentsEnabled ? 'checked' : ''} />
+        <span>Yorumları aç</span>
+      </label>
+      <label class="yt-checkbox-label">
+        <input type="checkbox" id="editVLikes" class="yt-checkbox" ${likesVisible ? 'checked' : ''} />
+        <span>Beğeni sayısını göster</span>
+      </label>
+      <label class="yt-checkbox-label">
+        <input type="checkbox" id="editVHidden" class="yt-checkbox" ${isHidden ? 'checked' : ''} />
+        <span>Gizle (anasayfada görünmez)</span>
+      </label>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="yt-btn" onclick="saveVideoEdit(${videoId})" style="flex:1;">Kaydet</button>
+      <button class="yt-btn yt-btn-secondary" onclick="confirmDeleteVideo(${videoId})" style="background:rgba(220,53,69,0.15); border-color:rgba(220,53,69,0.3); color:#ff6b6b;">
+        <i class="fas fa-trash"></i> Sil
+      </button>
+      <button class="yt-btn yt-btn-secondary" onclick="closeModal()" style="flex:1;">İptal</button>
+    </div>
+  `, 'İçeriği Yönet');
+}
+
+async function saveVideoEdit(videoId) {
+  const title = document.getElementById('editVTitle')?.value?.trim();
+  const description = document.getElementById('editVDesc')?.value?.trim();
+  const commentsEnabled = document.getElementById('editVComments')?.checked ? 1 : 0;
+  const likesVisible = document.getElementById('editVLikes')?.checked ? 1 : 0;
+  const isHidden = document.getElementById('editVHidden')?.checked ? 1 : 0;
+
+  try {
+    const res = await fetch(`${API_URL}/video/${videoId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, description, commentsEnabled, likesVisible, isHidden, channelId: currentChannel.id })
+    });
+    if (res.ok) {
+      showToast('Kaydedildi!', 'success');
+      closeModal();
+      loadMyVideosPage();
+    } else {
+      const d = await res.json();
+      showToast(d.error || 'Hata', 'error');
+    }
+  } catch(e) { showToast('Hata', 'error'); }
+}
+
+function confirmDeleteVideo(videoId) {
+  if (!confirm('Bu içeriği silmek istediğine emin misin? Bu işlem geri alınamaz.')) return;
+  deleteVideo(videoId);
+}
+
+async function deleteVideo(videoId) {
+  try {
+    const res = await fetch(`${API_URL}/video/${videoId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channelId: currentChannel.id })
+    });
+    if (res.ok) {
+      showToast('İçerik silindi', 'success');
+      closeModal();
+      loadMyVideosPage();
+    } else {
+      showToast('Silinemedi', 'error');
+    }
+  } catch(e) { showToast('Hata', 'error'); }
 }
 
 // İzlenenler sayfası - her video bir kez
@@ -3921,6 +4038,62 @@ window.onclick = function(event) {
   const modal = document.getElementById('modal');
   if (event.target === modal) {
     closeModal();
+  }
+}
+
+// ==================== KANAL OLUŞTURMA ONBOARDING ====================
+
+function showCreateChannelOnboarding() {
+  const overlay = document.createElement('div');
+  overlay.id = 'channelOnboarding';
+  overlay.style.cssText = `
+    position:fixed; inset:0; z-index:9998; background:rgba(0,0,0,0.85);
+    display:flex; align-items:center; justify-content:center; padding:16px;
+  `;
+  overlay.innerHTML = `
+    <div style="background:var(--yt-spec-raised-background); border-radius:20px; padding:32px 28px; width:100%; max-width:420px; border:1px solid rgba(255,255,255,0.1); box-shadow:0 24px 64px rgba(0,0,0,0.6);">
+      <div style="text-align:center; margin-bottom:24px;">
+        <div style="width:64px; height:64px; background:rgba(255,0,51,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+          <i class="fas fa-play" style="font-size:24px; color:#ff0033;"></i>
+        </div>
+        <h2 style="font-size:22px; font-weight:700; margin-bottom:8px;">Kanalını Oluştur</h2>
+        <p style="font-size:14px; color:var(--yt-spec-text-secondary);">İçerik paylaşmaya başlamak için bir kanal adı belirle</p>
+      </div>
+      <div class="yt-form-group">
+        <input type="text" id="onboardingChannelName" class="yt-input" placeholder="Kanal adın" value="${currentUser?.nickname || ''}" style="text-align:center; font-size:16px;" />
+      </div>
+      <button class="yt-btn" style="width:100%; height:50px; font-size:15px; font-weight:600; margin-top:8px;" onclick="createChannelFromOnboarding()">
+        <i class="fas fa-rocket" style="margin-right:8px;"></i>Kanalı Oluştur
+      </button>
+      <button onclick="document.getElementById('channelOnboarding').remove()" style="width:100%; background:none; border:none; color:var(--yt-spec-text-secondary); font-size:13px; margin-top:12px; cursor:pointer; padding:8px;">Şimdi değil</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('onboardingChannelName')?.focus(), 100);
+}
+
+async function createChannelFromOnboarding() {
+  const name = document.getElementById('onboardingChannelName')?.value?.trim();
+  if (!name) { showToast('Kanal adı gerekli', 'error'); return; }
+
+  try {
+    const formData = new FormData();
+    formData.append('userId', currentUser.id);
+    formData.append('channelName', name);
+    formData.append('about', '');
+    formData.append('agreed', 'true');
+    const res = await fetch(`${API_URL}/channel`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (res.ok) {
+      const chRes = await fetch(`${API_URL}/channel/user/${currentUser.id}`);
+      currentChannel = await chRes.json();
+      document.getElementById('channelOnboarding')?.remove();
+      showToast('Kanal oluşturuldu!', 'success');
+    } else {
+      showToast(data.error || 'Kanal oluşturulamadı', 'error');
+    }
+  } catch(e) {
+    showToast('Hata oluştu', 'error');
   }
 }
 
