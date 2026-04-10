@@ -1507,13 +1507,14 @@ function renderShortsPlayer() {
     <div class="shorts-container" id="shortsContainer">
       <div class="shorts-player-wrap">
 
-        <!-- Sol: Ses Kontrolü -->
-        <div class="shorts-left-controls">
-          <button class="shorts-action-btn" id="shortMuteBtn" onclick="toggleShortMute()" title="Ses">
-            <i class="fas fa-volume-up" id="shortVolumeIcon"></i>
+        <!-- Ses Kontrolü (sağ alt) -->
+        <div class="shorts-left-controls" style="position:absolute; right:12px; bottom:100px; left:auto; z-index:20; display:flex; flex-direction:row; align-items:center; gap:8px; background:rgba(0,0,0,0.4); border-radius:20px; padding:6px 10px;">
+          <button class="shorts-action-btn" id="shortMuteBtn" onclick="toggleShortMute()" title="Ses" style="width:32px; height:32px; min-width:unset; background:none; box-shadow:none;">
+            <i class="fas fa-volume-up" id="shortVolumeIcon" style="font-size:16px;"></i>
           </button>
           <input type="range" id="shortVolumeSlider" min="0" max="100" value="100"
                  class="shorts-volume-slider"
+                 style="writing-mode:horizontal-tb; width:80px; height:4px;"
                  oninput="setShortVolume(this.value)"
                  title="Ses seviyesi" />
         </div>

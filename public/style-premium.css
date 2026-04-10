@@ -2406,9 +2406,20 @@ body {
   /* Sol ses kontrolü */
   .shorts-left-controls {
     position: absolute;
-    left: 8px;
-    bottom: 120px;
+    right: 8px;
+    bottom: 16px;
+    left: auto;
     z-index: 10;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Ses slider yatay */
+  .shorts-volume-slider {
+    writing-mode: horizontal-tb !important;
+    width: 80px !important;
+    height: 4px !important;
   }
 }
 
