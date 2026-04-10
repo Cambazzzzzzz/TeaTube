@@ -1,6 +1,6 @@
 {
-  "name": "TeaTube",
-  "short_name": "TeaTube",
+  "name": "Tea",
+  "short_name": "Tea",
   "description": "Video Paylaşım Platformu",
   "start_url": "/",
   "display": "standalone",

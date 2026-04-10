@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TeaTube</title>
+  <title>Tea</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ff0033" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="TeaTube" />
+  <meta name="apple-mobile-web-app-title" content="Tea" />
   <link rel="apple-touch-icon" href="logoteatube.png" />
   <link rel="icon" type="image/png" href="logoteatube.png" />
   <link rel="stylesheet" href="fa/css/all.min.css">
@@ -57,7 +57,7 @@
     <div class="auth-container">
       <div class="auth-logo">
         <img src="logoteatube.png" alt="TeaTube" style="height:72px; object-fit:contain; filter:drop-shadow(0 0 20px #ff003344);" />
-        <h1>TeaTube</h1>
+        <h1>Tea</h1>
         <p style="font-size:13px; color:rgba(255,255,255,0.4); margin-top:4px; font-weight:300;">Video Paylaşım Platformu</p>
       </div>
 
@@ -95,9 +95,12 @@
             <i class="fas fa-bars"></i>
           </button>
           <div id="logo" onclick="showPage('home')">
-            <img src="logoteatube.png" alt="TeaTube" style="height:44px; object-fit:contain;" />
-            <span style="font-weight:700; font-size:17px; letter-spacing:-0.3px; color:var(--yt-spec-text-primary);">TeaTube</span>
+            <img src="logoteatube.png" alt="Tea" style="height:44px; object-fit:contain;" />
           </div>
+          <!-- + Yükle butonu -->
+          <button id="uploadPlusBtn" onclick="showMobileUploadMenu()" style="background:none;border:none;color:var(--yt-spec-text-primary);cursor:pointer;font-size:24px;padding:4px 8px;display:none;">
+            <i class="fas fa-plus-circle" style="color:var(--yt-spec-brand-background-solid);"></i>
+          </button>
         </div>
         
         <div id="center">
@@ -113,15 +116,15 @@
           <button id="mobileSearchBtn" class="yt-icon-button" style="display:none;" onclick="toggleMobileSearch()">
             <i class="fas fa-search"></i>
           </button>
-          <button class="yt-icon-button" onclick="showPage('messages')">
+          <button class="yt-icon-button" onclick="showPage('messages')" style="position:relative;">
             <i class="fas fa-comment-dots"></i>
             <span id="msgBadge" class="badge" style="display: none;"></span>
           </button>
-          <button class="yt-icon-button" onclick="showPage('notifications')">
+          <button class="yt-icon-button" onclick="showPage('notifications')" style="position:relative;">
             <i class="fas fa-bell"></i>
             <span id="notifBadge" class="badge" style="display: none;"></span>
           </button>
-          <img id="userPhoto" alt="Profil" onclick="showPage('profile')" />
+          <img id="userPhoto" alt="Profil" onclick="window.innerWidth <= 768 ? showMobileProfileSheet() : showPage('profile')" />
         </div>
       </div>
     </div>
@@ -221,28 +224,16 @@
       <div id="pageContent"></div>
     </div>
 
-    <!-- Mobil Alt Navigasyon (sadece telefonda görünür) -->
-    <nav id="mobileNav" class="mobile-nav">
-      <button class="mobile-nav-btn active" data-page="home" onclick="mobileNavTo('home')">
-        <i class="fas fa-home"></i>
-        <span>Ana Sayfa</span>
-      </button>
-      <button class="mobile-nav-btn" data-page="search-mobile" onclick="mobileNavTo('search-mobile')">
+    <!-- Mobil Alt Bar (Arama sol, Reals orta, Profil sağ) -->
+    <nav id="mobileBottomBar" class="mobile-bottom-bar">
+      <button class="mbb-btn" onclick="toggleMobileSearch()">
         <i class="fas fa-search"></i>
-        <span>Ara</span>
       </button>
-      <button class="mobile-nav-btn" data-page="shorts" onclick="mobileNavTo('shorts')">
+      <button class="mbb-btn mbb-reals" onclick="showPage('shorts'); updateMobileBottomBar('shorts')">
         <i class="fas fa-film"></i>
-        <span>Reals</span>
       </button>
-      <button class="mobile-nav-btn" data-page="messages" onclick="mobileNavTo('messages')">
-        <i class="fas fa-comment-dots"></i>
-        <span id="mobileNavMsgBadge" style="display:none; position:absolute; top:4px; right:8px; background:#ff0033; color:white; font-size:9px; border-radius:8px; padding:1px 4px; min-width:14px; text-align:center;"></span>
-        <span>Mesajlar</span>
-      </button>
-      <button class="mobile-nav-btn" data-page="profile" onclick="mobileNavTo('profile')">
-        <i class="fas fa-user"></i>
-        <span>Profil</span>
+      <button class="mbb-btn" onclick="showMobileProfileSheet()">
+        <img id="mobileProfilePhoto" src="logoteatube.png" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
       </button>
     </nav>
   </div>

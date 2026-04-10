@@ -2191,77 +2191,104 @@ body {
   .video-card, .short-card { -webkit-tap-highlight-color: transparent; }
 }
 
-/* ==================== MOBİL ALT NAVİGASYON ==================== */
+/* ==================== MOBİL ALT BAR ==================== */
 
-#mobileNav {
-  display: none; /* Masaüstünde gizli */
+#mobileBottomBar {
+  display: none;
 }
 
 @media (max-width: 768px) {
-  /* Alt nav göster */
-  #mobileNav {
+  /* Eski nav gizle */
+  #mobileNav { display: none !important; }
+
+  /* Yeni bottom bar */
+  #mobileBottomBar {
     display: flex;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 60px;
-    background: var(--yt-spec-raised-background);
-    border-top: 1px solid rgba(255,255,255,0.08);
-    z-index: 2010;
-    align-items: stretch;
+    height: 56px;
+    background: rgba(10,10,10,0.95);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    z-index: 2010;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
   }
 
-  .mobile-nav-btn {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
+  .mbb-btn {
     background: none;
     border: none;
     color: var(--yt-spec-text-secondary);
     cursor: pointer;
-    font-size: 10px;
-    padding: 6px 4px;
-    position: relative;
-    transition: color 0.15s;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .mobile-nav-btn i {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
     font-size: 20px;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s;
   }
 
-  .mobile-nav-btn.active {
-    color: var(--yt-spec-brand-background-solid);
+  .mbb-btn:active { opacity: 0.7; }
+
+  /* Reals ortada büyük */
+  .mbb-reals {
+    width: 52px;
+    height: 52px;
+    background: var(--yt-spec-brand-background-solid);
+    color: white;
+    border-radius: 50%;
+    font-size: 22px;
+    box-shadow: 0 4px 16px rgba(255,0,51,0.4);
   }
 
-  .mobile-nav-btn.active i {
-    filter: drop-shadow(0 0 6px rgba(255,0,51,0.4));
-  }
+  /* Content padding */
+  #content { padding-bottom: 64px !important; }
 
-  /* Sidebar'ı mobilde gizle */
+  /* Sidebar gizle */
   #guide { display: none !important; }
   #guide-button { display: none !important; }
 
-  /* Content alt nav için padding */
-  #content { padding-bottom: 68px !important; }
+  /* Logo büyük */
+  #logo img { height: 38px !important; }
+  #logo span { display: none; }
 
-  /* Header'da hamburger gizle */
-  #guide-button { display: none; }
+  /* + butonu göster */
+  #uploadPlusBtn { display: flex !important; align-items: center; }
 
-  /* Logo biraz küçük */
-  #logo img { height: 30px !important; }
-}
+  /* Header sağ — chat+bildirim+profil */
+  #end { gap: 6px; }
+  #end .yt-icon-button { width: 36px; height: 36px; font-size: 18px; }
+  #end img { width: 30px !important; height: 30px !important; }
 
-@media (max-width: 480px) {
-  #mobileNav { height: 56px; }
-  .mobile-nav-btn i { font-size: 18px; }
-  .mobile-nav-btn span { font-size: 9px; }
+  /* Arama gizle mobilde */
+  #center { display: none; }
+  #mobileSearchBtn { display: none !important; }
+
+  /* Profil sayfası butonlar taşmasın */
+  .profile-page > div[style*="display: flex"] {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+  .profile-page .yt-btn {
+    font-size: 12px !important;
+    padding: 0 10px !important;
+    height: 32px !important;
+    white-space: nowrap;
+  }
+
+  /* Genel overflow engeli */
+  #pageContent, #content {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  body { overflow-x: hidden; }
 }
 
 /* ==================== MOBİL MESAJLAR ==================== */

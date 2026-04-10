@@ -51,6 +51,130 @@ function updateMobileNavBadge() {
   }
 }
 
+function updateMobileBottomBar(page) {
+  // Aktif sayfa takibi için kullanılabilir
+}
+
+// Mobil yükleme menüsü (+ butonu)
+function showMobileUploadMenu() {
+  const sheet = document.createElement('div');
+  sheet.id = 'mobileUploadSheet';
+  sheet.style.cssText = `
+    position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6);
+    display:flex; align-items:flex-end;
+  `;
+  sheet.innerHTML = `
+    <div style="width:100%; background:var(--yt-spec-raised-background); border-radius:20px 20px 0 0; padding:20px 16px 32px;">
+      <div style="width:40px; height:4px; background:rgba(255,255,255,0.2); border-radius:2px; margin:0 auto 20px;"></div>
+      <button onclick="document.getElementById('mobileUploadSheet').remove(); switchUploadType('reals'); showUploadVideoModal();"
+        style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
+        <div style="width:44px; height:44px; background:rgba(255,0,51,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
+          <i class="fas fa-film" style="color:#ff0033; font-size:18px;"></i>
+        </div>
+        <div style="text-align:left;">
+          <p style="font-weight:600; margin-bottom:2px;">Reals</p>
+          <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Kısa video paylaş</p>
+        </div>
+      </button>
+      <button onclick="document.getElementById('mobileUploadSheet').remove(); switchUploadType('photo'); showUploadVideoModal();"
+        style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
+        <div style="width:44px; height:44px; background:rgba(255,165,0,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
+          <i class="fas fa-image" style="color:orange; font-size:18px;"></i>
+        </div>
+        <div style="text-align:left;">
+          <p style="font-weight:600; margin-bottom:2px;">Fotoğraf</p>
+          <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Fotoğraf paylaş</p>
+        </div>
+      </button>
+      <button onclick="document.getElementById('mobileUploadSheet').remove()"
+        style="width:100%; background:rgba(255,255,255,0.06); border:none; color:var(--yt-spec-text-secondary); padding:14px; border-radius:10px; font-size:14px; cursor:pointer; margin-top:8px;">
+        İptal
+      </button>
+    </div>
+  `;
+  sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+  document.body.appendChild(sheet);
+}
+
+// Profil tıklayınca ayarlar sheet
+function showMobileProfileSheet() {
+  const sheet = document.createElement('div');
+  sheet.id = 'mobileProfileSheet';
+  sheet.style.cssText = `
+    position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6);
+    display:flex; align-items:flex-end;
+  `;
+  sheet.innerHTML = `
+    <div style="width:100%; background:var(--yt-spec-raised-background); border-radius:20px 20px 0 0; padding:20px 16px 32px;">
+      <div style="width:40px; height:4px; background:rgba(255,255,255,0.2); border-radius:2px; margin:0 auto 16px;"></div>
+      <div style="display:flex; align-items:center; gap:12px; padding:0 8px 16px; border-bottom:1px solid rgba(255,255,255,0.08); margin-bottom:8px;">
+        <img src="${getProfilePhotoUrl(currentUser?.profile_photo)}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />
+        <div>
+          <p style="font-weight:600; font-size:16px;">${currentUser?.nickname || ''}</p>
+          <p style="font-size:13px; color:var(--yt-spec-text-secondary);">@${currentUser?.username || ''}</p>
+        </div>
+      </div>
+      ${[
+        { icon:'fa-photo-video', label:'İçeriklerim', page:'my-videos' },
+        { icon:'fa-star', label:'Favoriler', page:'favorites' },
+        { icon:'fa-bookmark', label:'Kaydedilenler', page:'saved' },
+        { icon:'fa-history', label:'Geçmiş', page:'history' },
+        { icon:'fa-brain', label:'Algoritmam', page:'algorithm' },
+        { icon:'fa-cog', label:'Ayarlar', page:'settings' },
+      ].map(item => `
+        <button onclick="document.getElementById('mobileProfileSheet').remove(); showPage('${item.page}');"
+          style="width:100%; display:flex; align-items:center; gap:14px; background:none; border:none; color:var(--yt-spec-text-primary); padding:12px 8px; font-size:15px; cursor:pointer; border-radius:8px; text-align:left;">
+          <i class="fas ${item.icon}" style="width:20px; color:var(--yt-spec-text-secondary);"></i>
+          ${item.label}
+        </button>
+      `).join('')}
+      <button onclick="document.getElementById('mobileProfileSheet').remove(); logout();"
+        style="width:100%; display:flex; align-items:center; gap:14px; background:none; border:none; color:#ff4444; padding:12px 8px; font-size:15px; cursor:pointer; border-radius:8px; margin-top:4px;">
+        <i class="fas fa-sign-out-alt" style="width:20px;"></i>
+        Çıkış Yap
+      </button>
+    </div>
+  `;
+  sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+  document.body.appendChild(sheet);
+}
+
+// Mobil profil fotosu güncelle
+function updateMobileProfilePhoto() {
+  const mobilePhoto = document.getElementById('mobileProfilePhoto');
+  if (mobilePhoto && currentUser?.profile_photo && currentUser.profile_photo !== '?') {
+    mobilePhoto.src = currentUser.profile_photo;
+  }
+}
+
+async function searchFriendsInMessages() {
+  const q = document.getElementById('msgFriendSearch')?.value?.trim();
+  const results = document.getElementById('msgFriendSearchResults');
+  if (!results) return;
+  if (!q) { results.innerHTML = ''; return; }
+
+  try {
+    const res = await fetch(`${API_URL}/search-users?q=${encodeURIComponent(q)}&userId=${currentUser.id}`);
+    const users = await res.json();
+    if (!users.length) { results.innerHTML = '<p style="font-size:13px;color:var(--yt-spec-text-secondary);padding:4px 0;">Kullanıcı bulunamadı</p>'; return; }
+
+    const items = await Promise.all(users.map(async u => {
+      const statusRes = await fetch(`${API_URL}/friendship-status/${currentUser.id}/${u.id}`);
+      const status = await statusRes.json();
+      let btn = `<button class="yt-btn" onclick="sendFriendRequest(${u.id})" style="height:30px;padding:0 12px;font-size:12px;">Arkadaş Ekle</button>`;
+      if (status.status === 'accepted') btn = `<button class="yt-btn" onclick="openMobileChat(${u.id},'${u.nickname.replace(/'/g,"\\'")}','${getProfilePhotoUrl(u.profile_photo)}')" style="height:30px;padding:0 12px;font-size:12px;"><i class="fas fa-comment"></i> Mesaj</button>`;
+      else if (status.status === 'pending' && status.isSender) btn = `<span style="font-size:12px;color:var(--yt-spec-text-secondary);">İstek Gönderildi</span>`;
+      else if (status.status === 'pending') btn = `<div style="display:flex;gap:6px;"><button class="yt-btn" onclick="respondFriendRequest(${status.id},'accept')" style="height:30px;padding:0 10px;font-size:12px;">Kabul</button><button class="yt-btn yt-btn-secondary" onclick="respondFriendRequest(${status.id},'reject')" style="height:30px;padding:0 10px;font-size:12px;">Red</button></div>`;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--yt-spec-raised-background);border-radius:10px;margin-bottom:6px;">
+        <img src="${getProfilePhotoUrl(u.profile_photo)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" />
+        <div style="flex:1;min-width:0;"><p style="font-size:14px;font-weight:500;">${u.nickname}</p><p style="font-size:12px;color:var(--yt-spec-text-secondary);">@${u.username}</p></div>
+        ${btn}
+      </div>`;
+    }));
+    results.innerHTML = items.join('');
+  } catch(e) {}
+}
+
 // Mobil arama toggle
 function toggleMobileSearch() {
   const center = document.getElementById('center');
@@ -332,6 +456,7 @@ async function loadUserData() {
     } else {
       showPage('home');
     }
+    updateMobileProfilePhoto();
   } catch (error) {
     console.error('Kullanıcı verisi yükleme hatası:', error);
   }
@@ -569,6 +694,17 @@ function loadMessagesPage() {
         pageContent.innerHTML = `
           <div class="mobile-messages-page">
             <h2 style="font-size:18px;font-weight:700;padding:12px 16px 8px;margin:0;">Mesajlar</h2>
+
+            <!-- Arkadaş Arama -->
+            <div style="padding:0 16px 12px;">
+              <div style="display:flex; gap:8px; background:rgba(255,255,255,0.06); border-radius:12px; padding:10px 14px; align-items:center;">
+                <i class="fas fa-search" style="color:var(--yt-spec-text-secondary); font-size:14px;"></i>
+                <input type="text" id="msgFriendSearch" placeholder="Kullanıcı ara..." 
+                  style="background:none; border:none; outline:none; color:var(--yt-spec-text-primary); font-size:14px; flex:1;"
+                  oninput="searchFriendsInMessages()" />
+              </div>
+              <div id="msgFriendSearchResults" style="margin-top:8px;"></div>
+            </div>
             <div class="mobile-friends-row">
               ${friends.map(f => `
                 <div class="mobile-friend-avatar" onclick="openMobileChat(${f.friend_id},'${f.nickname.replace(/'/g,"\\'")}','${getProfilePhotoUrl(f.profile_photo)}')">
