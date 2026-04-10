@@ -56,9 +56,10 @@ body {
   -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 12px;
   z-index: 2020;
   border-bottom: 1px solid color-mix(in srgb, var(--yt-spec-brand-background-solid) 30%, transparent 70%);
+  overflow: hidden;
 }
 
 #masthead-container {
@@ -66,43 +67,65 @@ body {
   align-items: center;
   width: 100%;
   height: 100%;
-  position: relative;
-}
-
-/* Start - Logo ve hamburger: sabit genişlik */
-#start {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 0 0 auto;
+  gap: 8px;
   min-width: 0;
 }
 
-/* Center - Arama: her zaman tam ortada */
-#center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 560px;
-  display: flex;
-  justify-content: center;
-  pointer-events: none;
-}
-
-#center form {
-  pointer-events: all;
-  width: 100%;
-  max-width: 480px;
-}
-
-/* End - Sağ butonlar: sabit sağda */
-#end {
+/* Start - Logo ve hamburger */
+#start {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  margin-left: auto;
+  min-width: 0;
+}
+
+#logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+#logo img {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+#logo span {
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.3px;
+  color: var(--yt-spec-text-primary);
+  white-space: nowrap;
+}
+
+/* Center - Arama: flex ile ortada */
+#center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+#center form {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+}
+
+/* End - Sağ butonlar */
+#end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 #end img {
@@ -1017,13 +1040,15 @@ body {
 }
 
 @media (max-width: 768px) {
-  .video-grid { grid-template-columns: 1fr; }
-  #center { margin: 0 8px; }
+  .video-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
 }
 
 @media (max-width: 480px) {
+  .video-grid { grid-template-columns: 1fr; }
+  #logo span { display: none; }
   #center { display: none; }
-  .auth-container { padding: 32px 24px; }
+  #mobileSearchBtn { display: flex !important; }
+  .auth-container { padding: 24px 16px; }
 }
 
 /* ==================== CATEGORY BAR ==================== */
@@ -2075,139 +2100,93 @@ body {
 
 /* ==================== MOBİL UYUM ==================== */
 
+/* Tablet (768px) */
 @media (max-width: 768px) {
-  /* Video grid */
-  .video-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  #center { margin: 0 8px; }
-
-  /* Header — start sabit küçük */
-  #start { gap: 8px; }
-  #logo img { height: 32px !important; }
-  #logo span { font-size: 15px; }
-
   /* Watch page */
   .watch-page { flex-direction: column; }
-  .watch-primary { width: 100%; }
-  .watch-secondary { width: 100%; }
+  .watch-primary, .watch-secondary { width: 100%; }
 
   /* Messages */
-  .messages-layout { flex-direction: column; height: auto; }
-  .messages-sidebar { width: 100%; height: 200px; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); }
-  .messages-chat { height: calc(100vh - 300px); }
-
-  /* Shorts */
-  .shorts-container { padding: 0; }
-  .shorts-player-wrap { max-width: 100%; }
-
-  /* Profile */
-  .profile-page { padding: 0; }
-
-  /* Settings */
-  .settings-card { padding: 16px; }
-
-  /* Modal */
-  .yt-modal-content { width: 95% !important; max-width: 95% !important; padding: 20px 16px; }
+  .messages-layout { flex-direction: column; }
+  .messages-sidebar { width: 100%; height: 180px; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .messages-chat { height: calc(100vh - 290px); }
 
   /* Auth */
-  .auth-container { padding: 32px 20px; width: 100%; max-width: 100%; border-radius: 0; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
-  .auth-screen { align-items: flex-start; }
+  .auth-container { padding: 32px 20px; }
 
-  /* Upload type buttons */
+  /* Upload */
   .upload-type-btn { padding: 10px 4px; font-size: 12px; }
   .upload-type-btn small { display: none; }
 
   /* Shorts grid */
   .shorts-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* Content padding */
+  #content { padding-bottom: 60px; }
 }
 
+/* Mobil (480px) */
 @media (max-width: 480px) {
-  /* Header — arama gizle, arama ikonu göster */
+  /* Header */
+  #logo img { height: 28px !important; }
+  #logo span { display: none; }
   #center { display: none; }
-  #end { gap: 4px; }
-
-  /* Arama ikonu mobilde göster */
   #mobileSearchBtn { display: flex !important; }
+  #end { gap: 4px; }
+  .yt-icon-button { width: 36px; height: 36px; }
 
-  /* Video grid tek kolon */
+  /* Video */
   .video-grid { grid-template-columns: 1fr; }
-
-  /* Shorts grid tek kolon */
   .shorts-grid { grid-template-columns: 1fr; }
 
   /* Auth */
-  .auth-container { padding: 24px 16px; }
+  .auth-container { padding: 24px 16px; border-radius: 0; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+  .auth-screen { align-items: flex-start; }
   .auth-logo h1 { font-size: 24px; }
 
-  /* Watch actions */
+  /* Watch */
   .watch-actions { flex-wrap: wrap; gap: 6px; }
   .watch-action-btn { font-size: 12px; padding: 6px 10px; }
 
-  /* Category bar */
-  .category-bar { gap: 6px; }
-  .category-chip { font-size: 12px; padding: 6px 12px; }
+  /* Category */
+  .category-chip { font-size: 12px; padding: 6px 10px; }
 
-  /* Masthead */
-  #masthead-container { gap: 4px; }
-  #logo img { height: 28px !important; }
-  #logo span { display: none; }
-
-  /* Guide items */
-  .guide-item span { font-size: 12px; }
-
-  /* Section header */
-  .section-header { font-size: 18px; }
-
-  /* Buttons */
-  .yt-btn { font-size: 13px; }
-
-  /* Modal full screen on mobile */
-  .yt-modal-content { 
-    width: 100% !important; 
-    max-width: 100% !important; 
-    border-radius: 16px 16px 0 0; 
-    position: fixed; 
-    bottom: 0; 
-    left: 0; 
-    right: 0;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
+  /* Modal — bottom sheet */
   #modal { align-items: flex-end; }
-
-  /* Profile page */
-  .profile-page { padding: 0 4px; }
-
-  /* Messages full screen */
-  .messages-layout { height: calc(100vh - 56px); }
-  .messages-sidebar { height: 160px; }
-  .messages-chat { height: calc(100vh - 220px); }
-
-  /* Chat input */
-  .chat-input-wrapper { padding: 8px; }
-  .chat-textarea { font-size: 14px; }
-
-  /* Float chat widget */
-  .float-chat-widget { width: calc(100vw - 16px) !important; right: 8px !important; bottom: 8px !important; }
-}
-
-/* Mobil alt navigasyon (telefon için) */
-@media (max-width: 768px) {
-  #content {
-    padding-bottom: 64px;
+  .yt-modal-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 92vh;
+    overflow-y: auto;
+    margin: 0;
   }
+
+  /* Messages */
+  .messages-sidebar { height: 150px; }
+  .messages-chat { height: calc(100vh - 260px); }
+  .chat-textarea { font-size: 16px; } /* iOS zoom engelle */
+
+  /* Float chat */
+  .float-chat-widget { width: calc(100vw - 16px) !important; right: 8px !important; bottom: 8px !important; }
+
+  /* Settings */
+  .settings-card { padding: 14px; }
+
+  /* Genel */
+  .section-header { font-size: 18px; }
 }
 
-/* Dokunmatik iyileştirmeler */
+/* Dokunmatik */
 @media (hover: none) and (pointer: coarse) {
   .yt-btn { min-height: 44px; }
-  .yt-input { min-height: 44px; font-size: 16px; } /* iOS zoom engelle */
+  .yt-input { min-height: 44px; font-size: 16px; }
   .yt-select { min-height: 44px; font-size: 16px; }
   .guide-item { min-height: 44px; }
   .category-chip { min-height: 36px; }
-  .video-card { cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  .short-card { -webkit-tap-highlight-color: transparent; }
-}
-
-@media (max-width: 480px) {
-  #logo span { display: none; }
+  .video-card, .short-card { -webkit-tap-highlight-color: transparent; }
 }
