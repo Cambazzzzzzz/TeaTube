@@ -2190,3 +2190,76 @@ body {
   .category-chip { min-height: 36px; }
   .video-card, .short-card { -webkit-tap-highlight-color: transparent; }
 }
+
+/* ==================== MOBİL ALT NAVİGASYON ==================== */
+
+#mobileNav {
+  display: none; /* Masaüstünde gizli */
+}
+
+@media (max-width: 768px) {
+  /* Alt nav göster */
+  #mobileNav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--yt-spec-raised-background);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    z-index: 2010;
+    align-items: stretch;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .mobile-nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    color: var(--yt-spec-text-secondary);
+    cursor: pointer;
+    font-size: 10px;
+    padding: 6px 4px;
+    position: relative;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-nav-btn i {
+    font-size: 20px;
+  }
+
+  .mobile-nav-btn.active {
+    color: var(--yt-spec-brand-background-solid);
+  }
+
+  .mobile-nav-btn.active i {
+    filter: drop-shadow(0 0 6px rgba(255,0,51,0.4));
+  }
+
+  /* Sidebar'ı mobilde gizle */
+  #guide { display: none !important; }
+  #guide-button { display: none !important; }
+
+  /* Content alt nav için padding */
+  #content { padding-bottom: 68px !important; }
+
+  /* Header'da hamburger gizle */
+  #guide-button { display: none; }
+
+  /* Logo biraz küçük */
+  #logo img { height: 30px !important; }
+}
+
+@media (max-width: 480px) {
+  #mobileNav { height: 56px; }
+  .mobile-nav-btn i { font-size: 18px; }
+  .mobile-nav-btn span { font-size: 9px; }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "TeaTube",
+  "short_name": "TeaTube",
+  "description": "Video Paylaşım Platformu",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#ff0033",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "logoteatube.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "logoteatube.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

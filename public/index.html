@@ -4,8 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TeaTube</title>
-  <link rel="icon" type="image/png" href="logoteatube.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#ff0033" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="TeaTube" />
   <link rel="apple-touch-icon" href="logoteatube.png" />
+  <link rel="icon" type="image/png" href="logoteatube.png" />
   <link rel="stylesheet" href="fa/css/all.min.css">
   <link rel="stylesheet" href="style-premium.css">
 
@@ -215,6 +220,31 @@
     <div id="content">
       <div id="pageContent"></div>
     </div>
+
+    <!-- Mobil Alt Navigasyon (sadece telefonda görünür) -->
+    <nav id="mobileNav" class="mobile-nav">
+      <button class="mobile-nav-btn active" data-page="home" onclick="mobileNavTo('home')">
+        <i class="fas fa-home"></i>
+        <span>Ana Sayfa</span>
+      </button>
+      <button class="mobile-nav-btn" data-page="search-mobile" onclick="mobileNavTo('search-mobile')">
+        <i class="fas fa-search"></i>
+        <span>Ara</span>
+      </button>
+      <button class="mobile-nav-btn" data-page="shorts" onclick="mobileNavTo('shorts')">
+        <i class="fas fa-film"></i>
+        <span>Reals</span>
+      </button>
+      <button class="mobile-nav-btn" data-page="messages" onclick="mobileNavTo('messages')">
+        <i class="fas fa-comment-dots"></i>
+        <span id="mobileNavMsgBadge" style="display:none; position:absolute; top:4px; right:8px; background:#ff0033; color:white; font-size:9px; border-radius:8px; padding:1px 4px; min-width:14px; text-align:center;"></span>
+        <span>Mesajlar</span>
+      </button>
+      <button class="mobile-nav-btn" data-page="profile" onclick="mobileNavTo('profile')">
+        <i class="fas fa-user"></i>
+        <span>Profil</span>
+      </button>
+    </nav>
   </div>
 
   <!-- Modal -->
@@ -231,6 +261,11 @@
   </div>
 
   <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  </script>
 </body>
 </html>
 

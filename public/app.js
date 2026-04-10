@@ -7,6 +7,50 @@ let currentChannel = null;
 let currentPage = 'home';
 let sidebarOpen = true;
 
+// Mobil alt navigasyon
+function mobileNavTo(page) {
+  document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`.mobile-nav-btn[data-page="${page}"]`);
+  if (btn) btn.classList.add('active');
+
+  if (page === 'search-mobile') {
+    // Arama sayfası — anasayfaya git ve arama kutusunu aç
+    showPage('home');
+    setTimeout(() => {
+      const input = document.getElementById('searchInput');
+      if (input) {
+        // Mobilde arama kutusunu göster
+        const center = document.getElementById('center');
+        if (center && window.innerWidth <= 480) {
+          center.style.display = 'flex';
+          center.style.position = 'fixed';
+          center.style.top = 'var(--ytd-masthead-height)';
+          center.style.left = '0';
+          center.style.right = '0';
+          center.style.transform = 'none';
+          center.style.background = 'var(--yt-spec-base-background)';
+          center.style.padding = '8px 12px';
+          center.style.zIndex = '2021';
+          center.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+        }
+        input.focus();
+      }
+    }, 100);
+    return;
+  }
+  showPage(page);
+}
+
+// Mobil nav badge güncelle
+function updateMobileNavBadge() {
+  const badge = document.getElementById('notifBadge');
+  const mobileBadge = document.getElementById('mobileNavMsgBadge');
+  if (badge && mobileBadge) {
+    mobileBadge.textContent = badge.textContent;
+    mobileBadge.style.display = badge.style.display;
+  }
+}
+
 // Mobil arama toggle
 function toggleMobileSearch() {
   const center = document.getElementById('center');
