@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TeaTube</title>
+  <link rel="stylesheet" href="fa/css/all.min.css">
+  <link rel="stylesheet" href="style-premium.css">
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getDatabase, ref, push, onValue, set, update, remove, serverTimestamp, query, orderByChild, limitToLast, off } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAUWjE_t9PfvqYSjkhMi7vTX3M75hjgcNA",
+      authDomain: "teatube-2f814.firebaseapp.com",
+      databaseURL: "https://teatube-2f814-default-rtdb.firebaseio.com",
+      projectId: "teatube-2f814",
+      storageBucket: "teatube-2f814.firebasestorage.app",
+      messagingSenderId: "224306138412",
+      appId: "1:224306138412:web:fa95f7d49477f9191c7089"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Global olarak erişilebilir yap
+    window.firebaseDB = db;
+    window.firebaseRef = ref;
+    window.firebasePush = push;
+    window.firebaseOnValue = onValue;
+    window.firebaseSet = set;
+    window.firebaseUpdate = update;
+    window.firebaseRemove = remove;
+    window.firebaseServerTimestamp = serverTimestamp;
+    window.firebaseQuery = query;
+    window.firebaseOrderByChild = orderByChild;
+    window.firebaseLimitToLast = limitToLast;
+    window.firebaseOff = off;
+    window.firebaseReady = true;
+    
+    console.log('Firebase bağlandı!');
+    document.dispatchEvent(new Event('firebaseReady'));
+  </script>
+</head>
+<body>
+  <!-- Giriş/Kayıt Ekranı -->
+  <div id="authScreen" class="auth-screen">
+    <div class="auth-container">
+      <div class="auth-logo">
+        <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 12px #ff003388);">
+          <rect width="56" height="56" rx="14" fill="#ff0033"/>
+          <polygon points="20,14 44,28 20,42" fill="white"/>
+          <rect x="10" y="14" width="5" height="28" rx="2.5" fill="white"/>
+        </svg>
+        <h1>TeaTube</h1>
+      </div>
+
+      <div id="loginForm" class="auth-form">
+        <h2>Giriş Yap</h2>
+        <input type="text" id="loginUsername" class="yt-input" placeholder="Kullanıcı Adı" />
+        <input type="password" id="loginPassword" class="yt-input" placeholder="Şifre" />
+        <button class="yt-btn" onclick="login()">Giriş Yap</button>
+        <div class="auth-link">Hesabın yok mu? <a href="#" onclick="event.preventDefault(); showRegister()">Kayıt Ol</a></div>
+      </div>
+
+      <div id="registerForm" class="auth-form" style="display: none;">
+        <h2>Kayıt Ol</h2>
+        <input type="text" id="regUsername" class="yt-input" placeholder="Kullanıcı Adı" />
+        <input type="text" id="regNickname" class="yt-input" placeholder="Takma Ad" />
+        <input type="password" id="regPassword" class="yt-input" placeholder="Şifre" />
+        <input type="file" id="regPhoto" class="yt-input" accept="image/*" />
+        <label class="yt-checkbox-label">
+          <input type="checkbox" id="regAgreed" class="yt-checkbox" />
+          <span><a href="#" onclick="event.preventDefault(); showAgreement()">Kullanım sözleşmesini</a> okudum ve kabul ediyorum</span>
+        </label>
+        <button id="registerBtn" class="yt-btn" onclick="register()" disabled>Kayıt Ol</button>
+        <div class="auth-link">Zaten hesabın var mı? <a href="#" onclick="event.preventDefault(); showLogin()">Giriş Yap</a></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ana Uygulama -->
+  <div id="mainApp" style="display: none;">
+    <!-- Masthead (Header) -->
+    <div id="masthead">
+      <div id="masthead-container">
+        <div id="start">
+          <button class="yt-icon-button" id="guide-button" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+          </button>
+          <div id="logo" onclick="showPage('home')">
+            <img src="teatube.png" alt="TeaTube" style="height:44px; object-fit:contain;" />
+          </div>
+        </div>
+        
+        <div id="center">
+          <form id="search-form" onsubmit="event.preventDefault(); search();">
+            <input type="text" id="searchInput" class="search-input" placeholder="Ara..." autocomplete="off" />
+            <button type="submit" id="search-button">
+              <i class="fas fa-search"></i>
+            </button>
+          </form>
+        </div>
+        
+        <div id="end">
+          <button class="yt-icon-button" onclick="showPage('messages')">
+            <i class="fas fa-comment-dots"></i>
+            <span id="msgBadge" class="badge" style="display: none;"></span>
+          </button>
+          <button class="yt-icon-button" onclick="showPage('notifications')">
+            <i class="fas fa-bell"></i>
+            <span id="notifBadge" class="badge" style="display: none;"></span>
+          </button>
+          <img id="userPhoto" alt="Profil" onclick="showPage('profile')" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Progress Bar -->
+    <div class="upload-progress-overlay" id="uploadProgressOverlay">
+      <div class="upload-progress-content">
+        <div class="upload-progress-icon">
+          <i class="fas fa-upload"></i>
+        </div>
+        <div class="upload-progress-details">
+          <div class="upload-progress-title" id="uploadProgressTitle">Video yükleniyor...</div>
+          <div class="upload-progress-status" id="uploadProgressStatus">Hazırlanıyor...</div>
+        </div>
+        <div class="upload-progress-bar-container">
+          <div class="upload-progress-bar" id="uploadProgressBar" style="width: 0%"></div>
+        </div>
+        <div class="upload-progress-percentage" id="uploadProgressPercentage">0%</div>
+      </div>
+    </div>
+
+    <!-- Guide (Sidebar) -->
+    <div id="guide">
+      <div class="guide-section">
+        <div class="guide-item active" onclick="showPage('home')" data-page="home">
+          <i class="fas fa-home"></i>
+          <span>Anasayfa</span>
+        </div>
+        <div class="guide-item" onclick="showPage('reals')" data-page="reals">
+          <i class="fas fa-film"></i>
+          <span>Reals</span>
+        </div>
+        <div class="guide-item" onclick="showPage('subscriptions')" data-page="subscriptions">
+          <i class="fas fa-users"></i>
+          <span>Abonelikler</span>
+        </div>
+      </div>
+      
+      <div class="guide-section">
+        <div class="guide-item" onclick="showPage('my-channel')" data-page="my-channel">
+          <i class="fas fa-tv"></i>
+          <span>Kanalım</span>
+        </div>
+        <div class="guide-item" onclick="showPage('my-videos')" data-page="my-videos">
+          <i class="fas fa-photo-video"></i>
+          <span>İçeriklerim</span>
+        </div>
+        <div class="guide-item" onclick="showPage('history')" data-page="history">
+          <i class="fas fa-history"></i>
+          <span>Geçmiş</span>
+        </div>
+        <div class="guide-item" onclick="showPage('watched')" data-page="watched">
+          <i class="fas fa-clock"></i>
+          <span>İzlenenler</span>
+        </div>
+      </div>
+      
+      <div class="guide-section">
+        <div class="guide-item" onclick="showPage('favorites')" data-page="favorites">
+          <i class="fas fa-star"></i>
+          <span>Favoriler</span>
+        </div>
+        <div class="guide-item" onclick="showPage('saved')" data-page="saved">
+          <i class="fas fa-bookmark"></i>
+          <span>Kaydedilenler</span>
+        </div>
+      </div>
+      
+      <div class="guide-section">
+        <div class="guide-item" onclick="showPage('friends')" data-page="friends">
+          <i class="fas fa-user-friends"></i>
+          <span>Arkadaşlar</span>
+        </div>
+        <div class="guide-item" onclick="showPage('messages')" data-page="messages">
+          <i class="fas fa-comment-dots"></i>
+          <span>Mesajlar</span>
+        </div>
+      </div>
+
+      <div class="guide-section">
+        <div class="guide-item" onclick="showPage('algorithm')" data-page="algorithm">
+          <i class="fas fa-brain"></i>
+          <span>Algoritmam</span>
+        </div>
+        <div class="guide-item" onclick="showPage('settings')" data-page="settings">
+          <i class="fas fa-cog"></i>
+          <span>Ayarlar</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Content -->
+    <div id="content">
+      <div id="pageContent"></div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="yt-modal">
+    <div class="yt-modal-content">
+      <div class="yt-modal-header">
+        <div class="yt-modal-title" id="modalTitle"></div>
+        <button class="yt-modal-close" onclick="closeModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="yt-modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TeaTube Yükleniyor...</title>
+  <link rel="stylesheet" href="fa/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f0f0f 0%, #1f1f1f 50%, #0f0f0f 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(255, 0, 51, 0.1) 0%, transparent 50%);
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    .splash-container {
+      text-align: center;
+      color: white;
+    }
+
+    .logo-container {
+      margin-bottom: 30px;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .logo-icon {
+      font-size: 120px;
+      color: #ff0033;
+      filter: drop-shadow(0 0 30px #ff0033);
+      animation: glow 2s ease-in-out infinite;
+    }
+
+    @keyframes glow {
+      0%, 100% {
+        filter: drop-shadow(0 0 30px #ff0033);
+      }
+      50% {
+        filter: drop-shadow(0 0 50px #ff0033);
+      }
+    }
+
+    .app-name {
+      font-size: 48px;
+      font-weight: 700;
+      margin-top: 20px;
+      letter-spacing: 2px;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .tagline {
+      font-size: 18px;
+      margin-top: 10px;
+      opacity: 0.9;
+      font-weight: 300;
+    }
+
+    .loading-container {
+      margin-top: 50px;
+    }
+
+    .loading-bar {
+      width: 300px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 0 auto;
+    }
+
+    .loading-progress {
+      height: 100%;
+      background: linear-gradient(90deg, #ff0033 0%, #e6002e 100%);
+      border-radius: 10px;
+      animation: loading 2s ease-in-out infinite;
+      box-shadow: 0 0 20px #ff0033;
+    }
+
+    .loading-text {
+      margin-top: 20px;
+      font-size: 14px;
+      opacity: 0.8;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .version {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      opacity: 0.6;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-20px);
+      }
+    }
+
+    @keyframes loading {
+      0% {
+        width: 0%;
+      }
+      50% {
+        width: 70%;
+      }
+      100% {
+        width: 100%;
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 0.6;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .features {
+      margin-top: 40px;
+      display: flex;
+      gap: 30px;
+      justify-content: center;
+      opacity: 0.8;
+    }
+
+    .feature {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .feature i {
+      font-size: 24px;
+    }
+
+    .feature span {
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="splash-container">
+    <div class="logo-container">
+      <svg width="120" height="120" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-icon" style="filter:drop-shadow(0 0 30px #ff0033);">
+        <rect width="56" height="56" rx="14" fill="#ff0033"/>
+        <polygon points="20,14 44,28 20,42" fill="white"/>
+        <rect x="10" y="14" width="5" height="28" rx="2.5" fill="white"/>
+      </svg>
+      <h1 class="app-name">TeaTube</h1>
+      <p class="tagline">Video Paylaşım Platformu</p>
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <i class="fas fa-video"></i>
+        <span>Video Paylaş</span>
+      </div>
+      <div class="feature">
+        <i class="fas fa-users"></i>
+        <span>Kanal Oluştur</span>
+      </div>
+      <div class="feature">
+        <i class="fas fa-heart"></i>
+        <span>Keşfet</span>
+      </div>
+      <div class="feature">
+        <i class="fas fa-bell"></i>
+        <span>Bildirimler</span>
+      </div>
+    </div>
+
+    <div class="loading-container">
+      <div class="loading-bar">
+        <div class="loading-progress"></div>
+      </div>
+      <p class="loading-text">Yükleniyor...</p>
+    </div>
+
+    <div class="version">v1.0.0</div>
+  </div>
+
+  <script>
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 3000);
+  </script>
+</body>
+</html>

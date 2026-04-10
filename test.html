@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TeaTube Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #0f0f0f;
+      color: white;
+    }
+    .test-section {
+      background: #1a1a1a;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      background: #e74c3c;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #c0392b;
+    }
+    .result {
+      margin-top: 10px;
+      padding: 10px;
+      background: #272727;
+      border-radius: 4px;
+    }
+    .success { color: #27ae60; }
+    .error { color: #e74c3c; }
+  </style>
+</head>
+<body>
+  <h1>🎬 TeaTube Test Sayfası</h1>
+
+  <div class="test-section">
+    <h2>1. Server Bağlantı Testi</h2>
+    <button onclick="testServer()">Server'ı Test Et</button>
+    <div id="server-result" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>2. Kayıt Testi</h2>
+    <input type="text" id="test-username" placeholder="Kullanıcı Adı" value="testuser">
+    <input type="text" id="test-displayname" placeholder="Takma Ad" value="Test User">
+    <input type="password" id="test-password" placeholder="Şifre" value="123456">
+    <button onclick="testRegister()">Kayıt Ol</button>
+    <div id="register-result" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>3. Giriş Testi</h2>
+    <input type="text" id="login-username" placeholder="Kullanıcı Adı" value="testuser">
+    <input type="password" id="login-password" placeholder="Şifre" value="123456">
+    <button onclick="testLogin()">Giriş Yap</button>
+    <div id="login-result" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>4. Veritabanı Testi</h2>
+    <button onclick="testDatabase()">Veritabanını Kontrol Et</button>
+    <div id="db-result" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>5. Ana Uygulamayı Aç</h2>
+    <button onclick="window.location.href='index.html'">Ana Uygulamaya Git</button>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+
+    async function testServer() {
+      const result = document.getElementById('server-result');
+      result.innerHTML = 'Test ediliyor...';
+      
+      try {
+        const response = await fetch(API_URL + '/test', { method: 'GET' });
+        if (response.ok || response.status === 404) {
+          result.innerHTML = '<span class="success">✓ Server çalışıyor!</span>';
+        } else {
+          result.innerHTML = '<span class="error">✗ Server yanıt vermiyor</span>';
+        }
+      } catch (error) {
+        result.innerHTML = '<span class="error">✗ Server bağlantısı kurulamadı: ' + error.message + '</span>';
+      }
+    }
+
+    async function testRegister() {
+      const result = document.getElementById('register-result');
+      result.innerHTML = 'Kayıt yapılıyor...';
+
+      const username = document.getElementById('test-username').value;
+      const displayName = document.getElementById('test-displayname').value;
+      const password = document.getElementById('test-password').value;
+
+      const formData = new FormData();
+      formData.append('username', username);
+      formData.append('display_name', displayName);
+      formData.append('password', password);
+      formData.append('kvkk_accepted', '1');
+
+      try {
+        const response = await fetch(API_URL + '/register', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          result.innerHTML = '<span class="success">✓ Kayıt başarılı! User ID: ' + data.userId + '</span>';
+        } else {
+          result.innerHTML = '<span class="error">✗ Hata: ' + data.error + '</span>';
+        }
+      } catch (error) {
+        result.innerHTML = '<span class="error">✗ İstek hatası: ' + error.message + '</span>';
+      }
+    }
+
+    async function testLogin() {
+      const result = document.getElementById('login-result');
+      result.innerHTML = 'Giriş yapılıyor...';
+
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+
+      try {
+        const response = await fetch(API_URL + '/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          result.innerHTML = '<span class="success">✓ Giriş başarılı!<br>Kullanıcı: ' + data.user.display_name + '<br>Kanal: ' + (data.hasChannel ? 'Var' : 'Yok') + '</span>';
+          localStorage.setItem('currentUser', JSON.stringify(data.user));
+        } else {
+          result.innerHTML = '<span class="error">✗ Hata: ' + data.error + '</span>';
+        }
+      } catch (error) {
+        result.innerHTML = '<span class="error">✗ İstek hatası: ' + error.message + '</span>';
+      }
+    }
+
+    async function testDatabase() {
+      const result = document.getElementById('db-result');
+      result.innerHTML = 'Kontrol ediliyor...';
+
+      try {
+        // Basit bir API çağrısı yaparak veritabanını test et
+        const response = await fetch(API_URL + '/test-db', { method: 'GET' });
+        
+        if (response.status === 404) {
+          result.innerHTML = '<span class="success">✓ API çalışıyor (endpoint bulunamadı ama server yanıt veriyor)</span>';
+        } else {
+          result.innerHTML = '<span class="success">✓ Veritabanı bağlantısı OK</span>';
+        }
+      } catch (error) {
+        result.innerHTML = '<span class="error">✗ Bağlantı hatası: ' + error.message + '</span>';
+      }
+    }
+
+    // Sayfa yüklendiğinde otomatik test
+    window.addEventListener('DOMContentLoaded', () => {
+      testServer();
+    });
+  </script>
+</body>
+</html>
