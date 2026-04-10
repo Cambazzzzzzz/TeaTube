@@ -1649,6 +1649,7 @@ function renderShortsPlayer() {
         <!-- Ses Kontrolü (sağ alt) -->
         <!-- Video Kutusu -->
         <div class="shorts-video-box" onclick="toggleShortPlay()">
+          ${v.is_ad ? '<div class="ad-badge" style="position:absolute; top:16px; left:16px; z-index:30; background:rgba(255,215,0,0.95); color:#000; padding:6px 12px; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:0.5px; box-shadow:0 2px 8px rgba(0,0,0,0.3);"><i class="fas fa-ad" style="margin-right:4px;"></i>REKLAM</div>' : ''}
           <video id="shortsVideo" src="${v.video_url}" autoplay loop playsinline
                  style="width:100%; height:100%; object-fit:cover; border-radius:12px;"></video>
 
@@ -1988,6 +1989,7 @@ function renderShortsGrid(shorts, containerId) {
       <div class="short-card-thumb">
         <img src="${v.banner_url}" alt="${v.title}" />
         <div class="short-badge"><i class="fas fa-film"></i> Reals</div>
+        ${v.is_ad ? '<div class="ad-badge" style="position:absolute; top:8px; right:8px; background:rgba(255,215,0,0.95); color:#000; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; letter-spacing:0.5px; z-index:10;">AD</div>' : ''}
         <div class="short-duration-overlay">
           <i class="fas fa-play" style="font-size:24px; color:white; opacity:0.9;"></i>
         </div>
@@ -2043,6 +2045,7 @@ function displayVideos(videos, containerId) {
           <div class="photo-card" onclick="playVideo(${p.id})">
             <div class="photo-card-img">
               <img src="${p.video_url}" alt="${p.title}" />
+              ${p.is_ad ? '<div class="ad-badge" style="position:absolute; top:8px; right:8px; background:rgba(255,215,0,0.95); color:#000; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; letter-spacing:0.5px;">AD</div>' : ''}
               <div class="photo-card-overlay">
                 <i class="fas fa-image"></i>
               </div>
@@ -2072,6 +2075,7 @@ function displayVideos(videos, containerId) {
         <div class="video-thumbnail-container">
           <img src="${video.banner_url}" alt="${video.title}" class="video-thumbnail" />
           <div class="video-type-badge"><i class="fas fa-video"></i></div>
+          ${video.is_ad ? '<div class="ad-badge" style="position:absolute; top:8px; right:8px; background:rgba(255,215,0,0.95); color:#000; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; letter-spacing:0.5px;">AD</div>' : ''}
         </div>
         <div class="video-info">
           <img src="${getProfilePhotoUrl(video.profile_photo)}" alt="${video.nickname}" class="channel-avatar" />
@@ -3184,10 +3188,25 @@ async function uploadVideo(isReals = false) {
   const commentsEnabled = document.getElementById('commentsEnabled')?.checked ? 1 : 0;
   const likesVisible = document.getElementById('likesVisible')?.checked ? 1 : 0;
   const isShort = isReals ? 1 : 0;
+  const isAd = document.getElementById('isAdEnabled')?.checked ? 1 : 0;
 
   if (!title || !videoFile || !bannerFile) {
     showToast('Başlık, video ve banner gerekli', 'error');
     return;
+  }
+  
+  // Reklam kontrolü
+  if (isAd) {
+    const adCode = document.getElementById('adCode')?.value?.trim();
+    if (!adCode) {
+      showToast('Reklam kodu gerekli', 'error');
+      return;
+    }
+    // Reklam başlığı ve açıklamasını kullan
+    const adTitle = document.getElementById('adTitle')?.value?.trim();
+    const adDesc = document.getElementById('adDescription')?.value?.trim();
+    if (adTitle) formData.append('title', adTitle);
+    if (adDesc) formData.append('description', adDesc);
   }
 
   const progressOverlay = document.getElementById('uploadProgressOverlay');
@@ -3214,6 +3233,7 @@ async function uploadVideo(isReals = false) {
   formData.append('commentsEnabled', commentsEnabled);
   formData.append('likesVisible', likesVisible);
   formData.append('isShort', isShort);
+  formData.append('isAd', isAd);
 
   try {
     await new Promise((resolve, reject) => {
@@ -3334,6 +3354,8 @@ async function uploadPhoto() {
   closeModal();
 
   try {
+    const isAd = document.getElementById('isAdEnabled')?.checked ? 1 : 0;
+    
     for (let i = 0; i < photoFiles.length; i++) {
       const file = photoFiles[i];
       const pct = Math.round(((i) / photoFiles.length) * 100);
@@ -3351,6 +3373,7 @@ async function uploadPhoto() {
       formData.append('commentsEnabled', 1);
       formData.append('likesVisible', 1);
       formData.append('isPhoto', 1);
+      formData.append('isAd', isAd);
 
       await fetch(`${API_URL}/photo`, { method: 'POST', body: formData });
     }
