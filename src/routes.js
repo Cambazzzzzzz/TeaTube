@@ -557,13 +557,13 @@ router.post('/video', uploadDisk.fields([{ name: 'video' }, { name: 'banner' }])
   const bannerPath = req.files?.banner?.[0]?.path;
   
   try {
-    const { channelId, title, description, videoType, tags, commentsEnabled, likesVisible, isShort, isAd } = req.body;
+    const { channelId, title, description, videoType, tags, commentsEnabled, likesVisible, isShort } = req.body;
 
     if (!req.files || !req.files.video || !req.files.banner) {
       return res.status(400).json({ error: 'Video ve banner gerekli' });
     }
 
-    console.log('Video yükleme başladı:', title, '- Boyut:', (req.files.video[0].size / 1024 / 1024).toFixed(1) + 'MB', isShort ? '[SHORTS]' : '', isAd ? '[AD]' : '');
+    console.log('Video yükleme başladı:', title, '- Boyut:', (req.files.video[0].size / 1024 / 1024).toFixed(1) + 'MB', isShort ? '[SHORTS]' : '');
 
     // Banner yükle
     const bannerBuffer = fs.readFileSync(bannerPath);
@@ -575,18 +575,16 @@ router.post('/video', uploadDisk.fields([{ name: 'video' }, { name: 'banner' }])
     console.log('Video yüklendi:', videoUrl);
 
     const result = db.prepare(
-      'INSERT INTO videos (channel_id, title, description, video_url, banner_url, video_type, tags, comments_enabled, likes_visible, is_short, is_ad) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(channelId, title, description, videoUrl, bannerUrl, videoType, tags, commentsEnabled || 1, likesVisible || 1, isShort ? 1 : 0, isAd ? 1 : 0);
+      'INSERT INTO videos (channel_id, title, description, video_url, banner_url, video_type, tags, comments_enabled, likes_visible, is_short) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(channelId, title, description, videoUrl, bannerUrl, videoType, tags, commentsEnabled || 1, likesVisible || 1, isShort ? 1 : 0);
 
-    // Reklam değilse abonelere bildirim
-    if (!isAd) {
-      const subscribers = db.prepare('SELECT user_id FROM subscriptions WHERE channel_id = ?').all(channelId);
-      const channel = db.prepare('SELECT channel_name FROM channels WHERE id = ?').get(channelId);
-      if (channel) {
-        for (const sub of subscribers) {
-          db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-            .run(sub.user_id, 'new_video', `${channel.channel_name} yeni video yükledi: ${title}`, result.lastInsertRowid);
-        }
+    // Abonelere bildirim
+    const subscribers = db.prepare('SELECT user_id FROM subscriptions WHERE channel_id = ?').all(channelId);
+    const channel = db.prepare('SELECT channel_name FROM channels WHERE id = ?').get(channelId);
+    if (channel) {
+      for (const sub of subscribers) {
+        db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
+          .run(sub.user_id, 'new_video', `${channel.channel_name} yeni video yükledi: ${title}`, result.lastInsertRowid);
       }
     }
 
@@ -1622,8 +1620,8 @@ router.post('/photo', upload.single('photo'), async (req, res) => {
     const photoUrl = await cloudinary.uploadProfilePhoto(req.file.buffer, req.file.originalname);
 
     const result = db.prepare(
-      'INSERT INTO videos (channel_id, title, description, video_url, banner_url, video_type, tags, comments_enabled, likes_visible, is_short, is_ad) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, 0, ?)'
-    ).run(channelId, title || 'Fotoğraf', description || '', photoUrl, photoUrl, 'Fotoğraf', 'foto', isAd ? 1 : 0);
+      'INSERT INTO videos (channel_id, title, description, video_url, banner_url, video_type, tags, comments_enabled, likes_visible, is_short) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, 0)'
+    ).run(channelId, title || 'Fotoğraf', description || '', photoUrl, photoUrl, 'Fotoğraf', 'foto');
 
     res.json({ success: true, photoId: result.lastInsertRowid });
   } catch(e) {
