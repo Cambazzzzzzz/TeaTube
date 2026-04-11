@@ -6088,9 +6088,9 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
 }
 
 function renderTSSongRow(s) {
-  const playCount = s.show_play_count ? `<span style="font-size:11px;color:var(--yt-spec-text-secondary)">${s.play_count || 0} dinlenme</span>` : '';
+  const playCount = s.show_play_count ? `<span class="song-play-count" style="font-size:11px;color:var(--yt-spec-text-secondary)">${s.play_count || 0} dinlenme</span>` : '';
   return `
-    <div onclick="playSong(${s.id})" style="display:flex;align-items:center;gap:12px;padding:8px;border-radius:10px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+    <div data-song-id="${s.id}" onclick="playSong(${s.id})" style="display:flex;align-items:center;gap:12px;padding:8px;border-radius:10px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
       <img src="${s.cover_url}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=48 height=48%3E%3Crect width=48 height=48 fill=%23333/%3E%3C/svg%3E'" />
       <div style="flex:1;min-width:0">
         <p style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title || ''}</p>
@@ -6123,6 +6123,10 @@ async function playSong(songId) {
     tsMusicIsPlaying = true;
     tsMusicAudio.onended = () => { tsMusicIsPlaying = false; updateTSMiniPlayer(); };
     updateTSMiniPlayer();
+    // Dinlenme sayısını UI'da güncelle
+    document.querySelectorAll(`[data-song-id="${songId}"] .song-play-count`).forEach(el => {
+      el.textContent = (parseInt(el.textContent) || 0) + 1 + ' dinlenme';
+    });
   } catch(e) { showToast('Şarkı yüklenemedi', 'error'); }
 }
 
