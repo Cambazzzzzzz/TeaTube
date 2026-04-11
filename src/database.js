@@ -281,6 +281,14 @@ try {
   db.prepare('ALTER TABLE videos ADD COLUMN is_ad INTEGER DEFAULT 0').run();
 } catch(e) {}
 
+// Eski videoların is_ad değerini düzelt (migration)
+try {
+  const result = db.prepare('UPDATE videos SET is_ad = 0 WHERE is_ad IS NULL').run();
+  if (result.changes > 0) {
+    console.log(`✅ ${result.changes} eski video güncellendi (is_ad = 0)`);
+  }
+} catch(e) {}
+
 // account_type ve is_private_account kolonları ekle (yoksa)
 try {
   db.prepare('ALTER TABLE channels ADD COLUMN account_type TEXT DEFAULT "channel"').run();
