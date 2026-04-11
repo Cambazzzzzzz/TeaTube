@@ -2263,6 +2263,9 @@ body {
   /* + butonu göster */
   #uploadPlusBtn { display: flex !important; align-items: center; font-size: 26px; }
 
+  /* Mobil arama butonu göster */
+  #mobileSearchBtn { display: flex !important; align-items: center; font-size: 18px; }
+
   /* Desktop'ta + butonu gizle */
 
   /* Header sağ — chat+bildirim+profil */
@@ -2272,11 +2275,10 @@ body {
 
   /* Masthead container flex */
   #masthead-container { justify-content: space-between; }
-  #start { flex: 0 0 auto; }
+  #start { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
 
   /* Arama gizle mobilde */
   #center { display: none; }
-  #mobileSearchBtn { display: none !important; }
 
   /* Profil sayfası butonlar taşmasın */
   .profile-page > div[style*="display: flex"] {
