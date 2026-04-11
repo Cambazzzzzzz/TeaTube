@@ -2584,6 +2584,11 @@ body {
   border-radius: 50%;
   padding: 2px;
   background: linear-gradient(45deg, #ff0033, #ff6b35, #ff0033);
+  transition: background 0.4s ease;
+}
+
+.mobile-story-ring.watched {
+  background: #444 !important;
 }
 
 .mobile-story-ring img {

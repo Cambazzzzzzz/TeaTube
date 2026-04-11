@@ -2065,21 +2065,30 @@ async function loadMobileHomePage() {
 
     const photoItems = allVideos.filter(v => v.video_type === 'Fotoğraf');
     const normalVideos = allVideos.filter(v => v.video_type !== 'Fotoğraf' && !v.is_short);
-    const realsItems = reals.slice(0, 20);
+
+    // İzlenen story'leri localStorage'dan al
+    const watchedStories = JSON.parse(localStorage.getItem('Tea_watched_stories') || '[]');
+    
+    // Yeni (izlenmemiş) önce, izlenenler sona - max 15
+    const unwatched = reals.filter(v => !watchedStories.includes(v.id));
+    const watched = reals.filter(v => watchedStories.includes(v.id));
+    const realsItems = [...unwatched, ...watched].slice(0, 15);
 
     pageContent.innerHTML = `
       <div class="mobile-feed">
         <!-- Reals Stories Bar -->
         ${realsItems.length > 0 ? `
           <div class="mobile-stories-bar">
-            ${realsItems.map(v => `
-              <div class="mobile-story" onclick="openShortFromHome(${v.id})">
-                <div class="mobile-story-ring">
+            ${realsItems.map(v => {
+              const isWatched = watchedStories.includes(v.id);
+              return `
+              <div class="mobile-story" data-id="${v.id}" onclick="openShortFromHomeAndMark(${v.id})">
+                <div class="mobile-story-ring${isWatched ? ' watched' : ''}">
                   <img src="${getProfilePhotoUrl(v.profile_photo)}" onerror="onProfilePhotoError(this)" />
                 </div>
                 <p>${v.channel_name?.split(' ')[0] || 'Tea'}</p>
-              </div>
-            `).join('')}
+              </div>`;
+            }).join('')}
           </div>
         ` : ''}
 
@@ -2341,6 +2350,23 @@ function openShortFromHome(videoId) {
       showPage('shorts');
     });
   }
+}
+
+function openShortFromHomeAndMark(videoId) {
+  // İzlendi olarak işaretle
+  const watched = JSON.parse(localStorage.getItem('Tea_watched_stories') || '[]');
+  if (!watched.includes(videoId)) {
+    watched.push(videoId);
+    // Max 100 izleme tut
+    if (watched.length > 100) watched.shift();
+    localStorage.setItem('Tea_watched_stories', JSON.stringify(watched));
+  }
+  
+  // Story çemberini anında gri yap
+  const storyEl = document.querySelector(`.mobile-story[data-id="${videoId}"] .mobile-story-ring`);
+  if (storyEl) storyEl.classList.add('watched');
+  
+  openShortFromHome(videoId);
 }
 
 function displayVideos(videos, containerId) {
