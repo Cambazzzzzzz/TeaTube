@@ -222,25 +222,37 @@ router.get('/groups/:groupId/requests', (req, res) => {
 router.put('/groups/:groupId/requests/:requestId', (req, res) => {
   try {
     const { action, adminId } = req.body;
-    const request = db.prepare('SELECT * FROM group_join_requests WHERE id = ?').get(req.params.requestId);
-    if (!request) return res.status(404).json({ error: 'İstek bulunamadı' });
+    // requestId hem id hem user_id olabilir
+    let request = db.prepare('SELECT * FROM group_join_requests WHERE id = ? AND group_id = ?').get(req.params.requestId, req.params.groupId);
+    if (!request) {
+      // user_id ile dene
+      request = db.prepare('SELECT * FROM group_join_requests WHERE user_id = ? AND group_id = ? AND status = "pending"').get(req.params.requestId, req.params.groupId);
+    }
+    if (!request) return res.status(404).json({ error: 'İstek bulunamadı: ' + req.params.requestId });
 
-    // Yetki kontrolü
-    const member = db.prepare('SELECT role FROM group_members WHERE group_id = ? AND user_id = ?').get(req.params.groupId, adminId);
-    if (!member || !['owner', 'moderator'].includes(member.role)) return res.status(403).json({ error: 'Yetkisiz' });
+    // Yetki kontrolü - adminId yoksa group owner'ı bul
+    let hasPermission = false;
+    if (adminId) {
+      const member = db.prepare('SELECT role FROM group_members WHERE group_id = ? AND user_id = ?').get(req.params.groupId, adminId);
+      hasPermission = member && ['owner', 'moderator'].includes(member.role);
+    }
+    if (!hasPermission) return res.status(403).json({ error: 'Yetkisiz' });
 
-    db.prepare('UPDATE group_join_requests SET status = ? WHERE id = ?').run(action, req.params.requestId);
+    db.prepare('UPDATE group_join_requests SET status = ? WHERE id = ?').run(action, request.id);
 
     if (action === 'accepted') {
       db.prepare('INSERT OR IGNORE INTO group_members (group_id, user_id, role) VALUES (?, ?, ?)').run(req.params.groupId, request.user_id, 'member');
-      const group = db.prepare('SELECT name FROM groups WHERE id = ?').get(req.params.groupId);
-      db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-        .run(request.user_id, 'group_accepted', `"${group.name}" grubuna katılma isteğiniz kabul edildi!`, req.params.groupId);
+      try {
+        const group = db.prepare('SELECT name FROM groups WHERE id = ?').get(req.params.groupId);
+        db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
+          .run(request.user_id, 'group_accepted', `"${group?.name}" grubuna katılma isteğiniz kabul edildi!`, req.params.groupId);
+      } catch(ne) {}
     }
 
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'İşlem başarısız' });
+    console.error('Group request error:', e);
+    res.status(500).json({ error: 'İşlem başarısız: ' + e.message });
   }
 });
 
