@@ -66,7 +66,7 @@ function showMobileUploadMenu() {
   sheet.innerHTML = `
     <div style="width:100%; background:var(--yt-spec-raised-background); border-radius:20px 20px 0 0; padding:20px 16px 32px;">
       <div style="width:40px; height:4px; background:rgba(255,255,255,0.2); border-radius:2px; margin:0 auto 20px;"></div>
-      <button onclick="document.getElementById('mobileUploadSheet').remove(); setTimeout(() => { switchUploadType('reals'); showUploadVideoModal(); }, 100);"
+      <button onclick="const sheet = document.getElementById('mobileUploadSheet'); if(sheet) sheet.remove(); setTimeout(() => { switchUploadType('reals'); showUploadVideoModal(); }, 300);"
         style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
         <div style="width:44px; height:44px; background:rgba(255,0,51,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
           <i class="fas fa-film" style="color:#ff0033; font-size:18px;"></i>
@@ -76,7 +76,7 @@ function showMobileUploadMenu() {
           <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Kısa video paylaş</p>
         </div>
       </button>
-      <button onclick="document.getElementById('mobileUploadSheet').remove(); setTimeout(() => { switchUploadType('photo'); showUploadVideoModal(); }, 100);"
+      <button onclick="const sheet = document.getElementById('mobileUploadSheet'); if(sheet) sheet.remove(); setTimeout(() => { switchUploadType('photo'); showUploadVideoModal(); }, 300);"
         style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
         <div style="width:44px; height:44px; background:rgba(255,165,0,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
           <i class="fas fa-image" style="color:orange; font-size:18px;"></i>
@@ -86,7 +86,7 @@ function showMobileUploadMenu() {
           <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Fotoğraf paylaş</p>
         </div>
       </button>
-      <button onclick="document.getElementById('mobileUploadSheet').remove()"
+      <button onclick="const sheet = document.getElementById('mobileUploadSheet'); if(sheet) sheet.remove();"
         style="width:100%; background:rgba(255,255,255,0.06); border:none; color:var(--yt-spec-text-secondary); padding:14px; border-radius:10px; font-size:14px; cursor:pointer; margin-top:8px;">
         İptal
       </button>
