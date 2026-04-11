@@ -1272,3 +1272,264 @@ async function viewConversation(user1Id, user2Id, user1Name, user2Name) {
     showToast('Konuşma yüklenemedi: ' + e.message, false);
   }
 }
+// Kullanıcıya rozet ver ve aktif yap
+async function quickAssignBadge(badgeId, userId, userName) {
+  if (!badgeId) return;
+  
+  try {
+    // Rozeti ver
+    const assignR = await fetch(API + '/admin/badges/' + badgeId + '/assign/' + userId, { method: 'POST' });
+    
+    if (assignR.ok) {
+      // Aktif rozet olarak ayarla
+      const activeR = await fetch(API + '/admin/users/' + userId + '/active-badge', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ badgeId })
+      });
+      
+      if (activeR.ok) {
+        showToast(userName + ' kullanıcısına rozet verildi ve aktif yapıldı');
+      } else {
+        showToast(userName + ' kullanıcısına rozet verildi ama aktif yapılamadı', false);
+      }
+    } else {
+      const err = await assignR.json();
+      showToast('Hata: ' + err.error, false);
+    }
+  } catch(e) {
+    showToast('Hata: ' + e.message, false);
+  }
+}
+
+// Rozet oluşturma modalı
+function showCreateBadgeModal() {
+  const html = `
+    <h3><i class="fas fa-certificate"></i> Yeni Rozet Oluştur</h3>
+    <div class="a-form-group">
+      <label>Rozet Adı</label>
+      <input type="text" id="badgeName" class="a-input" placeholder="Örn: VIP Üye" />
+    </div>
+    <div class="a-form-group">
+      <label>İkon (FontAwesome)</label>
+      <input type="text" id="badgeIcon" class="a-input" placeholder="Örn: fa-crown" value="fa-star" />
+    </div>
+    <div class="a-form-group">
+      <label>İkon Rengi</label>
+      <input type="color" id="badgeColor" class="a-input" value="#ffd700" />
+    </div>
+    <div class="a-form-group">
+      <label>İsim Rengi</label>
+      <input type="color" id="badgeNameColor" class="a-input" value="#ffd700" />
+    </div>
+    <div class="a-form-group">
+      <label>Açıklama</label>
+      <textarea id="badgeDescription" class="a-input" placeholder="Rozet açıklaması..." style="min-height:60px;"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="a-btn" onclick="createBadge()">
+        <i class="fas fa-plus"></i> Oluştur
+      </button>
+      <button class="a-btn a-btn-gray" onclick="closeModal()">İptal</button>
+    </div>
+  `;
+  showModal(html);
+}
+
+// Rozet oluştur
+async function createBadge() {
+  const name = document.getElementById('badgeName')?.value?.trim();
+  const icon = document.getElementById('badgeIcon')?.value?.trim();
+  const color = document.getElementById('badgeColor')?.value;
+  const nameColor = document.getElementById('badgeNameColor')?.value;
+  const description = document.getElementById('badgeDescription')?.value?.trim();
+  
+  if (!name || !icon) {
+    showToast('Rozet adı ve ikon gerekli', false);
+    return;
+  }
+  
+  try {
+    const r = await fetch(API + '/admin/badges', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, icon, color, nameColor, description })
+    });
+    
+    if (r.ok) {
+      showToast('Rozet oluşturuldu');
+      closeModal();
+      loadBadges();
+    } else {
+      const err = await r.json();
+      showToast('Hata: ' + err.error, false);
+    }
+  } catch(e) {
+    showToast('Hata: ' + e.message, false);
+  }
+}
+
+// Rozet düzenleme modalı
+function showEditBadgeModal(id, name, icon, color, nameColor, description) {
+  const html = `
+    <h3><i class="fas fa-edit"></i> Rozet Düzenle</h3>
+    <div class="a-form-group">
+      <label>Rozet Adı</label>
+      <input type="text" id="editBadgeName" class="a-input" value="${name}" />
+    </div>
+    <div class="a-form-group">
+      <label>İkon (FontAwesome)</label>
+      <input type="text" id="editBadgeIcon" class="a-input" value="${icon}" />
+    </div>
+    <div class="a-form-group">
+      <label>İkon Rengi</label>
+      <input type="color" id="editBadgeColor" class="a-input" value="${color}" />
+    </div>
+    <div class="a-form-group">
+      <label>İsim Rengi</label>
+      <input type="color" id="editBadgeNameColor" class="a-input" value="${nameColor}" />
+    </div>
+    <div class="a-form-group">
+      <label>Açıklama</label>
+      <textarea id="editBadgeDescription" class="a-input" style="min-height:60px;">${description}</textarea>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="a-btn" onclick="updateBadge(${id})">
+        <i class="fas fa-save"></i> Kaydet
+      </button>
+      <button class="a-btn a-btn-gray" onclick="closeModal()">İptal</button>
+    </div>
+  `;
+  showModal(html);
+}
+
+// Rozet güncelle
+async function updateBadge(badgeId) {
+  const name = document.getElementById('editBadgeName')?.value?.trim();
+  const icon = document.getElementById('editBadgeIcon')?.value?.trim();
+  const color = document.getElementById('editBadgeColor')?.value;
+  const nameColor = document.getElementById('editBadgeNameColor')?.value;
+  const description = document.getElementById('editBadgeDescription')?.value?.trim();
+  
+  if (!name || !icon) {
+    showToast('Rozet adı ve ikon gerekli', false);
+    return;
+  }
+  
+  try {
+    const r = await fetch(API + '/admin/badges/' + badgeId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, icon, color, nameColor, description })
+    });
+    
+    if (r.ok) {
+      showToast('Rozet güncellendi');
+      closeModal();
+      loadBadges();
+    } else {
+      const err = await r.json();
+      showToast('Hata: ' + err.error, false);
+    }
+  } catch(e) {
+    showToast('Hata: ' + e.message, false);
+  }
+}
+
+// Rozet sil
+async function deleteBadge(badgeId) {
+  if (!confirm('Bu rozeti silmek istediğinizden emin misiniz?')) return;
+  
+  try {
+    const r = await fetch(API + '/admin/badges/' + badgeId, { method: 'DELETE' });
+    if (r.ok) {
+      showToast('Rozet silindi');
+      loadBadges();
+    } else {
+      const err = await r.json();
+      showToast('Hata: ' + err.error, false);
+    }
+  } catch(e) {
+    showToast('Hata: ' + e.message, false);
+  }
+}
+
+// Kullanıcıya rozet atama modalı
+function showAssignBadgeModal(badgeId, badgeName) {
+  const html = `
+    <h3><i class="fas fa-user-plus"></i> ${badgeName} Rozeti Ver</h3>
+    <div class="a-form-group">
+      <label>Kullanıcı Ara</label>
+      <input type="text" id="userSearchInput" class="a-input" placeholder="Kullanıcı adı veya takma ad..." onkeyup="searchUsersForBadge(this.value)" />
+    </div>
+    <div id="userSearchResults" style="max-height:200px;overflow-y:auto;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;margin-top:8px;">
+      <p style="color:#666;text-align:center;">Kullanıcı aramaya başlayın...</p>
+    </div>
+    <div style="margin-top:16px;">
+      <button class="a-btn a-btn-gray" onclick="closeModal()">İptal</button>
+    </div>
+  `;
+  showModal(html);
+  window.currentBadgeId = badgeId;
+}
+
+// Kullanıcı arama (rozet için)
+async function searchUsersForBadge(query) {
+  const results = document.getElementById('userSearchResults');
+  if (!query.trim()) {
+    results.innerHTML = '<p style="color:#666;text-align:center;">Kullanıcı aramaya başlayın...</p>';
+    return;
+  }
+  
+  try {
+    const r = await fetch(API + '/admin/users?q=' + encodeURIComponent(query) + '&limit=10');
+    const data = await r.json();
+    const users = Array.isArray(data) ? data : (data.users || []);
+    
+    if (users.length === 0) {
+      results.innerHTML = '<p style="color:#666;text-align:center;">Kullanıcı bulunamadı</p>';
+      return;
+    }
+    
+    results.innerHTML = users.map(u => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px;background:rgba(255,255,255,0.02);border-radius:6px;margin-bottom:4px;cursor:pointer;" onclick="assignBadgeToUser(${window.currentBadgeId}, ${u.id}, '${u.nickname}')">
+        <img src="${u.profile_photo && u.profile_photo !== '?' ? u.profile_photo : 'logoteatube.png'}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />
+        <div>
+          <p style="font-size:13px;font-weight:500;">${u.nickname}</p>
+          <p style="font-size:11px;color:#666;">@${u.username}</p>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    results.innerHTML = '<p style="color:#ff4466;text-align:center;">Arama hatası</p>';
+  }
+}
+
+// Kullanıcıya rozet ata
+async function assignBadgeToUser(badgeId, userId, userName) {
+  try {
+    // Rozeti ver
+    const assignR = await fetch(API + '/admin/badges/' + badgeId + '/assign/' + userId, { method: 'POST' });
+    
+    if (assignR.ok) {
+      // Aktif rozet olarak ayarla
+      const activeR = await fetch(API + '/admin/users/' + userId + '/active-badge', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ badgeId })
+      });
+      
+      if (activeR.ok) {
+        showToast(userName + ' kullanıcısına rozet verildi ve aktif yapıldı');
+      } else {
+        showToast(userName + ' kullanıcısına rozet verildi ama aktif yapılamadı', false);
+      }
+      closeModal();
+    } else {
+      const err = await assignR.json();
+      showToast('Hata: ' + err.error, false);
+    }
+  } catch(e) {
+    showToast('Hata: ' + e.message, false);
+  }
+}

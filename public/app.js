@@ -174,8 +174,6 @@ function showMobileProfileSheet() {
         { icon:'fa-layer-group', label:'Gruplar', page:'groups' },
         { icon:'fa-music', label:'TS Music', page:'ts-music' },
         { icon:'fa-brain', label:'Algoritmam', page:'algorithm' },
-        { icon:'fa-bug', label:'Bug/İstek', page:'bug-reports' },
-        { icon:'fa-bullhorn', label:'Yenilikler', page:'announcements' },
         { icon:'fa-cog', label:'Ayarlar', page:'settings' },
       ].map(item => `
         <button onclick="document.getElementById('mobileProfileSheet').remove(); showPage('${item.page}');"
@@ -619,21 +617,6 @@ function showPage(page) {
       break;
     case 'subscriptions':
       loadSubscriptionsPage();
-      break;
-    case 'favorites':
-      loadFavoritesPage();
-      break;
-    case 'saved':
-      loadSavedPage();
-      break;
-    case 'notifications':
-      loadNotificationsPage();
-      break;
-    case 'bug-reports':
-      loadBugReportsPage();
-      break;
-    case 'announcements':
-      loadAnnouncementsPage();
       break;
     case 'favorites':
       loadFavoritesPage();

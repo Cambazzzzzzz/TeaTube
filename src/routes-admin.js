@@ -736,3 +736,167 @@ router.get('/admin/conversation/:user1Id/:user2Id', (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+// ==================== ROZET YÖNETİMİ ====================
+
+// Rozet oluştur
+router.post('/admin/badges', (req, res) => {
+  try {
+    const { name, icon, color, nameColor, description } = req.body;
+    
+    if (!name || !icon) {
+      return res.status(400).json({ error: 'Rozet adı ve ikon gerekli' });
+    }
+    
+    const result = db.prepare(
+      'INSERT INTO badges (name, icon, color, name_color, description, is_system) VALUES (?, ?, ?, ?, ?, 0)'
+    ).run(name, icon, color || '#ffffff', nameColor || '#ffffff', description || '');
+    
+    res.json({ success: true, badgeId: result.lastInsertRowid });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Rozet güncelle
+router.put('/admin/badges/:badgeId', (req, res) => {
+  try {
+    const { name, icon, color, nameColor, description } = req.body;
+    const { badgeId } = req.params;
+    
+    // Sistem rozetlerini güncellemeyi engelle
+    const badge = db.prepare('SELECT is_system FROM badges WHERE id = ?').get(badgeId);
+    if (!badge) {
+      return res.status(404).json({ error: 'Rozet bulunamadı' });
+    }
+    
+    if (badge.is_system) {
+      return res.status(400).json({ error: 'Sistem rozetleri düzenlenemez' });
+    }
+    
+    const result = db.prepare(
+      'UPDATE badges SET name = ?, icon = ?, color = ?, name_color = ?, description = ? WHERE id = ?'
+    ).run(name, icon, color || '#ffffff', nameColor || '#ffffff', description || '', badgeId);
+    
+    if (result.changes > 0) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'Rozet bulunamadı' });
+    }
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Rozet sil
+router.delete('/admin/badges/:badgeId', (req, res) => {
+  try {
+    const { badgeId } = req.params;
+    
+    // Sistem rozetlerini silmeyi engelle
+    const badge = db.prepare('SELECT is_system FROM badges WHERE id = ?').get(badgeId);
+    if (!badge) {
+      return res.status(404).json({ error: 'Rozet bulunamadı' });
+    }
+    
+    if (badge.is_system) {
+      return res.status(400).json({ error: 'Sistem rozetleri silinemez' });
+    }
+    
+    // Önce kullanıcı rozetlerini sil
+    db.prepare('DELETE FROM user_badges WHERE badge_id = ?').run(badgeId);
+    
+    // Aktif rozet olarak ayarlanmışsa kaldır
+    db.prepare('UPDATE users SET active_badge_id = NULL WHERE active_badge_id = ?').run(badgeId);
+    
+    // Rozeti sil
+    const result = db.prepare('DELETE FROM badges WHERE id = ?').run(badgeId);
+    
+    if (result.changes > 0) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'Rozet bulunamadı' });
+    }
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Kullanıcıya rozet ver
+router.post('/admin/badges/:badgeId/assign/:userId', (req, res) => {
+  try {
+    const { badgeId, userId } = req.params;
+    
+    // Kullanıcı ve rozet var mı kontrol et
+    const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
+    const badge = db.prepare('SELECT id FROM badges WHERE id = ?').get(badgeId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+    }
+    
+    if (!badge) {
+      return res.status(404).json({ error: 'Rozet bulunamadı' });
+    }
+    
+    // Zaten var mı kontrol et
+    const existing = db.prepare('SELECT id FROM user_badges WHERE user_id = ? AND badge_id = ?').get(userId, badgeId);
+    if (existing) {
+      return res.status(400).json({ error: 'Kullanıcıda bu rozet zaten var' });
+    }
+    
+    // Rozeti ver
+    db.prepare('INSERT INTO user_badges (user_id, badge_id) VALUES (?, ?)').run(userId, badgeId);
+    
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Kullanıcının aktif rozetini ayarla
+router.put('/admin/users/:userId/active-badge', (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { badgeId } = req.body;
+    
+    // Kullanıcının bu rozeti var mı kontrol et
+    if (badgeId) {
+      const userBadge = db.prepare('SELECT id FROM user_badges WHERE user_id = ? AND badge_id = ?').get(userId, badgeId);
+      if (!userBadge) {
+        return res.status(400).json({ error: 'Kullanıcıda bu rozet yok' });
+      }
+    }
+    
+    // Aktif rozeti ayarla (null ise kaldır)
+    const result = db.prepare('UPDATE users SET active_badge_id = ? WHERE id = ?').run(badgeId || null, userId);
+    
+    if (result.changes > 0) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+    }
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Kullanıcıdan rozet al
+router.delete('/admin/badges/:badgeId/remove/:userId', (req, res) => {
+  try {
+    const { badgeId, userId } = req.params;
+    
+    // Rozeti kaldır
+    const result = db.prepare('DELETE FROM user_badges WHERE user_id = ? AND badge_id = ?').run(userId, badgeId);
+    
+    // Eğer aktif rozetiyse kaldır
+    db.prepare('UPDATE users SET active_badge_id = NULL WHERE id = ? AND active_badge_id = ?').run(userId, badgeId);
+    
+    if (result.changes > 0) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'Kullanıcıda bu rozet yok' });
+    }
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
