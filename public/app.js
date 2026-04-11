@@ -5800,7 +5800,6 @@ async function unblockUser(blockedId, nickname) {
 let tsMusicAudio = null;
 let tsMusicCurrentSong = null;
 let tsMusicIsPlaying = false;
-let tsMusicIsPlaying = false;
 
 async function loadTSMusicPage() {
   const pageContent = document.getElementById('pageContent');
