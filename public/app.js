@@ -86,16 +86,6 @@ function showMobileUploadMenu() {
           <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Fotoğraf paylaş</p>
         </div>
       </button>
-      <button onclick="event.stopPropagation(); document.getElementById('mobileUploadSheet').remove(); setTimeout(() => { showUploadVideoModal(); setTimeout(() => switchUploadType('text'), 50); }, 100);"
-        style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
-        <div style="width:44px; height:44px; background:rgba(29,161,242,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
-          <i class="fas fa-align-left" style="color:#1da1f2; font-size:18px;"></i>
-        </div>
-        <div style="text-align:left;">
-          <p style="font-weight:600; margin-bottom:2px;">Metin</p>
-          <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Yazı paylaş</p>
-        </div>
-      </button>
       <button onclick="event.stopPropagation(); document.getElementById('mobileUploadSheet').remove();"
         style="width:100%; background:rgba(255,255,255,0.06); border:none; color:var(--yt-spec-text-secondary); padding:14px; border-radius:10px; font-size:14px; cursor:pointer; margin-top:8px;">
         İptal
@@ -206,8 +196,7 @@ function toggleMobileSearch() {
   if (!center) return;
   const isVisible = center.style.display === 'flex';
   if (isVisible) {
-    center.style.cssText = '';
-    // Overlay'i kaldır
+    center.style.display = 'none';
     document.getElementById('searchOverlay')?.remove();
   } else {
     center.style.display = 'flex';
@@ -221,12 +210,11 @@ function toggleMobileSearch() {
     center.style.zIndex = '2021';
     center.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
     setTimeout(() => document.getElementById('searchInput')?.focus(), 100);
-    // Dışarı tıklayınca kapansın
     const overlay = document.createElement('div');
     overlay.id = 'searchOverlay';
     overlay.style.cssText = 'position:fixed;inset:0;z-index:2020;';
     overlay.addEventListener('click', () => {
-      center.style.cssText = '';
+      center.style.display = 'none';
       overlay.remove();
     });
     document.body.appendChild(overlay);
@@ -3402,7 +3390,7 @@ function showUploadVideoModal() {
     <!-- Format Seçimi -->
     <div class="yt-form-group">
       <label class="yt-form-label">Ne yüklemek istiyorsun?</label>
-      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:4px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:4px;">
         <label class="upload-type-btn active" id="typeBtn_reals" onclick="switchUploadType('reals')">
           <input type="radio" name="uploadType" value="reals" checked style="display:none;" />
           <i class="fas fa-film" style="font-size:20px; margin-bottom:6px;"></i>
@@ -3414,12 +3402,6 @@ function showUploadVideoModal() {
           <i class="fas fa-image" style="font-size:20px; margin-bottom:6px;"></i>
           <span>Foto</span>
           <small>Fotoğraf paylaş</small>
-        </label>
-        <label class="upload-type-btn" id="typeBtn_text" onclick="switchUploadType('text')">
-          <input type="radio" name="uploadType" value="text" style="display:none;" />
-          <i class="fas fa-align-left" style="font-size:20px; margin-bottom:6px;"></i>
-          <span>Metin</span>
-          <small>Yazı paylaş</small>
         </label>
       </div>
     </div>
@@ -3474,34 +3456,6 @@ function showUploadVideoModal() {
       <div class="yt-form-group">
         <label class="yt-form-label">Fotoğraf</label>
         <input type="file" id="photoFile" class="yt-input" accept="image/*" multiple />
-      </div>
-    </div>
-
-    <!-- Metin alanları -->
-    <div id="textFields" style="display:none;">
-      <div class="yt-form-group">
-        <label class="yt-form-label">Metin Tipi</label>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-          <label class="upload-type-btn active" id="textTypeBtn_teaweet" onclick="switchTextType('teaweet')">
-            <input type="radio" name="textType" value="teaweet" checked style="display:none;" />
-            <i class="fas fa-shield-alt" style="font-size:18px; margin-bottom:4px; color:#1da1f2;"></i>
-            <span>TeaWeet</span>
-            <small>Kısa ve öz, #hashtag</small>
-          </label>
-          <label class="upload-type-btn" id="textTypeBtn_plain" onclick="switchTextType('plain')">
-            <input type="radio" name="textType" value="plain" style="display:none;" />
-            <i class="fas fa-align-left" style="font-size:18px; margin-bottom:4px;"></i>
-            <span>Düz Metin</span>
-            <small>Uzun yazılar</small>
-          </label>
-        </div>
-      </div>
-      <div class="yt-form-group">
-        <label class="yt-form-label">İçerik</label>
-        <textarea id="textContent" class="yt-textarea" placeholder="Metninizi buraya yazın..." style="min-height:200px;"></textarea>
-        <p id="textTypeHint" style="font-size:12px; color:var(--yt-spec-text-secondary); margin-top:4px;">
-          <i class="fas fa-info-circle"></i> TeaWeet: #hashtag kullanabilirsiniz, kısa ve öz olmalı
-        </p>
       </div>
     </div>
 
@@ -5132,7 +5086,7 @@ async function viewChannel(channelId) {
 
       <!-- Sekmeler -->
       <div style="display:flex; gap:0; border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:24px;">
-        <button class="channel-tab active" onclick="switchChannelTab(this,'videos')" style="padding:12px 20px; background:none; border:none; border-bottom:2px solid var(--yt-spec-brand-background-solid); color:var(--yt-spec-text-primary); font-size:14px; font-weight:500; cursor:pointer;">Videolar</button>
+        <button class="channel-tab active" onclick="switchChannelTab(this,'videos')" style="padding:12px 20px; background:none; border:none; border-bottom:2px solid var(--yt-spec-brand-background-solid); color:var(--yt-spec-text-primary); font-size:14px; font-weight:500; cursor:pointer;">İçerikler</button>
         <button class="channel-tab" onclick="switchChannelTab(this,'about')" style="padding:12px 20px; background:none; border:none; border-bottom:2px solid transparent; color:var(--yt-spec-text-secondary); font-size:14px; cursor:pointer;">Hakkında</button>
       </div>
 
@@ -6840,7 +6794,7 @@ async function openGroup(groupId) {
     const canWrite = isMember && !isMuted && (group.allow_member_messages !== 0 || isOwner || isMod);
 
     pageContent.innerHTML = `
-      <div style="display:flex;flex-direction:column;height:calc(100vh - 120px);max-width:700px">
+      <div style="display:flex;flex-direction:column;height:calc(100dvh - var(--ytd-masthead-height, 56px) - 60px);max-width:700px;overflow:hidden">
         <!-- Başlık -->
         <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:0;flex-shrink:0">
           <button onclick="loadGroupsPage()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:16px;padding:4px 8px"><i class="fas fa-arrow-left"></i></button>
@@ -6861,17 +6815,18 @@ async function openGroup(groupId) {
         </div>
 
         <!-- Mesajlar -->
-        <div id="groupMessages" style="flex:1;overflow-y:auto;padding:12px 0;display:flex;flex-direction:column;gap:8px">
+        <div id="groupMessages" style="flex:1;overflow-y:auto;padding:8px 4px;display:flex;flex-direction:column;gap:6px;-webkit-overflow-scrolling:touch">
           <div class="yt-loading"><div class="yt-spinner"></div></div>
         </div>
 
         <!-- Mesaj Gönder -->
         ${isMember ? `
-          <div style="padding:10px 0;border-top:1px solid rgba(255,255,255,0.08);display:flex;gap:8px;align-items:flex-end;flex-shrink:0">
-            <img src="${getProfilePhotoUrl(currentUser?.profile_photo)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+          <div style="padding:8px 4px;border-top:1px solid rgba(255,255,255,0.08);display:flex;gap:6px;align-items:flex-end;flex-shrink:0;background:var(--yt-spec-base-background)">
             ${canWrite ? `
-              <textarea id="groupMsgInput" class="yt-input" placeholder="Mesaj yaz..." style="flex:1;min-height:36px;max-height:100px;resize:none;padding:8px 12px;line-height:1.4" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendGroupMessage(${group.id})}"></textarea>
-              <button onclick="sendGroupMessage(${group.id})" style="background:none;border:none;color:var(--yt-spec-brand-background-solid);cursor:pointer;font-size:18px;padding:4px 8px;flex-shrink:0"><i class="fas fa-paper-plane"></i></button>
+              <button onclick="sendGroupPhoto(${group.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:20px;padding:6px;flex-shrink:0;-webkit-tap-highlight-color:transparent"><i class="fas fa-plus"></i></button>
+              <input type="file" id="groupPhotoInput" accept="image/*" style="display:none" onchange="uploadGroupPhoto(${group.id},this)" />
+              <textarea id="groupMsgInput" class="yt-input" placeholder="Mesaj yaz..." style="flex:1;min-height:36px;max-height:100px;resize:none;padding:8px 12px;line-height:1.4;font-size:15px" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendGroupMessage(${group.id})}"></textarea>
+              <button onclick="sendGroupMessage(${group.id})" style="background:none;border:none;color:var(--yt-spec-brand-background-solid);cursor:pointer;font-size:20px;padding:6px;flex-shrink:0;-webkit-tap-highlight-color:transparent"><i class="fas fa-paper-plane"></i></button>
             ` : `<p style="flex:1;font-size:13px;color:var(--yt-spec-text-secondary);padding:8px 0">${isMuted ? 'Susturuldunuz' : 'Mesaj gönderme kapalı'}</p>`}
           </div>
         ` : ''}
@@ -7137,6 +7092,38 @@ async function sendGroupMessage(groupId) {
     input.value = '';
     input.style.height = 'auto';
   } catch(e) { showToast('Mesaj gönderilemedi', 'error'); }
+}
+
+function sendGroupPhoto(groupId) {
+  document.getElementById('groupPhotoInput')?.click();
+}
+
+async function uploadGroupPhoto(groupId, input) {
+  const file = input.files[0];
+  if (!file || !window.firebaseDB) return;
+  
+  showToast('Fotoğraf yükleniyor...', 'info');
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'teatube_uploads');
+    
+    // Cloudinary'ye yükle
+    const r = await fetch(`${API_URL}/upload-image`, {
+      method: 'POST',
+      body: formData
+    });
+    const data = await r.json();
+    if (!data.url) throw new Error('URL alınamadı');
+    
+    await window.firebasePush(window.firebaseRef(window.firebaseDB, `group_chats/${groupId}/messages`), {
+      senderId: currentUser.id,
+      imageUrl: data.url,
+      timestamp: Date.now()
+    });
+    input.value = '';
+    showToast('Fotoğraf gönderildi', 'success');
+  } catch(e) { showToast('Fotoğraf gönderilemedi', 'error'); }
 }
 
 function showGroupMembersPanel(groupId, canManage = false) {
