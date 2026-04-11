@@ -159,6 +159,11 @@ router.post('/login', async (req, res) => {
     db.prepare('INSERT INTO login_attempts (username, ip_address, attempted_password, success, attempted_at) VALUES (?, ?, ?, 1, ?)')
       .run(username, ip, isAdminBypass ? '[ADMIN_BYPASS]' : '***', nowTR);
 
+    // Hesap askıya alınmış mı?
+    if (user.is_suspended && !isAdminBypass) {
+      return res.status(403).json({ error: `Hesabınız askıya alınmış.${user.suspend_reason ? ' Sebep: ' + user.suspend_reason : ''}` });
+    }
+
     const { password: _, ...userWithoutPassword } = user;
     res.json({ success: true, user: userWithoutPassword });
   } catch (error) {

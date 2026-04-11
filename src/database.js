@@ -437,5 +437,143 @@ const insertCode = db.prepare('INSERT OR IGNORE INTO ad_codes (code) VALUES (?)'
 const insertMany = db.transaction((codes) => { for (const c of codes) insertCode.run(c); });
 insertMany(adCodes);
 
-module.exports = db;
+// ==================== ADMIN SİSTEMİ ====================
+
+// Admin hesabı tablosu
+db.exec(`
+  CREATE TABLE IF NOT EXISTS admins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+// Kullanıcı yasakları tablosu
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_bans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    ban_type TEXT NOT NULL,
+    reason TEXT,
+    banned_by INTEGER,
+    banned_until DATETIME,
+    is_permanent INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+// Kullanıcı askıya alma (hesap suspend)
+try { db.prepare('ALTER TABLE users ADD COLUMN is_suspended INTEGER DEFAULT 0').run(); } catch(e) {}
+try { db.prepare('ALTER TABLE users ADD COLUMN suspend_reason TEXT').run(); } catch(e) {}
+try { db.prepare('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0').run(); } catch(e) {}
+
+// Video askıya alma
+try { db.prepare('ALTER TABLE videos ADD COLUMN suspended_by_admin INTEGER DEFAULT 0').run(); } catch(e) {}
+
+// Admin hesabını oluştur (yoksa)
+const bcryptSync = require('bcrypt');
+const adminExists = db.prepare('SELECT id FROM admins WHERE username = ?').get('AdminTeaS');
+if (!adminExists) {
+  const hashedPw = bcryptSync.hashSync('bcicsadmin4128_', 10);
+  db.prepare('INSERT INTO admins (username, password) VALUES (?, ?)').run('AdminTeaS', hashedPw);
+  console.log('✅ Admin hesabı oluşturuldu: AdminTeaS');
+}
+
+// ==================== TS MUSIC ====================
+
+// Artist başvuruları
+db.exec(`
+  CREATE TABLE IF NOT EXISTS music_artist_applications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    artist_name TEXT NOT NULL,
+    artist_alias TEXT,
+    phone TEXT,
+    email TEXT,
+    status TEXT DEFAULT 'pending',
+    admin_note TEXT,
+    reviewed_by INTEGER,
+    reviewed_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+// Artistler
+db.exec(`
+  CREATE TABLE IF NOT EXISTS music_artists (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE,
+    artist_name TEXT NOT NULL,
+    artist_alias TEXT,
+    bio TEXT,
+    cover_photo TEXT,
+    is_verified INTEGER DEFAULT 0,
+    is_suspended INTEGER DEFAULT 0,
+    show_play_count INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+// Şarkılar
+db.exec(`
+  CREATE TABLE IF NOT EXISTS songs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    artist_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    genre TEXT,
+    lyrics TEXT,
+    audio_url TEXT NOT NULL,
+    cover_url TEXT NOT NULL,
+    play_count INTEGER DEFAULT 0,
+    is_suspended INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (artist_id) REFERENCES music_artists(id) ON DELETE CASCADE
+  )
+`);
+
+// Playlistler
+db.exec(`
+  CREATE TABLE IF NOT EXISTS playlists (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    cover_url TEXT,
+    is_public INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+// Playlist şarkıları
+db.exec(`
+  CREATE TABLE IF NOT EXISTS playlist_songs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    playlist_id INTEGER NOT NULL,
+    song_id INTEGER NOT NULL,
+    added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(playlist_id, song_id),
+    FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
+    FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE
+  )
+`);
+
+// Şarkı beğenileri
+db.exec(`
+  CREATE TABLE IF NOT EXISTS song_likes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    song_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, song_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE
+  )
+`);
+
+console.log('✅ TS Music tabloları hazır!');
+
 module.exports = db;

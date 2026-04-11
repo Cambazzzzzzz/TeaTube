@@ -149,5 +149,6 @@ module.exports = {
   uploadBanner,
   uploadProfilePhoto,
   uploadChannelBanner,
-  generateUploadSignature
+  generateUploadSignature,
+  cloudinary // raw cloudinary instance (music routes için)
 };
