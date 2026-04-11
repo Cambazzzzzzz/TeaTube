@@ -631,14 +631,25 @@ console.log('✅ Grup tabloları hazır!');
 // Grup tabloları migration (eski DB için)
 try { db.prepare('ALTER TABLE groups ADD COLUMN allow_member_messages INTEGER DEFAULT 1').run(); } catch(e) {}
 try { db.prepare('ALTER TABLE groups ADD COLUMN allow_member_photos INTEGER DEFAULT 1').run(); } catch(e) {}
-try { db.prepare('ALTER TABLE groups ADD COLUMN photo_url TEXT').run(); } catch(e) {}
-try { db.prepare('ALTER TABLE groups ADD COLUMN description TEXT').run(); } catch(e) {}
 try { db.prepare('ALTER TABLE groups ADD COLUMN is_private INTEGER DEFAULT 0').run(); } catch(e) {}
 try { db.prepare('ALTER TABLE group_members ADD COLUMN permissions TEXT DEFAULT "{}"').run(); } catch(e) {}
 try { db.prepare('ALTER TABLE group_members ADD COLUMN is_muted INTEGER DEFAULT 0').run(); } catch(e) {}
 try { db.prepare('ALTER TABLE group_members ADD COLUMN muted_until DATETIME').run(); } catch(e) {}
 try { db.prepare('ALTER TABLE group_members ADD COLUMN is_banned INTEGER DEFAULT 0').run(); } catch(e) {}
 try { db.prepare('ALTER TABLE group_members ADD COLUMN banned_until DATETIME').run(); } catch(e) {}
+
+// photo_url kolonu yoksa ekle, photo kolonunu photo_url'ye kopyala
+try {
+  const cols = db.prepare("PRAGMA table_info(groups)").all().map(c => c.name);
+  if (!cols.includes('photo_url')) {
+    db.prepare('ALTER TABLE groups ADD COLUMN photo_url TEXT').run();
+    // Eski photo verisini photo_url'ye kopyala
+    if (cols.includes('photo')) {
+      db.prepare('UPDATE groups SET photo_url = photo WHERE photo IS NOT NULL').run();
+    }
+  }
+  if (!cols.includes('description')) db.prepare('ALTER TABLE groups ADD COLUMN description TEXT').run();
+} catch(e) {}
 
 // ==================== ROZET SİSTEMİ ====================
 
