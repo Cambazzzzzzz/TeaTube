@@ -6821,13 +6821,15 @@ async function openGroup(groupId) {
 
         <!-- Mesaj Gönder -->
         ${isMember ? `
-          <div style="padding:8px 4px;border-top:1px solid rgba(255,255,255,0.08);display:flex;gap:6px;align-items:flex-end;flex-shrink:0;background:var(--yt-spec-base-background)">
+          <div style="padding:8px 12px 12px;border-top:1px solid rgba(255,255,255,0.06);flex-shrink:0;background:var(--yt-spec-base-background)">
             ${canWrite ? `
-              <button onclick="sendGroupPhoto(${group.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:20px;padding:6px;flex-shrink:0;-webkit-tap-highlight-color:transparent"><i class="fas fa-plus"></i></button>
-              <input type="file" id="groupPhotoInput" accept="image/*" style="display:none" onchange="uploadGroupPhoto(${group.id},this)" />
-              <textarea id="groupMsgInput" class="yt-input" placeholder="Mesaj yaz..." style="flex:1;min-height:36px;max-height:100px;resize:none;padding:8px 12px;line-height:1.4;font-size:15px" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendGroupMessage(${group.id})}"></textarea>
-              <button onclick="sendGroupMessage(${group.id})" style="background:none;border:none;color:var(--yt-spec-brand-background-solid);cursor:pointer;font-size:20px;padding:6px;flex-shrink:0;-webkit-tap-highlight-color:transparent"><i class="fas fa-paper-plane"></i></button>
-            ` : `<p style="flex:1;font-size:13px;color:var(--yt-spec-text-secondary);padding:8px 0">${isMuted ? 'Susturuldunuz' : 'Mesaj gönderme kapalı'}</p>`}
+              <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border-radius:28px;padding:6px 6px 6px 14px;border:1px solid rgba(255,255,255,0.08)">
+                <textarea id="groupMsgInput" placeholder="Mesaj yaz..." style="flex:1;background:none;border:none;outline:none;color:var(--yt-spec-text-primary);font-size:15px;resize:none;min-height:22px;max-height:120px;line-height:1.5;padding:0;font-family:inherit" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendGroupMessage(${group.id})}" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+                <input type="file" id="groupPhotoInput" accept="image/*" style="display:none" onchange="uploadGroupPhoto(${group.id},this)" />
+                <button onclick="sendGroupPhoto(${group.id})" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:18px;padding:4px 6px;flex-shrink:0;-webkit-tap-highlight-color:transparent"><i class="fas fa-image"></i></button>
+                <button onclick="sendGroupMessage(${group.id})" style="width:38px;height:38px;background:var(--yt-spec-brand-background-solid);border:none;border-radius:50%;color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent"><i class="fas fa-paper-plane"></i></button>
+              </div>
+            ` : `<p style="text-align:center;font-size:13px;color:var(--yt-spec-text-secondary);padding:8px 0">${isMuted ? '🔇 Susturuldunuz' : 'Mesaj gönderme kapalı'}</p>`}
           </div>
         ` : ''}
       </div>`;
