@@ -468,9 +468,23 @@ async function loadUserData() {
       userPhoto.style.display = 'block';
     }
 
-    // Kanalı kontrol et
+    // Kanalı kontrol et - yoksa otomatik oluştur
     const channelResponse = await fetch(`${API_URL}/channel/user/${currentUser.id}`);
     currentChannel = await channelResponse.json();
+
+    // Kanal yoksa otomatik oluştur (kullanıcı adıyla)
+    if (!currentChannel) {
+      const formData = new FormData();
+      formData.append('userId', currentUser.id);
+      formData.append('channelName', currentUser.nickname || currentUser.username);
+      formData.append('about', '');
+      formData.append('agreed', 'true');
+      const createRes = await fetch(`${API_URL}/channel`, { method: 'POST', body: formData });
+      if (createRes.ok) {
+        const chRes = await fetch(`${API_URL}/channel/user/${currentUser.id}`);
+        currentChannel = await chRes.json();
+      }
+    }
 
     // Bildirimleri yükle
     loadNotifications();
@@ -481,14 +495,7 @@ async function loadUserData() {
     // Ana ekranı göster
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
-
-    // Kanal yoksa oluşturma ekranı göster, varsa anasayfa
-    if (!currentChannel) {
-      showPage('home');
-      setTimeout(() => showCreateChannelOnboarding(), 300);
-    } else {
-      showPage('home');
-    }
+    showPage('home');
     updateMobileProfilePhoto();
   } catch (error) {
     console.error('Kullanıcı verisi yükleme hatası:', error);
@@ -1474,6 +1481,7 @@ function showMsgMenu(event, msgId, isMe, chatId) {
   menu.style.cssText = `position:fixed; top:${event.clientY}px; left:${event.clientX}px; background:var(--yt-spec-raised-background); border-radius:8px; padding:8px 0; box-shadow:0 4px 16px rgba(0,0,0,0.4); z-index:9999; min-width:160px;`;
   
   const items = isMe ? [
+    { icon: 'fa-edit', text: 'Düzenle', action: () => editChatMessage(chatId, msgId) },
     { icon: 'fa-trash', text: 'Benden Sil', action: () => deleteMessage(chatId, msgId, 'sender') },
     { icon: 'fa-trash-alt', text: 'Herkesten Sil', action: () => deleteMessage(chatId, msgId, 'all') }
   ] : [
@@ -1504,6 +1512,27 @@ async function deleteMessage(chatId, msgId, type) {
   } else {
     await window.firebaseUpdate(msgRef, { deletedForReceiver: true });
   }
+}
+
+function editChatMessage(chatId, msgId) {
+  const bubble = document.querySelector(`[data-msg-id="${msgId}"] .msg-text`);
+  if (!bubble) return;
+  const current = bubble.textContent;
+  bubble.innerHTML = `<div style="display:flex;gap:6px;align-items:center"><input id="editMsgInput_${msgId}" class="yt-input" value="${current.replace(/"/g,'&quot;')}" style="flex:1;height:30px;padding:0 8px;font-size:13px;min-width:120px" /><button onclick="saveMsgEdit('${chatId}','${msgId}')" style="background:none;border:none;color:var(--yt-spec-brand-background-solid);cursor:pointer"><i class="fas fa-check"></i></button><button onclick="cancelMsgEdit('${msgId}','${current.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer"><i class="fas fa-times"></i></button></div>`;
+  document.getElementById(`editMsgInput_${msgId}`)?.focus();
+}
+
+async function saveMsgEdit(chatId, msgId) {
+  const input = document.getElementById(`editMsgInput_${msgId}`);
+  const newText = input?.value.trim();
+  if (!newText || !window.firebaseDB) return;
+  const msgRef = window.firebaseRef(window.firebaseDB, `chats/${chatId}/messages/${msgId}`);
+  await window.firebaseUpdate(msgRef, { text: newText, edited: true });
+}
+
+function cancelMsgEdit(msgId, original) {
+  const bubble = document.querySelector(`[data-msg-id="${msgId}"] .msg-text`);
+  if (bubble) bubble.textContent = original;
 }
 
 function setOnlineStatus(online) {
@@ -1734,6 +1763,10 @@ function renderShortsPlayer() {
             <i class="fas fa-bookmark"></i>
             <span>Kaydet</span>
           </button>
+          <button class="shorts-action-btn" onclick="toggleShortsComments(${v.id}, ${v.channel_id})">
+            <i class="fas fa-comment"></i>
+            <span>Yorum</span>
+          </button>
 
           <div style="height:16px;"></div>
 
@@ -1841,6 +1874,117 @@ async function checkShortLikeStatus(videoId) {
   } catch(e) {}
 }
 
+// Reals yorum paneli (Instagram stili)
+function toggleShortsComments(videoId, channelId) {
+  const existing = document.getElementById('shortsCommentPanel');
+  if (existing) { existing.remove(); return; }
+
+  const panel = document.createElement('div');
+  panel.id = 'shortsCommentPanel';
+  panel.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:65vh;background:var(--yt-spec-raised-background);border-radius:20px 20px 0 0;z-index:4000;display:flex;flex-direction:column;box-shadow:0 -8px 32px rgba(0,0,0,0.5)';
+  panel.innerHTML = `
+    <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:15px;font-weight:600">Yorumlar</span>
+      <button onclick="document.getElementById('shortsCommentPanel').remove()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:18px"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="shortsCommentList" style="flex:1;overflow-y:auto;padding:12px 16px">
+      <div class="yt-loading"><div class="yt-spinner"></div></div>
+    </div>
+    <div style="padding:10px 16px;border-top:1px solid rgba(255,255,255,0.08);display:flex;gap:8px;align-items:center">
+      <img src="${getProfilePhotoUrl(currentUser?.profile_photo)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+      <input id="shortsCommentInput" class="yt-input" placeholder="Yorum ekle..." style="flex:1;height:36px;padding:0 12px" onkeydown="if(event.key==='Enter')addShortsComment(${videoId},${channelId})" />
+      <button onclick="addShortsComment(${videoId},${channelId})" style="background:none;border:none;color:var(--yt-spec-brand-background-solid);cursor:pointer;font-size:18px"><i class="fas fa-paper-plane"></i></button>
+    </div>
+  `;
+  panel.addEventListener('click', e => e.stopPropagation());
+  document.body.appendChild(panel);
+  loadShortsComments(videoId, channelId);
+}
+
+async function loadShortsComments(videoId, channelId) {
+  const list = document.getElementById('shortsCommentList');
+  if (!list) return;
+  try {
+    const r = await fetch(`${API_URL}/comments/${videoId}?userId=${currentUser.id}`);
+    const comments = await r.json();
+    if (!comments.length) { list.innerHTML = '<p style="color:var(--yt-spec-text-secondary);text-align:center;padding:20px">Henüz yorum yok</p>'; return; }
+    
+    // Video sahibi mi?
+    const channelRes = await fetch(`${API_URL}/channel/${channelId}`);
+    const channel = await channelRes.json();
+    const isOwner = channel.user_id === currentUser.id;
+
+    list.innerHTML = comments.map(c => {
+      const isMyComment = c.user_id === currentUser.id;
+      const canDelete = isMyComment || isOwner;
+      const canPin = isOwner;
+      return `
+        <div style="display:flex;gap:10px;margin-bottom:14px;${c.is_pinned ? 'background:rgba(255,255,255,0.04);border-radius:8px;padding:8px;' : ''}">
+          <img src="${getProfilePhotoUrl(c.profile_photo)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+              <span style="font-size:13px;font-weight:600">${c.nickname}</span>
+              ${c.is_pinned ? '<span style="font-size:10px;color:var(--yt-spec-brand-background-solid)"><i class="fas fa-thumbtack"></i> Sabitlendi</span>' : ''}
+              ${c.liked_by_owner ? '<span style="font-size:10px;color:#ff0033"><i class="fas fa-heart"></i></span>' : ''}
+            </div>
+            <p id="commentText_${c.id}" style="font-size:13px;line-height:1.4">${c.comment_text}</p>
+            <div style="display:flex;gap:12px;margin-top:6px;align-items:center">
+              <button onclick="likeComment(${c.id},1,${videoId},${channelId})" style="background:none;border:none;color:${c.user_like===1?'#ff0033':'var(--yt-spec-text-secondary)'};cursor:pointer;font-size:12px"><i class="fas fa-heart"></i> ${c.likes||0}</button>
+              ${isMyComment ? `<button onclick="editShortsComment(${c.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:12px"><i class="fas fa-edit"></i></button>` : ''}
+              ${canDelete ? `<button onclick="deleteShortsComment(${c.id},${videoId},${channelId})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:12px"><i class="fas fa-trash"></i></button>` : ''}
+              ${canPin ? `<button onclick="pinShortsComment(${c.id},${videoId},${channelId},${c.is_pinned?0:1})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:12px"><i class="fas fa-thumbtack"></i></button>` : ''}
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch(e) { list.innerHTML = '<p style="color:var(--yt-spec-text-secondary)">Yüklenemedi</p>'; }
+}
+
+async function addShortsComment(videoId, channelId) {
+  const input = document.getElementById('shortsCommentInput');
+  const text = input?.value.trim();
+  if (!text) return;
+  await fetch(`${API_URL}/comment`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ videoId, userId: currentUser.id, commentText: text }) });
+  input.value = '';
+  loadShortsComments(videoId, channelId);
+}
+
+async function deleteShortsComment(commentId, videoId, channelId) {
+  await fetch(`${API_URL}/comment/${commentId}`, { method:'DELETE' });
+  loadShortsComments(videoId, channelId);
+}
+
+async function pinShortsComment(commentId, videoId, channelId, pin) {
+  await fetch(`${API_URL}/comment/${commentId}/pin`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: currentUser.id, videoId, pin }) });
+  loadShortsComments(videoId, channelId);
+}
+
+function editShortsComment(commentId) {
+  const el = document.getElementById(`commentText_${commentId}`);
+  if (!el) return;
+  const current = el.textContent;
+  el.innerHTML = `<div style="display:flex;gap:6px"><input id="editCommentInput_${commentId}" class="yt-input" value="${current.replace(/"/g,'&quot;')}" style="flex:1;height:30px;padding:0 8px;font-size:13px" /><button onclick="saveCommentEdit(${commentId})" style="background:none;border:none;color:var(--yt-spec-brand-background-solid);cursor:pointer"><i class="fas fa-check"></i></button><button onclick="cancelCommentEdit(${commentId},'${current.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer"><i class="fas fa-times"></i></button></div>`;
+}
+
+async function saveCommentEdit(commentId) {
+  const input = document.getElementById(`editCommentInput_${commentId}`);
+  const newText = input?.value.trim();
+  if (!newText) return;
+  await fetch(`${API_URL}/comment/${commentId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ commentText: newText, userId: currentUser.id }) });
+  const el = document.getElementById(`commentText_${commentId}`);
+  if (el) el.textContent = newText;
+}
+
+function cancelCommentEdit(commentId, original) {
+  const el = document.getElementById(`commentText_${commentId}`);
+  if (el) el.textContent = original;
+}
+
+async function likeComment(commentId, likeType, videoId, channelId) {
+  await fetch(`${API_URL}/comment-like`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ commentId, userId: currentUser.id, likeType }) });
+  loadShortsComments(videoId, channelId);
+}
+
 // Anasayfa
 async function loadHomePage() {
   if (window.innerWidth <= 768) {
@@ -1881,18 +2025,17 @@ async function loadMobileHomePage() {
   pageContent.innerHTML = `<div class="yt-loading"><div class="yt-spinner"></div></div>`;
 
   try {
-    // Sadece fotoğraf ve reals çek, uzun video yok
-    const [photos, reals] = await Promise.all([
-      fetch(`${API_URL}/videos?limit=40`).then(r => r.json()).catch(() => []),
+    const [allVideos, reals] = await Promise.all([
+      fetch(`${API_URL}/videos?limit=60`).then(r => r.json()).catch(() => []),
       fetch(`${API_URL}/shorts`).then(r => r.json()).catch(() => [])
     ]);
 
-    const photoItems = photos.filter(v => v.video_type === 'Fotoğraf');
+    const photoItems = allVideos.filter(v => v.video_type === 'Fotoğraf');
+    const normalVideos = allVideos.filter(v => v.video_type !== 'Fotoğraf' && !v.is_short);
     const realsItems = reals.slice(0, 20);
 
     pageContent.innerHTML = `
       <div class="mobile-feed">
-
         <!-- Reals Stories Bar -->
         ${realsItems.length > 0 ? `
           <div class="mobile-stories-bar">
@@ -1907,18 +2050,41 @@ async function loadMobileHomePage() {
           </div>
         ` : ''}
 
-        <!-- Fotoğraf Feed (kare grid) -->
-        <div class="mobile-photo-grid" id="mobilePhotoGrid">
-          ${photoItems.length === 0
-            ? '<p style="text-align:center;color:var(--yt-spec-text-secondary);padding:40px 0;grid-column:1/-1;">Henüz içerik yok</p>'
-            : photoItems.map(v => `
+        <!-- Normal Videolar -->
+        ${normalVideos.length > 0 ? `
+          <div style="padding:0 12px;margin-bottom:8px">
+            <h3 style="font-size:14px;font-weight:600;color:var(--yt-spec-text-secondary);margin-bottom:8px">Videolar</h3>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              ${normalVideos.slice(0,10).map(v => `
+                <div onclick="playVideo(${v.id})" style="display:flex;gap:10px;cursor:pointer;padding:6px;border-radius:10px;background:var(--yt-spec-raised-background)">
+                  <img src="${v.banner_url}" style="width:100px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0" />
+                  <div style="flex:1;min-width:0">
+                    <p style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.title}</p>
+                    <p style="font-size:11px;color:var(--yt-spec-text-secondary);margin-top:2px">${v.channel_name}</p>
+                    <p style="font-size:11px;color:var(--yt-spec-text-secondary)">${v.views} görüntülenme</p>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Fotoğraf Grid -->
+        ${photoItems.length > 0 ? `
+          <div style="padding:0 12px;margin-bottom:8px">
+            <h3 style="font-size:14px;font-weight:600;color:var(--yt-spec-text-secondary);margin-bottom:8px">Fotoğraflar</h3>
+          </div>
+          <div class="mobile-photo-grid">
+            ${photoItems.map(v => `
               <div class="mobile-photo-item" onclick="playVideo(${v.id})">
                 <img src="${v.video_url}" alt="${v.title}" loading="lazy" />
                 ${v.likes > 0 ? `<div class="mobile-photo-likes"><i class="fas fa-heart"></i> ${v.likes}</div>` : ''}
               </div>
-            `).join('')
-          }
-        </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        ${photoItems.length === 0 && normalVideos.length === 0 && realsItems.length === 0 ? '<p style="text-align:center;color:var(--yt-spec-text-secondary);padding:40px 0">Henüz içerik yok</p>' : ''}
       </div>
     `;
   } catch(e) {
@@ -3062,6 +3228,7 @@ function checkShortsDuration(input) {
 }
 
 function showUploadVideoModal() {
+  const isMobile = window.innerWidth <= 768;
   const VIDEO_TYPES = [
     'Vlog', 'Günlük hayat', 'Challenge', 'Şaka', 'Gameplay', "Let's Play",
     'Oyun inceleme', 'Oyun rehberi', 'Ders anlatımı', 'Belgesel', 'Bilim videosu',
@@ -3076,19 +3243,19 @@ function showUploadVideoModal() {
     <!-- Format Seçimi -->
     <div class="yt-form-group">
       <label class="yt-form-label">Ne yüklemek istiyorsun?</label>
-      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:4px;">
+      <div style="display:grid; grid-template-columns:${isMobile ? '1fr 1fr' : '1fr 1fr 1fr'}; gap:10px; margin-bottom:4px;">
         <label class="upload-type-btn active" id="typeBtn_reals" onclick="switchUploadType('reals')">
           <input type="radio" name="uploadType" value="reals" checked style="display:none;" />
           <i class="fas fa-film" style="font-size:20px; margin-bottom:6px;"></i>
           <span>Reals</span>
           <small>Kısa video (max 3dk)</small>
         </label>
-        <label class="upload-type-btn" id="typeBtn_video" onclick="switchUploadType('video')">
+        ${!isMobile ? `<label class="upload-type-btn" id="typeBtn_video" onclick="switchUploadType('video')">
           <input type="radio" name="uploadType" value="video" style="display:none;" />
           <i class="fas fa-video" style="font-size:20px; margin-bottom:6px;"></i>
           <span>Uzun Video</span>
           <small>Normal video</small>
-        </label>
+        </label>` : ''}
         <label class="upload-type-btn" id="typeBtn_photo" onclick="switchUploadType('photo')">
           <input type="radio" name="uploadType" value="photo" style="display:none;" />
           <i class="fas fa-image" style="font-size:20px; margin-bottom:6px;"></i>
@@ -3096,6 +3263,7 @@ function showUploadVideoModal() {
           <small>Fotoğraf paylaş</small>
         </label>
       </div>
+      ${isMobile ? '<p style="font-size:11px;color:var(--yt-spec-text-secondary);margin-top:4px"><i class="fas fa-info-circle"></i> Mobil cihazdan uzun video yüklenemez</p>' : ''}
     </div>
 
     <div class="yt-form-group">

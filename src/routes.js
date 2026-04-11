@@ -1316,6 +1316,20 @@ router.delete('/comment/:commentId', (req, res) => {
   }
 });
 
+// Yorum düzenle
+router.put('/comment/:commentId', (req, res) => {
+  try {
+    const { commentText, userId } = req.body;
+    const comment = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.commentId);
+    if (!comment) return res.status(404).json({ error: 'Yorum bulunamadı' });
+    if (comment.user_id !== userId) return res.status(403).json({ error: 'Yetkisiz' });
+    db.prepare('UPDATE comments SET comment_text = ? WHERE id = ?').run(commentText, req.params.commentId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Yorum düzenlenemedi' });
+  }
+});
+
 // Beğeni işlemleri
 router.post('/like', (req, res) => {
   try {
