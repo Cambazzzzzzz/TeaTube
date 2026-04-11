@@ -5836,11 +5836,11 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
   }
 
   const popularHtml = (data.popularSongs || []).length
-    ? `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px">🔥 Popüler</h3><div style="display:flex;flex-direction:column;gap:4px;margin-bottom:24px">${(data.popularSongs || []).map(s => renderTSSongRow(s)).join('')}</div>`
+    ? `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px">Popüler</h3><div style="display:flex;flex-direction:column;gap:4px;margin-bottom:24px">${(data.popularSongs || []).map(s => renderTSSongRow(s)).join('')}</div>`
     : '';
 
   const artistsHtml = (data.newArtists || []).length
-    ? `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px">🎤 Yeni Sanatçılar</h3><div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;margin-bottom:24px">${(data.newArtists || []).map(a => renderTSArtistCard(a)).join('')}</div>`
+    ? `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px">Yeni Sanatçılar</h3><div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;margin-bottom:24px">${(data.newArtists || []).map(a => renderTSArtistCard(a)).join('')}</div>`
     : '';
 
   const newSongsHtml = (data.newSongs || []).length
@@ -5859,7 +5859,7 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
       ${topBanner}
       ${popularHtml}
       ${artistsHtml}
-      <h3 style="font-size:15px;font-weight:600;margin-bottom:12px">🎵 Yeni Çıkanlar</h3>
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:12px">Yeni Çıkanlar</h3>
       <div style="display:flex;flex-direction:column;gap:4px">${newSongsHtml}</div>
     </div>
   `;
@@ -6068,8 +6068,9 @@ async function addSongToTSPlaylist(playlistId, songId) {
 
 function showArtistApplyModal() {
   showModal(`
-    <h3 style="margin-bottom:16px">🎤 Artist Başvurusu</h3>
+    <h3 style="margin-bottom:16px">Artist Başvurusu</h3>
     <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:16px">TS Music'te şarkı yükleyebilmek için artist başvurusu yapman gerekiyor.</p>
+    <div class="yt-form-group"><label class="yt-form-label">Ad Soyad *</label><input id="applyRealName" class="yt-input" placeholder="Gerçek adın ve soyadın" /></div>
     <div class="yt-form-group"><label class="yt-form-label">Artist Adı *</label><input id="applyArtistName" class="yt-input" placeholder="Sahne adın" /></div>
     <div class="yt-form-group"><label class="yt-form-label">Mahlas (opsiyonel)</label><input id="applyArtistAlias" class="yt-input" placeholder="Diğer adın" /></div>
     <div class="yt-form-group"><label class="yt-form-label">Telefon</label><input id="applyPhone" class="yt-input" placeholder="+90 5xx xxx xx xx" /></div>
@@ -6078,12 +6079,14 @@ function showArtistApplyModal() {
 }
 
 async function submitArtistApply() {
+  const realName = document.getElementById('applyRealName')?.value.trim();
   const artistName = document.getElementById('applyArtistName')?.value.trim();
+  if (!realName) { showToast('Ad Soyad gerekli', 'error'); return; }
   if (!artistName) { showToast('Artist adı gerekli', 'error'); return; }
   try {
     const r = await fetch(API_URL + '/music/apply', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ userId: currentUser.id, artistName, artistAlias: document.getElementById('applyArtistAlias')?.value.trim(), phone: document.getElementById('applyPhone')?.value.trim(), email: document.getElementById('applyEmail')?.value.trim() })
+      body: JSON.stringify({ userId: currentUser.id, artistName, artistAlias: document.getElementById('applyArtistAlias')?.value.trim(), phone: document.getElementById('applyPhone')?.value.trim(), email: document.getElementById('applyEmail')?.value.trim(), realName })
     });
     const d = await r.json();
     if (!r.ok) { showToast(d.error || 'Hata', 'error'); return; }
@@ -6095,7 +6098,7 @@ async function submitArtistApply() {
 
 function showUploadSongModal() {
   showModal(`
-    <h3 style="margin-bottom:16px">🎵 Şarkı Yükle</h3>
+    <h3 style="margin-bottom:16px">Şarkı Yükle</h3>
     <div class="yt-form-group"><label class="yt-form-label">Şarkı Adı *</label><input id="songTitle" class="yt-input" placeholder="Şarkı adı" /></div>
     <div class="yt-form-group"><label class="yt-form-label">Tür</label><input id="songGenre" class="yt-input" placeholder="Pop, Rock, Hip-Hop..." /></div>
     <div class="yt-form-group"><label class="yt-form-label">Ses Dosyası * (MP3, WAV)</label><input type="file" id="songAudio" class="yt-input" accept="audio/*" /></div>

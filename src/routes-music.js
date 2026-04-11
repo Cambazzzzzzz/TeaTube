@@ -21,7 +21,7 @@ const uploadDisk = multer({ storage: diskStorage });
 // Başvuru gönder
 router.post('/music/apply', (req, res) => {
   try {
-    const { userId, artistName, artistAlias, phone, email } = req.body;
+    const { userId, artistName, artistAlias, phone, email, realName } = req.body;
     if (!userId || !artistName) return res.status(400).json({ error: 'Eksik bilgi' });
 
     // Zaten artist mi?
@@ -32,8 +32,8 @@ router.post('/music/apply', (req, res) => {
     const pending = db.prepare("SELECT id FROM music_artist_applications WHERE user_id = ? AND status = 'pending'").get(userId);
     if (pending) return res.status(400).json({ error: 'Bekleyen başvurunuz var' });
 
-    db.prepare('INSERT INTO music_artist_applications (user_id, artist_name, artist_alias, phone, email) VALUES (?, ?, ?, ?, ?)')
-      .run(userId, artistName, artistAlias || null, phone || null, email || null);
+    db.prepare('INSERT INTO music_artist_applications (user_id, artist_name, artist_alias, phone, email, real_name) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(userId, artistName, artistAlias || null, phone || null, email || null, realName || null);
 
     res.json({ success: true });
   } catch(e) {

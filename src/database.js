@@ -489,6 +489,7 @@ db.exec(`
     user_id INTEGER NOT NULL,
     artist_name TEXT NOT NULL,
     artist_alias TEXT,
+    real_name TEXT,
     phone TEXT,
     email TEXT,
     status TEXT DEFAULT 'pending',
@@ -574,5 +575,8 @@ db.exec(`
 `);
 
 console.log('✅ TS Music tabloları hazır!');
+
+// real_name kolonu ekle (eski kayıtlar için)
+try { db.prepare('ALTER TABLE music_artist_applications ADD COLUMN real_name TEXT').run(); } catch(e) {}
 
 module.exports = db;
