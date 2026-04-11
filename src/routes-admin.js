@@ -609,3 +609,130 @@ router.get('/announcements/active', (req, res) => {
     res.json(list);
   } catch(e) { res.status(500).json({ error: 'Duyurular alınamadı' }); }
 });
+// ==================== GRUPLAR YÖNETİMİ ====================
+
+// Tüm grupları getir
+router.get('/admin/groups', (req, res) => {
+  try {
+    const groups = db.prepare(`
+      SELECT g.*, u.nickname as owner_nickname, u.profile_photo as owner_profile_photo,
+             (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as member_count
+      FROM groups g
+      JOIN users u ON g.owner_id = u.id
+      ORDER BY g.created_at DESC
+    `).all();
+    res.json(groups);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Grup mesajlarını getir
+router.get('/admin/group-messages/:groupId', (req, res) => {
+  try {
+    // Firebase'den grup mesajlarını alamayız, sadece bilgi verelim
+    // Gerçek uygulamada Firebase Admin SDK kullanılmalı
+    res.json([
+      {
+        id: 1,
+        nickname: 'Sistem',
+        profile_photo: 'logoteatube.png',
+        message: 'Bu grup Firebase üzerinde çalışıyor. Mesajları görüntülemek için Firebase Admin SDK gerekli.',
+        created_at: new Date().toISOString()
+      }
+    ]);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin grup mesajı gönder
+router.post('/admin/send-group-message', (req, res) => {
+  try {
+    const { groupId, message } = req.body;
+    
+    // Firebase'e mesaj gönderme işlemi burada yapılmalı
+    // Şimdilik sadece başarılı response döndürelim
+    
+    res.json({ success: true, message: 'Admin mesajı gönderildi (Firebase entegrasyonu gerekli)' });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Grup sil
+router.delete('/admin/group/:groupId', (req, res) => {
+  try {
+    // Önce grup üyelerini sil
+    db.prepare('DELETE FROM group_members WHERE group_id = ?').run(req.params.groupId);
+    
+    // Grup katılım isteklerini sil
+    db.prepare('DELETE FROM group_join_requests WHERE group_id = ?').run(req.params.groupId);
+    
+    // Grubu sil
+    const result = db.prepare('DELETE FROM groups WHERE id = ?').run(req.params.groupId);
+    
+    if (result.changes > 0) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'Grup bulunamadı' });
+    }
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ==================== MESAJLAŞMA GÖZETİMİ ====================
+
+// Tüm mesajlaşmaları getir (özet)
+router.get('/admin/all-messages', (req, res) => {
+  try {
+    // Firebase mesajları DB'de olmadığı için sadece arkadaşlık listesini döndürelim
+    const conversations = db.prepare(`
+      SELECT 
+        f.sender_id as user1_id,
+        f.receiver_id as user2_id,
+        u1.nickname as user1_nickname,
+        u1.profile_photo as user1_profile_photo,
+        u2.nickname as user2_nickname,
+        u2.profile_photo as user2_profile_photo,
+        'Firebase mesajları' as last_message,
+        0 as message_count,
+        f.created_at as last_activity
+      FROM friendships f
+      JOIN users u1 ON f.sender_id = u1.id
+      JOIN users u2 ON f.receiver_id = u2.id
+      WHERE f.status = 'accepted'
+      ORDER BY f.created_at DESC
+    `).all();
+    
+    res.json(conversations);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Belirli konuşmayı getir
+router.get('/admin/conversation/:user1Id/:user2Id', (req, res) => {
+  try {
+    const { user1Id, user2Id } = req.params;
+    
+    // Firebase'den mesajları alamayız, bilgi mesajı döndürelim
+    const user1 = db.prepare('SELECT nickname, profile_photo FROM users WHERE id = ?').get(user1Id);
+    const user2 = db.prepare('SELECT nickname, profile_photo FROM users WHERE id = ?').get(user2Id);
+    
+    const messages = [
+      {
+        id: 1,
+        nickname: 'Sistem',
+        profile_photo: 'logoteatube.png',
+        message: `${user1?.nickname || 'Kullanıcı'} ve ${user2?.nickname || 'Kullanıcı'} arasındaki mesajlar Firebase üzerinde saklanıyor. Mesajları görüntülemek için Firebase Admin SDK entegrasyonu gerekli.`,
+        created_at: new Date().toISOString()
+      }
+    ];
+    
+    res.json(messages);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});

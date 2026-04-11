@@ -52,7 +52,7 @@ function closeModal() { document.querySelector('.a-modal-bg')?.remove(); }
 function showSection(sec) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>{ if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes(sec)) n.classList.add('active'); });
-  const titles = {dashboard:'Dashboard',users:'Kullanicilar',channels:'Kanallar',personal:'Kisisel Hesaplar','ip-bans':'IP Banlari',videos:'Videolar','music-applications':'TS Music - Basvurular','music-artists':'TS Music - Artistler','music-songs':'TS Music - Sarkilar','admin-settings':'Admin Ayarlari'};
+  const titles = {dashboard:'Dashboard',users:'Kullanicilar',channels:'Kanallar',personal:'Kisisel Hesaplar','ip-bans':'IP Banlari',videos:'Videolar',groups:'Gruplar',messages:'Mesajlasmalar','music-applications':'TS Music - Basvurular','music-artists':'TS Music - Artistler','music-songs':'TS Music - Sarkilar','admin-settings':'Admin Ayarlari'};
   const tb = document.getElementById('topbarTitle');
   if (tb) tb.textContent = titles[sec] || sec;
   switch(sec) {
@@ -62,6 +62,8 @@ function showSection(sec) {
     case 'personal': loadChannels('personal'); break;
     case 'ip-bans': loadIPBans(); break;
     case 'videos': loadVideos(); break;
+    case 'groups': loadGroups(); break;
+    case 'messages': loadMessages(); break;
     case 'music-applications': loadMusicApplications(); break;
     case 'music-artists': loadMusicArtists(); break;
     case 'music-songs': loadMusicSongs(); break;
@@ -994,4 +996,279 @@ async function deleteAnnouncement(id) {
   await fetch(API+'/admin/announcements/'+id, { method:'DELETE' });
   showToast('Duyuru silindi');
   loadAnnouncements();
+}
+
+// ─── GRUPLAR YÖNETİMİ ───────────────────────────────────────────────────────────
+async function loadGroups() {
+  const c = document.getElementById('mainContent');
+  c.innerHTML = '<h2>Gruplar</h2><p style="color:#666">Yükleniyor...</p>';
+  
+  try {
+    const r = await fetch(API + '/admin/groups');
+    const groups = await r.json();
+    
+    c.innerHTML = `
+      <div class="section-header">
+        <h2>Gruplar (${groups.length})</h2>
+        <button class="a-btn a-btn-sm" onclick="showCreateGroupModal()">
+          <i class="fas fa-plus"></i> Grup Oluştur
+        </button>
+      </div>
+      
+      <div class="table-wrap">
+        <table class="a-table">
+          <thead>
+            <tr>
+              <th>Grup</th>
+              <th>Sahip</th>
+              <th>Üye Sayısı</th>
+              <th>Gizlilik</th>
+              <th>Oluşturulma</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${groups.map(g => `
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <img src="${g.photo_url || 'logoteatube.png'}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />
+                    <div>
+                      <div style="font-weight:500;">${g.name}</div>
+                      <div style="font-size:11px;color:#666;">${g.description || 'Açıklama yok'}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <img src="${g.owner_profile_photo || 'logoteatube.png'}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;" />
+                    ${g.owner_nickname}
+                  </div>
+                </td>
+                <td>${g.member_count || 0}</td>
+                <td>
+                  <span class="badge ${g.is_private ? 'badge-yellow' : 'badge-green'}">
+                    <i class="fas fa-${g.is_private ? 'lock' : 'globe'}"></i>
+                    ${g.is_private ? 'Gizli' : 'Açık'}
+                  </span>
+                </td>
+                <td>${new Date(g.created_at).toLocaleDateString('tr-TR')}</td>
+                <td>
+                  <button class="a-btn a-btn-sm" onclick="viewGroupMessages(${g.id}, '${g.name}')">
+                    <i class="fas fa-comment-dots"></i> Mesajlar
+                  </button>
+                  <button class="a-btn a-btn-sm a-btn-orange" onclick="sendGroupMessage(${g.id}, '${g.name}')">
+                    <i class="fas fa-paper-plane"></i> Mesaj Gönder
+                  </button>
+                  <button class="a-btn a-btn-sm a-btn-gray" onclick="deleteGroup(${g.id})">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch(e) {
+    c.innerHTML = '<h2>Gruplar</h2><p style="color:#ff4466">Yükleme hatası: ' + e.message + '</p>';
+  }
+}
+
+async function viewGroupMessages(groupId, groupName) {
+  try {
+    const r = await fetch(API + `/admin/group-messages/${groupId}`);
+    const messages = await r.json();
+    
+    const html = `
+      <h3><i class="fas fa-layer-group"></i> ${groupName} - Mesajlar</h3>
+      <div style="max-height:400px;overflow-y:auto;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;background:#0a0a0a;">
+        ${messages.length === 0 ? '<p style="color:#666;text-align:center;">Henüz mesaj yok</p>' : messages.map(m => `
+          <div style="display:flex;gap:8px;margin-bottom:12px;padding:8px;background:rgba(255,255,255,0.02);border-radius:6px;">
+            <img src="${m.profile_photo || 'logoteatube.png'}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;" />
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <span style="font-weight:500;font-size:13px;">${m.nickname}</span>
+                <span style="font-size:11px;color:#666;">${new Date(m.created_at).toLocaleString('tr-TR')}</span>
+              </div>
+              <div style="font-size:13px;line-height:1.4;">${m.message}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    showModal(html);
+  } catch(e) {
+    showToast('Mesajlar yüklenemedi: ' + e.message, false);
+  }
+}
+
+async function sendGroupMessage(groupId, groupName) {
+  const html = `
+    <h3><i class="fas fa-paper-plane"></i> ${groupName} - Admin Mesajı</h3>
+    <div class="a-form-group">
+      <label>Mesaj</label>
+      <textarea id="adminGroupMessage" class="a-input" placeholder="Admin mesajınızı yazın..." style="min-height:100px;resize:vertical;"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="a-btn" onclick="submitGroupMessage(${groupId})">
+        <i class="fas fa-paper-plane"></i> Gönder
+      </button>
+      <button class="a-btn a-btn-gray" onclick="closeModal()">İptal</button>
+    </div>
+  `;
+  showModal(html);
+}
+
+async function submitGroupMessage(groupId) {
+  const message = document.getElementById('adminGroupMessage')?.value?.trim();
+  if (!message) {
+    showToast('Mesaj boş olamaz', false);
+    return;
+  }
+  
+  try {
+    const r = await fetch(API + '/admin/send-group-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupId, message })
+    });
+    
+    if (r.ok) {
+      showToast('Mesaj gönderildi');
+      closeModal();
+    } else {
+      const err = await r.json();
+      showToast('Hata: ' + err.error, false);
+    }
+  } catch(e) {
+    showToast('Gönderme hatası: ' + e.message, false);
+  }
+}
+
+async function deleteGroup(groupId) {
+  if (!confirm('Bu grubu silmek istediğinizden emin misiniz?')) return;
+  
+  try {
+    const r = await fetch(API + `/admin/group/${groupId}`, { method: 'DELETE' });
+    if (r.ok) {
+      showToast('Grup silindi');
+      loadGroups();
+    } else {
+      const err = await r.json();
+      showToast('Silme hatası: ' + err.error, false);
+    }
+  } catch(e) {
+    showToast('Silme hatası: ' + e.message, false);
+  }
+}
+
+// ─── MESAJLAŞMA GÖZETİMİ ───────────────────────────────────────────────────────
+async function loadMessages() {
+  const c = document.getElementById('mainContent');
+  c.innerHTML = '<h2>Mesajlaşmalar</h2><p style="color:#666">Yükleniyor...</p>';
+  
+  try {
+    const r = await fetch(API + '/admin/all-messages');
+    const conversations = await r.json();
+    
+    c.innerHTML = `
+      <div class="section-header">
+        <h2>Tüm Mesajlaşmalar (${conversations.length})</h2>
+        <div class="search-row">
+          <input type="text" class="a-input" placeholder="Kullanıcı ara..." onkeyup="filterConversations(this.value)" />
+        </div>
+      </div>
+      
+      <div class="table-wrap" id="conversationsTable">
+        <table class="a-table">
+          <thead>
+            <tr>
+              <th>Konuşma</th>
+              <th>Son Mesaj</th>
+              <th>Mesaj Sayısı</th>
+              <th>Son Aktivite</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${conversations.map(c => `
+              <tr class="conversation-row" data-users="${c.user1_nickname.toLowerCase()} ${c.user2_nickname.toLowerCase()}">
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <img src="${c.user1_profile_photo || 'logoteatube.png'}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
+                    <span style="font-size:13px;">${c.user1_nickname}</span>
+                    <i class="fas fa-arrow-right" style="color:#666;font-size:10px;"></i>
+                    <img src="${c.user2_profile_photo || 'logoteatube.png'}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
+                    <span style="font-size:13px;">${c.user2_nickname}</span>
+                  </div>
+                </td>
+                <td>
+                  <div style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#999;">
+                    ${c.last_message || 'Mesaj yok'}
+                  </div>
+                </td>
+                <td>${c.message_count}</td>
+                <td style="font-size:12px;color:#666;">
+                  ${c.last_activity ? new Date(c.last_activity).toLocaleString('tr-TR') : 'Hiç'}
+                </td>
+                <td>
+                  <button class="a-btn a-btn-sm" onclick="viewConversation(${c.user1_id}, ${c.user2_id}, '${c.user1_nickname}', '${c.user2_nickname}')">
+                    <i class="fas fa-eye"></i> Görüntüle
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch(e) {
+    c.innerHTML = '<h2>Mesajlaşmalar</h2><p style="color:#ff4466">Yükleme hatası: ' + e.message + '</p>';
+  }
+}
+
+function filterConversations(query) {
+  const rows = document.querySelectorAll('.conversation-row');
+  const q = query.toLowerCase();
+  
+  rows.forEach(row => {
+    const users = row.getAttribute('data-users');
+    if (users.includes(q)) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
+
+async function viewConversation(user1Id, user2Id, user1Name, user2Name) {
+  try {
+    const r = await fetch(API + `/admin/conversation/${user1Id}/${user2Id}`);
+    const messages = await r.json();
+    
+    const html = `
+      <h3><i class="fas fa-comment-dots"></i> ${user1Name} ↔ ${user2Name}</h3>
+      <div style="max-height:400px;overflow-y:auto;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;background:#0a0a0a;">
+        ${messages.length === 0 ? '<p style="color:#666;text-align:center;">Mesaj yok</p>' : messages.map(m => `
+          <div style="display:flex;gap:8px;margin-bottom:12px;padding:8px;background:rgba(255,255,255,0.02);border-radius:6px;">
+            <img src="${m.profile_photo || 'logoteatube.png'}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;" />
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <span style="font-weight:500;font-size:13px;">${m.nickname}</span>
+                <span style="font-size:11px;color:#666;">${new Date(m.created_at).toLocaleString('tr-TR')}</span>
+              </div>
+              <div style="font-size:13px;line-height:1.4;">${m.message}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1);font-size:12px;color:#666;">
+        Toplam ${messages.length} mesaj
+      </div>
+    `;
+    showModal(html);
+  } catch(e) {
+    showToast('Konuşma yüklenemedi: ' + e.message, false);
+  }
 }
