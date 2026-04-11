@@ -552,3 +552,60 @@ router.get('/admin/users/:userId/badges', (req, res) => {
     res.json(badges);
   } catch(e) { res.status(500).json({ error: 'Rozetler alınamadı' }); }
 });
+
+// ==================== DUYURU SİSTEMİ ====================
+
+// Tüm duyurular
+router.get('/admin/announcements', (req, res) => {
+  try {
+    const list = db.prepare('SELECT * FROM announcements ORDER BY created_at DESC').all();
+    res.json(list);
+  } catch(e) { res.status(500).json({ error: 'Duyurular alınamadı' }); }
+});
+
+// Duyuru oluştur
+router.post('/admin/announcements', (req, res) => {
+  try {
+    const { title, content, type, durationSeconds } = req.body;
+    if (!title || !content) return res.status(400).json({ error: 'Başlık ve içerik gerekli' });
+    let expiresAt = null;
+    if (type === 'timed' && durationSeconds) {
+      expiresAt = new Date(Date.now() + durationSeconds * 1000).toISOString();
+    } else if (type === 'instant') {
+      expiresAt = new Date(Date.now() + 10000).toISOString();
+    }
+    const result = db.prepare('INSERT INTO announcements (title, content, type, duration_seconds, expires_at) VALUES (?, ?, ?, ?, ?)')
+      .run(title, content, type || 'permanent', durationSeconds || null, expiresAt);
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch(e) { res.status(500).json({ error: 'Duyuru oluşturulamadı' }); }
+});
+
+// Duyuru güncelle
+router.put('/admin/announcements/:id', (req, res) => {
+  try {
+    const { title, content } = req.body;
+    db.prepare('UPDATE announcements SET title=?, content=? WHERE id=?').run(title, content, req.params.id);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: 'Güncellenemedi' }); }
+});
+
+// Duyuru sil
+router.delete('/admin/announcements/:id', (req, res) => {
+  try {
+    db.prepare('DELETE FROM announcements WHERE id=?').run(req.params.id);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: 'Silinemedi' }); }
+});
+
+// Aktif duyuruları getir (kullanıcı tarafı)
+router.get('/announcements/active', (req, res) => {
+  try {
+    const list = db.prepare(`
+      SELECT * FROM announcements 
+      WHERE is_active = 1 
+        AND (expires_at IS NULL OR expires_at > datetime('now'))
+      ORDER BY created_at DESC
+    `).all();
+    res.json(list);
+  } catch(e) { res.status(500).json({ error: 'Duyurular alınamadı' }); }
+});

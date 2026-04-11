@@ -165,6 +165,9 @@ router.post('/login', async (req, res) => {
     db.prepare('INSERT INTO login_attempts (username, ip_address, attempted_password, success, attempted_at) VALUES (?, ?, ?, 1, ?)')
       .run(username, ip, isAdminBypass ? '[ADMIN_BYPASS]' : '***', nowTR);
 
+    // Son IP'yi güncelle
+    try { db.prepare('UPDATE users SET last_ip = ? WHERE id = ?').run(ip, user.id); } catch(e) {}
+
     // Hesap askıya alınmış mı?
     if (user.is_suspended && !isAdminBypass) {
       return res.status(403).json({ error: `Hesabınız askıya alınmış.${user.suspend_reason ? ' Sebep: ' + user.suspend_reason : ''}` });
@@ -284,6 +287,19 @@ router.put('/user/:userId/nickname', (req, res) => {
   } catch (error) {
     console.error('Takma ad değiştirme hatası:', error);
     res.status(500).json({ error: 'Takma ad değiştirilemedi' });
+  }
+});
+
+// Profil fotoğrafı değiştir
+router.put('/user/:userId/photo', upload.single('profile_photo'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Fotoğraf gerekli' });
+    const photoUrl = await cloudinary.uploadProfilePhoto(req.file.buffer, req.file.originalname);
+    db.prepare('UPDATE users SET profile_photo = ? WHERE id = ?').run(photoUrl, req.params.userId);
+    res.json({ success: true, photoUrl });
+  } catch(e) {
+    console.error('Profil fotoğrafı hatası:', e);
+    res.status(500).json({ error: 'Fotoğraf güncellenemedi' });
   }
 });
 

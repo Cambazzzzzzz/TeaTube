@@ -490,6 +490,9 @@ async function loadUserData() {
     // Bildirimleri yükle
     loadNotifications();
 
+    // Duyuruları yükle
+    loadActiveAnnouncements();
+
     // Online durumunu ayarla
     initOnlinePresence();
 
@@ -836,6 +839,8 @@ function loadMessagesPage() {
 
 // Mobil tam ekran chat
 function openMobileChat(friendId, friendName, friendPhoto) {
+  // Profil fotoğrafı yoksa varsayılan kullan
+  friendPhoto = friendPhoto && friendPhoto !== '?' && friendPhoto !== 'null' ? friendPhoto : getProfilePhotoUrl(null);
   if (!window.firebaseDB) {
     showToast('Bağlantı kuruluyor...', 'info');
     document.addEventListener('firebaseReady', () => openMobileChat(friendId, friendName, friendPhoto), { once: true });
@@ -1015,6 +1020,7 @@ function listenFriendPresence(friendId) {
 }
 
 function openChat(friendId, friendName, friendPhoto) {
+  friendPhoto = friendPhoto && friendPhoto !== '?' && friendPhoto !== 'null' ? friendPhoto : getProfilePhotoUrl(null);
   currentChatFriendId = friendId;
 
   // Firebase hazır değilse bekle
@@ -3263,19 +3269,13 @@ function showUploadVideoModal() {
     <!-- Format Seçimi -->
     <div class="yt-form-group">
       <label class="yt-form-label">Ne yüklemek istiyorsun?</label>
-      <div style="display:grid; grid-template-columns:${isMobile ? '1fr 1fr' : '1fr 1fr 1fr'}; gap:10px; margin-bottom:4px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:4px;">
         <label class="upload-type-btn active" id="typeBtn_reals" onclick="switchUploadType('reals')">
           <input type="radio" name="uploadType" value="reals" checked style="display:none;" />
           <i class="fas fa-film" style="font-size:20px; margin-bottom:6px;"></i>
           <span>Reals</span>
           <small>Kısa video (max 3dk)</small>
         </label>
-        ${!isMobile ? `<label class="upload-type-btn" id="typeBtn_video" onclick="switchUploadType('video')">
-          <input type="radio" name="uploadType" value="video" style="display:none;" />
-          <i class="fas fa-video" style="font-size:20px; margin-bottom:6px;"></i>
-          <span>Uzun Video</span>
-          <small>Normal video</small>
-        </label>` : ''}
         <label class="upload-type-btn" id="typeBtn_photo" onclick="switchUploadType('photo')">
           <input type="radio" name="uploadType" value="photo" style="display:none;" />
           <i class="fas fa-image" style="font-size:20px; margin-bottom:6px;"></i>
@@ -3283,7 +3283,6 @@ function showUploadVideoModal() {
           <small>Fotoğraf paylaş</small>
         </label>
       </div>
-      ${isMobile ? '<p style="font-size:11px;color:var(--yt-spec-text-secondary);margin-top:4px"><i class="fas fa-info-circle"></i> Mobil cihazdan uzun video yüklenemez</p>' : ''}
     </div>
 
     <div class="yt-form-group">
@@ -3858,6 +3857,19 @@ async function loadSettingsPage() {
       <div class="settings-card">
         <h3 class="settings-card-title">Hesap Ayarları</h3>
         
+        <!-- Profil Fotoğrafı -->
+        <div class="yt-form-group" style="display:flex;align-items:center;gap:16px;padding:12px;background:var(--yt-spec-raised-background);border-radius:10px;margin-bottom:16px">
+          <img src="${getProfilePhotoUrl(currentUser.profile_photo)}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+          <div style="flex:1">
+            <p style="font-size:14px;font-weight:600;margin-bottom:4px">${currentUser.nickname}</p>
+            <p style="font-size:12px;color:var(--yt-spec-text-secondary)">@${currentUser.username}</p>
+          </div>
+          <label class="yt-btn" style="cursor:pointer;height:34px;padding:0 14px;font-size:13px;display:flex;align-items:center">
+            <i class="fas fa-camera" style="margin-right:6px"></i>Fotoğraf Değiştir
+            <input type="file" accept="image/*" style="display:none" onchange="changeProfilePhoto(this)" />
+          </label>
+        </div>
+        
         <div class="yt-form-group">
           <label class="yt-form-label">Kullanıcı Adı</label>
           <div style="display:flex; gap:12px; align-items:center;">
@@ -4011,6 +4023,26 @@ async function loadSettingsPage() {
   } catch (error) {
     console.error('Ayarlar yükleme hatası:', error);
   }
+}
+
+async function changeProfilePhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  showToast('Fotoğraf yükleniyor...', 'success');
+  try {
+    const formData = new FormData();
+    formData.append('profile_photo', file);
+    const r = await fetch(`${API_URL}/user/${currentUser.id}/photo`, { method: 'PUT', body: formData });
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error || 'Hata', 'error'); return; }
+    currentUser.profile_photo = d.photoUrl;
+    localStorage.setItem('Tea_user', JSON.stringify(currentUser));
+    const userPhoto = document.getElementById('userPhoto');
+    if (userPhoto) userPhoto.src = d.photoUrl;
+    updateMobileProfilePhoto();
+    showToast('Profil fotoğrafı güncellendi!', 'success');
+    loadSettingsPage();
+  } catch(e) { showToast('Hata oluştu', 'error'); }
 }
 
 async function changeUsername() {
@@ -7062,3 +7094,56 @@ async function setActiveBadge(badgeId) {
     }
   } catch(e) { showToast('Hata', 'error'); }
 }
+
+// ==================== DUYURU SİSTEMİ ====================
+
+async function loadActiveAnnouncements() {
+  try {
+    const r = await fetch(`${API_URL}/announcements/active`);
+    const list = await r.json();
+    if (!list.length) return;
+    list.forEach(a => showAnnouncement(a));
+  } catch(e) {}
+}
+
+function showAnnouncement(a) {
+  // Aynı duyuru zaten gösteriliyorsa atla
+  if (document.getElementById('ann_' + a.id)) return;
+
+  const el = document.createElement('div');
+  el.id = 'ann_' + a.id;
+  el.style.cssText = `
+    position:fixed; top:70px; left:50%; transform:translateX(-50%);
+    background:linear-gradient(135deg,#ff0033,#cc0029);
+    color:#fff; padding:12px 20px; border-radius:12px;
+    font-size:14px; font-weight:500; z-index:9998;
+    box-shadow:0 4px 20px rgba(255,0,51,0.4);
+    max-width:90vw; min-width:280px; text-align:center;
+    animation:slideDown 0.3s ease;
+    display:flex; align-items:center; gap:12px;
+  `;
+  el.innerHTML = `
+    <div style="flex:1">
+      <p style="font-weight:700;margin-bottom:2px">${a.title}</p>
+      <p style="font-size:13px;opacity:0.9">${a.content}</p>
+    </div>
+    <button onclick="document.getElementById('ann_${a.id}').remove()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:14px;flex-shrink:0">×</button>
+  `;
+  document.body.appendChild(el);
+
+  // Anlık duyuru 10 saniye sonra gitsin
+  if (a.type === 'instant') {
+    setTimeout(() => el.remove(), 10000);
+  }
+  // Süreli duyuru - kalan süre kadar
+  else if (a.type === 'timed' && a.expires_at) {
+    const remaining = new Date(a.expires_at) - new Date();
+    if (remaining > 0) setTimeout(() => el.remove(), remaining);
+    else el.remove();
+  }
+}
+
+// CSS animasyonu ekle
+const annStyle = document.createElement('style');
+annStyle.textContent = '@keyframes slideDown{from{transform:translateX(-50%) translateY(-20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}';
+document.head.appendChild(annStyle);

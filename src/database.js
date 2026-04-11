@@ -467,6 +467,7 @@ db.exec(`
 try { db.prepare('ALTER TABLE users ADD COLUMN is_suspended INTEGER DEFAULT 0').run(); } catch(e) {}
 try { db.prepare('ALTER TABLE users ADD COLUMN suspend_reason TEXT').run(); } catch(e) {}
 try { db.prepare('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0').run(); } catch(e) {}
+try { db.prepare('ALTER TABLE users ADD COLUMN last_ip TEXT').run(); } catch(e) {}
 
 // Video askıya alma
 try { db.prepare('ALTER TABLE videos ADD COLUMN suspended_by_admin INTEGER DEFAULT 0').run(); } catch(e) {}
@@ -704,5 +705,20 @@ try {
 } catch(e) {}
 
 console.log('✅ Rozet sistemi hazır!');
+
+// ==================== DUYURU SİSTEMİ ====================
+db.exec(`
+  CREATE TABLE IF NOT EXISTS announcements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    type TEXT DEFAULT 'permanent',
+    duration_seconds INTEGER,
+    expires_at DATETIME,
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+console.log('✅ Duyuru tablosu hazır!');
 
 module.exports = db;

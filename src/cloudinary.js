@@ -87,10 +87,8 @@ async function uploadBanner(fileBuffer, filename) {
       {
         resource_type: 'image',
         folder: 'teatube/banners',
-        public_id: `banner_${Date.now()}_${filename}`,
-        transformation: [
-          { width: 1280, height: 720, crop: 'fill' }
-        ]
+        public_id: `banner_${Date.now()}_${filename}`
+        // Orijinal boyut korunuyor - crop yok
       },
       (error, result) => {
         if (error) reject(error);

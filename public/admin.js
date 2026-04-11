@@ -65,6 +65,7 @@ function showSection(sec) {
     case 'music-applications': loadMusicApplications(); break;
     case 'music-artists': loadMusicArtists(); break;
     case 'music-songs': loadMusicSongs(); break;
+    case 'announcements': loadAnnouncements(); break;
     case 'badges': loadBadges(); break;
     case 'admin-settings': loadAdminSettings(); break;
   }
@@ -129,21 +130,33 @@ async function loadUsers(search='') {
     let rows = users.map(u=>`
       <tr>
         <td>${u.id}</td>
-        <td>${esc(u.username)}</td>
-        <td>${esc(u.email||'-')}</td>
-        <td>${u.is_suspended?'<span style="color:#ff0033">Askida</span>':'Aktif'}</td>
-        <td>${u.created_at?u.created_at.slice(0,10):'-'}</td>
         <td>
-          <button class="a-btn a-btn-sm" onclick="showUserDetail(${u.id})">Detay</button>
-          <button class="a-btn a-btn-sm" style="background:${u.is_suspended?'#1db954':'#e67e22'}" onclick="toggleSuspend(${u.id},${u.is_suspended?0:1})">${u.is_suspended?'Aktif Et':'Askiya Al'}</button>
-          <button class="a-btn a-btn-sm" style="background:#ff0033" onclick="deleteUser(${u.id},'${esc(u.username)}')">Sil</button>
+          <div style="display:flex;align-items:center;gap:8px">
+            <img src="${u.profile_photo && u.profile_photo!=='?' ? u.profile_photo : ''}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;background:#333;flex-shrink:0" onerror="this.style.display='none'" />
+            <div>
+              <div style="font-weight:500">${esc(u.nickname||u.username)}</div>
+              <div style="font-size:11px;color:#666">@${esc(u.username)}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-size:12px;color:#888;font-family:monospace">${esc(u.last_ip||'-')}</td>
+        <td>${u.is_suspended?'<span class="badge badge-red">Askida</span>':'<span class="badge badge-green">Aktif</span>'}</td>
+        <td style="font-size:12px;color:#888">${u.created_at?u.created_at.slice(0,10):'-'}</td>
+        <td>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            <button class="a-btn a-btn-sm a-btn-gray" onclick="showUserDetail(${u.id})">Detay</button>
+            <button class="a-btn a-btn-sm" style="background:${u.is_suspended?'#1db954':'#e67e22'}" onclick="toggleSuspend(${u.id},${u.is_suspended?0:1})">${u.is_suspended?'Aktif Et':'Askiya Al'}</button>
+            <button class="a-btn a-btn-sm" style="background:#c00" onclick="deleteUser(${u.id},'${esc(u.username)}')">Sil</button>
+          </div>
         </td>
       </tr>`).join('');
     document.getElementById('userTableWrap').innerHTML = `
-      <table class="a-table">
-        <thead><tr><th>ID</th><th>Kullanici</th><th>Email</th><th>Durum</th><th>Kayit</th><th>Islemler</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>`;
+      <div class="table-wrap">
+        <table class="a-table">
+          <thead><tr><th>ID</th><th>Kullanici</th><th>Son IP</th><th>Durum</th><th>Kayit</th><th>Islemler</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
   } catch(e) { document.getElementById('userTableWrap').innerHTML='<p>Baglanti hatasi</p>'; }
 }
 
@@ -841,4 +854,112 @@ async function revokeBadge(badgeId, userId, name) {
   const r = await fetch(API+'/admin/badges/'+badgeId+'/revoke/'+userId, { method:'DELETE' });
   const d = await r.json();
   showToast(r.ok ? name+' kullanicisinin rozeti alindi' : (d.error||'Hata'), r.ok);
+}
+
+// ─── DUYURULAR ────────────────────────────────────────────────────────────────
+async function loadAnnouncements() {
+  const c = document.getElementById('mainContent');
+  document.getElementById('topbarTitle').textContent = 'Duyurular';
+  c.innerHTML = '<p style="color:#666">Yukleniyor...</p>';
+  try {
+    const r = await fetch(API+'/admin/announcements');
+    const list = await r.json();
+    c.innerHTML = `
+      <div class="section-header">
+        <h2>Duyurular</h2>
+        <button class="a-btn" onclick="showCreateAnnouncementModal()"><i class="fas fa-plus" style="margin-right:6px"></i>Yeni Duyuru</button>
+      </div>
+      ${list.length === 0 ? '<p style="color:#666">Henuz duyuru yok</p>' : `
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${list.map(a => {
+            const typeLabel = a.type==='permanent' ? '<span class="badge badge-green">Kalici</span>' : a.type==='timed' ? '<span class="badge badge-yellow">Sureli</span>' : '<span class="badge badge-blue">Anlik</span>';
+            const expired = a.expires_at && new Date(a.expires_at) < new Date();
+            return `
+              <div style="background:#1a1a1a;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;${expired?'opacity:0.5':''}">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px">
+                  <div style="flex:1">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                      <span style="font-size:15px;font-weight:600">${esc(a.title)}</span>
+                      ${typeLabel}
+                      ${expired ? '<span class="badge badge-red">Suresi Doldu</span>' : ''}
+                    </div>
+                    <p style="font-size:13px;color:#aaa;line-height:1.5">${esc(a.content)}</p>
+                    <p style="font-size:11px;color:#555;margin-top:6px">
+                      ${a.created_at ? new Date(a.created_at).toLocaleString('tr-TR') : ''}
+                      ${a.expires_at ? ' · Bitis: '+new Date(a.expires_at).toLocaleString('tr-TR') : ''}
+                    </p>
+                  </div>
+                  <div style="display:flex;gap:6px;flex-shrink:0">
+                    <button class="a-btn a-btn-sm a-btn-gray" onclick="showEditAnnouncementModal(${a.id},'${esc(a.title)}','${esc(a.content)}')">Duzenle</button>
+                    <button class="a-btn a-btn-sm" style="background:#c00" onclick="deleteAnnouncement(${a.id})">Sil</button>
+                  </div>
+                </div>
+              </div>`;
+          }).join('')}
+        </div>`}`;
+  } catch(e) { c.innerHTML = '<p style="color:#666">Hata</p>'; }
+}
+
+function showCreateAnnouncementModal() {
+  showModal(`
+    <h3 style="margin-bottom:16px">Yeni Duyuru</h3>
+    <div class="a-form-group"><label>Baslik</label><input id="anTitle" class="a-input" placeholder="Duyuru basligi" /></div>
+    <div class="a-form-group"><label>Icerik</label><textarea id="anContent" class="a-input" style="height:80px;resize:vertical" placeholder="Duyuru icerigi..."></textarea></div>
+    <div class="a-form-group">
+      <label>Tur</label>
+      <select id="anType" class="a-input" onchange="toggleAnDuration(this.value)">
+        <option value="permanent">Kalici (biz silene kadar)</option>
+        <option value="timed">Sureli</option>
+        <option value="instant">Anlik (10 saniye)</option>
+      </select>
+    </div>
+    <div id="anDurationWrap" style="display:none" class="a-form-group">
+      <label>Sure (saniye)</label>
+      <input id="anDuration" class="a-input" type="number" placeholder="ornek: 3600 = 1 saat" />
+    </div>
+    <button class="a-btn" style="width:100%;margin-top:8px" onclick="createAnnouncement()">Yayinla</button>`);
+}
+
+function toggleAnDuration(val) {
+  document.getElementById('anDurationWrap').style.display = val === 'timed' ? 'block' : 'none';
+}
+
+async function createAnnouncement() {
+  const title = document.getElementById('anTitle')?.value.trim();
+  const content = document.getElementById('anContent')?.value.trim();
+  const type = document.getElementById('anType')?.value;
+  const dur = document.getElementById('anDuration')?.value;
+  if (!title || !content) { showToast('Baslik ve icerik gerekli', false); return; }
+  const r = await fetch(API+'/admin/announcements', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({title, content, type, durationSeconds: dur ? parseInt(dur) : null}) });
+  const d = await r.json();
+  if (!r.ok) { showToast(d.error||'Hata', false); return; }
+  showToast('Duyuru yayinlandi');
+  closeModal();
+  loadAnnouncements();
+}
+
+function showEditAnnouncementModal(id, title, content) {
+  showModal(`
+    <h3 style="margin-bottom:16px">Duyuru Duzenle</h3>
+    <div class="a-form-group"><label>Baslik</label><input id="eanTitle" class="a-input" value="${esc(title)}" /></div>
+    <div class="a-form-group"><label>Icerik</label><textarea id="eanContent" class="a-input" style="height:80px;resize:vertical">${esc(content)}</textarea></div>
+    <button class="a-btn" style="width:100%;margin-top:8px" onclick="updateAnnouncement(${id})">Kaydet</button>`);
+}
+
+async function updateAnnouncement(id) {
+  const title = document.getElementById('eanTitle')?.value.trim();
+  const content = document.getElementById('eanContent')?.value.trim();
+  const r = await fetch(API+'/admin/announcements/'+id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({title, content}) });
+  const d = await r.json();
+  if (!r.ok) { showToast(d.error||'Hata', false); return; }
+  showToast('Duyuru guncellendi');
+  closeModal();
+  loadAnnouncements();
+}
+
+async function deleteAnnouncement(id) {
+  if (!confirm('Duyuruyu silmek istediginize emin misiniz?')) return;
+  await fetch(API+'/admin/announcements/'+id, { method:'DELETE' });
+  showToast('Duyuru silindi');
+  loadAnnouncements();
 }
