@@ -151,6 +151,7 @@ function showMobileProfileSheet() {
         { icon:'fa-star', label:'Favoriler', page:'favorites' },
         { icon:'fa-bookmark', label:'Kaydedilenler', page:'saved' },
         { icon:'fa-history', label:'Geçmiş', page:'history' },
+        { icon:'fa-music', label:'TS Music', page:'ts-music' },
         { icon:'fa-brain', label:'Algoritmam', page:'algorithm' },
         { icon:'fa-cog', label:'Ayarlar', page:'settings' },
       ].map(item => `
@@ -562,6 +563,9 @@ function showPage(page) {
       break;
     case 'algorithm':
       loadAlgorithmPage();
+      break;
+    case 'ts-music':
+      loadTSMusicPage();
       break;
     case 'settings':
       loadSettingsPage();
@@ -5789,4 +5793,339 @@ async function unblockUser(blockedId, nickname) {
   } catch(e) {
     showToast('Hata', 'error');
   }
+}
+
+
+// ==================== TS MUSIC ====================
+let tsMusicAudio = null;
+let tsMusicCurrentSong = null;
+let tsMusicIsPlaying = false;
+let tsMusicIsPlaying = false;
+
+async function loadTSMusicPage() {
+  const pageContent = document.getElementById('pageContent');
+  pageContent.innerHTML = '<div class="yt-loading"><div class="yt-spinner"></div></div>';
+  try {
+    const [statusRes, homeRes] = await Promise.all([
+      fetch(API_URL + '/music/apply/status/' + currentUser.id).catch(() => null),
+      fetch(API_URL + '/music/home').catch(() => null)
+    ]);
+    const status = statusRes ? await statusRes.json() : {};
+    const homeData = homeRes ? await homeRes.json() : { newSongs:[], newArtists:[], popularSongs:[] };
+    const isArtist = !!(status && status.artist);
+    const hasPending = !!(status && status.application && status.application.status === 'pending');
+    const isRejected = !!(status && status.application && status.application.status === 'rejected');
+    renderTSMusicHome(homeData, isArtist, hasPending, isRejected, status);
+  } catch(e) {
+    document.getElementById('pageContent').innerHTML = '<p style="color:red">Hata: ' + e.message + '</p>';
+  }
+}
+
+function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
+  const pageContent = document.getElementById('pageContent');
+  
+  let topBanner = '';
+  if (isArtist) {
+    topBanner = `<button class="yt-btn" onclick="showUploadSongModal()" style="margin-bottom:16px"><i class="fas fa-upload" style="margin-right:6px"></i>Şarkı Yükle</button>`;
+  } else if (hasPending) {
+    topBanner = `<div style="background:rgba(255,200,0,0.1);border:1px solid rgba(255,200,0,0.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#ffc800"><i class="fas fa-clock" style="margin-right:6px"></i>Başvurunuz inceleniyor...</div>`;
+  } else if (isRejected) {
+    const note = status.application && status.application.admin_note ? ' Not: ' + status.application.admin_note : '';
+    topBanner = `<div style="background:rgba(255,0,51,0.1);border:1px solid rgba(255,0,51,0.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px"><i class="fas fa-times-circle" style="margin-right:6px;color:#ff0033"></i>Başvurunuz reddedildi.${note} <button class="yt-btn" onclick="showArtistApplyModal()" style="margin-left:8px;height:28px;padding:0 12px;font-size:12px">Tekrar Başvur</button></div>`;
+  } else {
+    topBanner = `<div style="margin-bottom:16px"><button class="yt-btn" onclick="showArtistApplyModal()" style="background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)"><i class="fas fa-microphone" style="margin-right:6px"></i>Artist Ol</button></div>`;
+  }
+
+  const popularHtml = (data.popularSongs || []).length
+    ? `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px">🔥 Popüler</h3><div style="display:flex;flex-direction:column;gap:4px;margin-bottom:24px">${(data.popularSongs || []).map(s => renderTSSongRow(s)).join('')}</div>`
+    : '';
+
+  const artistsHtml = (data.newArtists || []).length
+    ? `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px">🎤 Yeni Sanatçılar</h3><div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;margin-bottom:24px">${(data.newArtists || []).map(a => renderTSArtistCard(a)).join('')}</div>`
+    : '';
+
+  const newSongsHtml = (data.newSongs || []).length
+    ? (data.newSongs || []).map(s => renderTSSongRow(s)).join('')
+    : '<p style="color:var(--yt-spec-text-secondary)">Henüz şarkı yok</p>';
+
+  pageContent.innerHTML = `
+    <div style="padding-bottom:120px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h2 style="font-size:22px;font-weight:700"><i class="fas fa-music" style="color:#1db954;margin-right:8px"></i>TS Music</h2>
+        <div style="display:flex;gap:8px">
+          <button class="yt-btn" onclick="showTSMusicSearch()" style="background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)"><i class="fas fa-search"></i></button>
+          <button class="yt-btn" onclick="showMyPlaylists()" style="background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)"><i class="fas fa-list"></i></button>
+        </div>
+      </div>
+      ${topBanner}
+      ${popularHtml}
+      ${artistsHtml}
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:12px">🎵 Yeni Çıkanlar</h3>
+      <div style="display:flex;flex-direction:column;gap:4px">${newSongsHtml}</div>
+    </div>
+  `;
+}
+
+function renderTSSongRow(s) {
+  const playCount = s.show_play_count ? `<span style="font-size:11px;color:var(--yt-spec-text-secondary)">${s.play_count || 0} dinlenme</span>` : '';
+  return `
+    <div onclick="playSong(${s.id})" style="display:flex;align-items:center;gap:12px;padding:8px;border-radius:10px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+      <img src="${s.cover_url}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=48 height=48%3E%3Crect width=48 height=48 fill=%23333/%3E%3C/svg%3E'" />
+      <div style="flex:1;min-width:0">
+        <p style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title || ''}</p>
+        <p style="font-size:12px;color:var(--yt-spec-text-secondary)">${s.artist_name || ''}</p>
+      </div>
+      ${playCount}
+      <button onclick="event.stopPropagation();addToPlaylistPrompt(${s.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:4px 8px"><i class="fas fa-plus"></i></button>
+    </div>`;
+}
+
+function renderTSArtistCard(a) {
+  const photo = a.cover_photo || a.profile_photo || '';
+  return `
+    <div onclick="viewArtistPage(${a.id})" style="flex-shrink:0;width:100px;cursor:pointer;text-align:center">
+      <img src="${photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;margin:0 auto 6px;display:block" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=80 height=80%3E%3Ccircle cx=40 cy=40 r=40 fill=%23333/%3E%3C/svg%3E'" />
+      <p style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.artist_name || ''}</p>
+      <p style="font-size:11px;color:var(--yt-spec-text-secondary)">${a.song_count || 0} şarkı</p>
+    </div>`;
+}
+
+async function playSong(songId) {
+  try {
+    const r = await fetch(API_URL + '/music/song/' + songId);
+    const song = await r.json();
+    if (!r.ok) return;
+    if (tsMusicAudio) { tsMusicAudio.pause(); tsMusicAudio = null; }
+    tsMusicCurrentSong = song;
+    tsMusicAudio = new Audio(song.audio_url);
+    tsMusicAudio.play();
+    tsMusicIsPlaying = true;
+    tsMusicAudio.onended = () => { tsMusicIsPlaying = false; updateTSMiniPlayer(); };
+    updateTSMiniPlayer();
+  } catch(e) { showToast('Şarkı yüklenemedi', 'error'); }
+}
+
+function updateTSMiniPlayer() {
+  let player = document.getElementById('tsMiniPlayer');
+  if (!tsMusicCurrentSong) { if (player) player.remove(); return; }
+  if (!player) {
+    player = document.createElement('div');
+    player.id = 'tsMiniPlayer';
+    player.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:5000;background:var(--yt-spec-raised-background);border-top:1px solid rgba(255,255,255,0.08);padding:10px 16px;display:flex;align-items:center;gap:12px;backdrop-filter:blur(10px)';
+    document.body.appendChild(player);
+  }
+  const s = tsMusicCurrentSong;
+  player.innerHTML = `
+    <img src="${s.cover_url}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0" />
+    <div style="flex:1;min-width:0">
+      <p style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title || ''}</p>
+      <p style="font-size:11px;color:var(--yt-spec-text-secondary)">${s.artist_name || ''}</p>
+    </div>
+    <button onclick="toggleTSMusicPlay()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:20px;padding:4px 8px">
+      <i class="fas ${tsMusicIsPlaying ? 'fa-pause' : 'fa-play'}"></i>
+    </button>
+    <button onclick="closeTSMiniPlayer()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:16px;padding:4px 8px">
+      <i class="fas fa-times"></i>
+    </button>`;
+}
+
+function toggleTSMusicPlay() {
+  if (!tsMusicAudio) return;
+  if (tsMusicIsPlaying) { tsMusicAudio.pause(); tsMusicIsPlaying = false; }
+  else { tsMusicAudio.play(); tsMusicIsPlaying = true; }
+  updateTSMiniPlayer();
+}
+
+function closeTSMiniPlayer() {
+  if (tsMusicAudio) { tsMusicAudio.pause(); tsMusicAudio = null; }
+  tsMusicCurrentSong = null; tsMusicIsPlaying = false;
+  document.getElementById('tsMiniPlayer')?.remove();
+}
+
+function showTSMusicSearch() {
+  showModal(`
+    <h3 style="margin-bottom:16px">🔍 Müzik Ara</h3>
+    <input id="musicSearchInput" class="yt-input" placeholder="Şarkı, sanatçı veya sözler..." style="width:100%;margin-bottom:12px" oninput="searchTSMusic(this.value)" />
+    <div id="musicSearchResults"></div>
+  `);
+}
+
+async function searchTSMusic(q) {
+  const results = document.getElementById('musicSearchResults');
+  if (!results || !q || q.length < 2) { if(results) results.innerHTML = ''; return; }
+  results.innerHTML = '<div class="yt-loading"><div class="yt-spinner"></div></div>';
+  try {
+    const r = await fetch(API_URL + '/music/search?q=' + encodeURIComponent(q));
+    const d = await r.json();
+    let html = '';
+    if (d.artists && d.artists.length) {
+      html += '<p style="font-size:12px;color:var(--yt-spec-text-secondary);margin-bottom:8px">Sanatçılar</p>';
+      html += d.artists.map(a => `<div onclick="viewArtistPage(${a.id});closeModal()" style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;background:var(--yt-spec-raised-background);margin-bottom:6px"><img src="${a.cover_photo||a.profile_photo||''}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" /><div><p style="font-size:13px;font-weight:500">${a.artist_name||''}</p><p style="font-size:11px;color:var(--yt-spec-text-secondary)">${a.song_count||0} şarkı</p></div></div>`).join('');
+    }
+    if (d.songs && d.songs.length) {
+      html += '<p style="font-size:12px;color:var(--yt-spec-text-secondary);margin:8px 0">Şarkılar</p>';
+      html += d.songs.map(s => `<div onclick="playSong(${s.id});closeModal()" style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;background:var(--yt-spec-raised-background);margin-bottom:6px"><img src="${s.cover_url}" style="width:36px;height:36px;border-radius:6px;object-fit:cover" /><div><p style="font-size:13px;font-weight:500">${s.title||''}</p><p style="font-size:11px;color:var(--yt-spec-text-secondary)">${s.artist_name||''}</p></div></div>`).join('');
+    }
+    results.innerHTML = html || '<p style="color:var(--yt-spec-text-secondary);text-align:center;padding:20px">Sonuç bulunamadı</p>';
+  } catch(e) { results.innerHTML = '<p style="color:var(--yt-spec-text-secondary)">Arama hatası</p>'; }
+}
+
+async function viewArtistPage(artistId) {
+  const pageContent = document.getElementById('pageContent');
+  pageContent.innerHTML = '<div class="yt-loading"><div class="yt-spinner"></div></div>';
+  try {
+    const r = await fetch(API_URL + '/music/artist/' + artistId);
+    const d = await r.json();
+    const { artist, songs } = d;
+    pageContent.innerHTML = `
+      <div style="padding-bottom:120px">
+        <button onclick="loadTSMusicPage()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;margin-bottom:16px;font-size:13px"><i class="fas fa-arrow-left" style="margin-right:6px"></i>Geri</button>
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+          <img src="${artist.cover_photo||artist.profile_photo||''}" style="width:80px;height:80px;border-radius:50%;object-fit:cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=80 height=80%3E%3Ccircle cx=40 cy=40 r=40 fill=%23333/%3E%3C/svg%3E'" />
+          <div>
+            <h2 style="font-size:20px;font-weight:700">${artist.artist_name||''}</h2>
+            ${artist.artist_alias ? `<p style="font-size:13px;color:var(--yt-spec-text-secondary)">${artist.artist_alias}</p>` : ''}
+            <p style="font-size:12px;color:var(--yt-spec-text-secondary);margin-top:4px">${artist.song_count||0} şarkı</p>
+          </div>
+        </div>
+        ${artist.bio ? `<p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:20px">${artist.bio}</p>` : ''}
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:12px">Şarkılar</h3>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          ${songs.length ? songs.map(s => renderTSSongRow(s)).join('') : '<p style="color:var(--yt-spec-text-secondary)">Henüz şarkı yok</p>'}
+        </div>
+      </div>`;
+  } catch(e) { pageContent.innerHTML = '<p>Hata oluştu</p>'; }
+}
+
+async function showMyPlaylists() {
+  try {
+    const r = await fetch(API_URL + '/music/playlists/' + currentUser.id);
+    const playlists = await r.json();
+    showModal(`
+      <h3 style="margin-bottom:16px">📋 Playlistlerim</h3>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <input id="newPlaylistName" class="yt-input" placeholder="Yeni playlist adı..." style="flex:1" />
+        <button class="yt-btn" onclick="createTSPlaylist()">Oluştur</button>
+      </div>
+      <div id="playlistList">
+        ${playlists.length ? playlists.map(p => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--yt-spec-raised-background);border-radius:8px;margin-bottom:6px">
+            <div onclick="viewTSPlaylist(${p.id});closeModal()" style="cursor:pointer;flex:1">
+              <p style="font-size:14px;font-weight:500">${p.name||''}</p>
+              <p style="font-size:12px;color:var(--yt-spec-text-secondary)">${p.song_count||0} şarkı</p>
+            </div>
+            <button onclick="deleteTSPlaylist(${p.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer"><i class="fas fa-trash"></i></button>
+          </div>`).join('') : '<p style="color:var(--yt-spec-text-secondary);text-align:center;padding:20px">Henüz playlist yok</p>'}
+      </div>`);
+  } catch(e) { showToast('Hata', 'error'); }
+}
+
+async function createTSPlaylist() {
+  const name = document.getElementById('newPlaylistName')?.value.trim();
+  if (!name) return;
+  await fetch(API_URL + '/music/playlist', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: currentUser.id, name }) });
+  showToast('Playlist oluşturuldu', 'success');
+  showMyPlaylists();
+}
+
+async function deleteTSPlaylist(playlistId) {
+  if (!confirm('Playlist silinsin mi?')) return;
+  await fetch(API_URL + '/music/playlist/' + playlistId, { method:'DELETE' });
+  showToast('Playlist silindi', 'success');
+  showMyPlaylists();
+}
+
+async function viewTSPlaylist(playlistId) {
+  const pageContent = document.getElementById('pageContent');
+  pageContent.innerHTML = '<div class="yt-loading"><div class="yt-spinner"></div></div>';
+  try {
+    const r = await fetch(API_URL + '/music/playlist/' + playlistId);
+    const d = await r.json();
+    pageContent.innerHTML = `
+      <div style="padding-bottom:120px">
+        <button onclick="loadTSMusicPage()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;margin-bottom:16px;font-size:13px"><i class="fas fa-arrow-left" style="margin-right:6px"></i>Geri</button>
+        <h2 style="font-size:20px;font-weight:700;margin-bottom:20px">${d.playlist.name||''}</h2>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          ${d.songs.length ? d.songs.map(s => renderTSSongRow(s)).join('') : '<p style="color:var(--yt-spec-text-secondary)">Playlist boş</p>'}
+        </div>
+      </div>`;
+  } catch(e) { pageContent.innerHTML = '<p>Hata oluştu</p>'; }
+}
+
+async function addToPlaylistPrompt(songId) {
+  try {
+    const r = await fetch(API_URL + '/music/playlists/' + currentUser.id);
+    const playlists = await r.json();
+    if (!playlists.length) { showToast('Önce playlist oluştur', 'error'); return; }
+    showModal(`<h3 style="margin-bottom:16px">Playlist Seç</h3>` +
+      playlists.map(p => `<button onclick="addSongToTSPlaylist(${p.id},${songId});closeModal()" style="width:100%;background:var(--yt-spec-raised-background);border:none;color:var(--yt-spec-text-primary);padding:12px;border-radius:8px;margin-bottom:6px;cursor:pointer;text-align:left;font-size:14px">${p.name||''}</button>`).join(''));
+  } catch(e) { showToast('Hata', 'error'); }
+}
+
+async function addSongToTSPlaylist(playlistId, songId) {
+  await fetch(API_URL + '/music/playlist/' + playlistId + '/song', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ songId }) });
+  showToast("Playlist'e eklendi", 'success');
+}
+
+function showArtistApplyModal() {
+  showModal(`
+    <h3 style="margin-bottom:16px">🎤 Artist Başvurusu</h3>
+    <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:16px">TS Music'te şarkı yükleyebilmek için artist başvurusu yapman gerekiyor.</p>
+    <div class="yt-form-group"><label class="yt-form-label">Artist Adı *</label><input id="applyArtistName" class="yt-input" placeholder="Sahne adın" /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Mahlas (opsiyonel)</label><input id="applyArtistAlias" class="yt-input" placeholder="Diğer adın" /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Telefon</label><input id="applyPhone" class="yt-input" placeholder="+90 5xx xxx xx xx" /></div>
+    <div class="yt-form-group"><label class="yt-form-label">E-posta</label><input id="applyEmail" class="yt-input" placeholder="ornek@mail.com" /></div>
+    <button class="yt-btn" style="width:100%;margin-top:8px" onclick="submitArtistApply()">Başvuru Gönder</button>`);
+}
+
+async function submitArtistApply() {
+  const artistName = document.getElementById('applyArtistName')?.value.trim();
+  if (!artistName) { showToast('Artist adı gerekli', 'error'); return; }
+  try {
+    const r = await fetch(API_URL + '/music/apply', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ userId: currentUser.id, artistName, artistAlias: document.getElementById('applyArtistAlias')?.value.trim(), phone: document.getElementById('applyPhone')?.value.trim(), email: document.getElementById('applyEmail')?.value.trim() })
+    });
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error || 'Hata', 'error'); return; }
+    showToast('Başvurunuz gönderildi!', 'success');
+    closeModal();
+    loadTSMusicPage();
+  } catch(e) { showToast('Hata oluştu', 'error'); }
+}
+
+function showUploadSongModal() {
+  showModal(`
+    <h3 style="margin-bottom:16px">🎵 Şarkı Yükle</h3>
+    <div class="yt-form-group"><label class="yt-form-label">Şarkı Adı *</label><input id="songTitle" class="yt-input" placeholder="Şarkı adı" /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Tür</label><input id="songGenre" class="yt-input" placeholder="Pop, Rock, Hip-Hop..." /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Ses Dosyası * (MP3, WAV)</label><input type="file" id="songAudio" class="yt-input" accept="audio/*" /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Kapak Fotoğrafı *</label><input type="file" id="songCover" class="yt-input" accept="image/*" /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Şarkı Sözleri (opsiyonel)</label><textarea id="songLyrics" class="yt-input" style="height:80px;resize:vertical" placeholder="Şarkı sözleri..."></textarea></div>
+    <button class="yt-btn" style="width:100%;margin-top:8px" onclick="uploadTSSong()">Yükle</button>`);
+}
+
+async function uploadTSSong() {
+  const title = document.getElementById('songTitle')?.value.trim();
+  const genre = document.getElementById('songGenre')?.value.trim();
+  const audio = document.getElementById('songAudio')?.files[0];
+  const cover = document.getElementById('songCover')?.files[0];
+  const lyrics = document.getElementById('songLyrics')?.value.trim();
+  if (!title || !audio || !cover) { showToast('Başlık, ses ve kapak gerekli', 'error'); return; }
+  const formData = new FormData();
+  formData.append('userId', currentUser.id);
+  formData.append('title', title);
+  if (genre) formData.append('genre', genre);
+  if (lyrics) formData.append('lyrics', lyrics);
+  formData.append('audio', audio);
+  formData.append('cover', cover);
+  closeModal();
+  showToast('Yükleniyor...', 'success');
+  try {
+    const r = await fetch(API_URL + '/music/song', { method:'POST', body: formData });
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error || 'Yükleme hatası', 'error'); return; }
+    showToast('Şarkı yüklendi!', 'success');
+    loadTSMusicPage();
+  } catch(e) { showToast('Yükleme hatası', 'error'); }
 }
