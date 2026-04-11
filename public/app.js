@@ -86,6 +86,16 @@ function showMobileUploadMenu() {
           <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Fotoğraf paylaş</p>
         </div>
       </button>
+      <button id="mobileTextBtn"
+        style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
+        <div style="width:44px; height:44px; background:rgba(29,161,242,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
+          <i class="fas fa-align-left" style="color:#1da1f2; font-size:18px;"></i>
+        </div>
+        <div style="text-align:left;">
+          <p style="font-weight:600; margin-bottom:2px;">Metin</p>
+          <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Yazı paylaş</p>
+        </div>
+      </button>
       <button id="mobileCancelBtn"
         style="width:100%; background:rgba(255,255,255,0.06); border:none; color:var(--yt-spec-text-secondary); padding:14px; border-radius:10px; font-size:14px; cursor:pointer; margin-top:8px;">
         İptal
@@ -96,6 +106,7 @@ function showMobileUploadMenu() {
   // Event listener'ları doğrudan ekle
   const realsBtn = sheet.querySelector('#mobileRealsBtn');
   const photoBtn = sheet.querySelector('#mobilePhotoBtn');
+  const textBtn = sheet.querySelector('#mobileTextBtn');
   const cancelBtn = sheet.querySelector('#mobileCancelBtn');
   
   realsBtn.addEventListener('click', (e) => {
@@ -112,6 +123,15 @@ function showMobileUploadMenu() {
     sheet.remove();
     setTimeout(() => {
       switchUploadType('photo');
+      showUploadVideoModal();
+    }, 100);
+  });
+  
+  textBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    sheet.remove();
+    setTimeout(() => {
+      switchUploadType('text');
       showUploadVideoModal();
     }, 100);
   });
@@ -154,6 +174,8 @@ function showMobileProfileSheet() {
         { icon:'fa-layer-group', label:'Gruplar', page:'groups' },
         { icon:'fa-music', label:'TS Music', page:'ts-music' },
         { icon:'fa-brain', label:'Algoritmam', page:'algorithm' },
+        { icon:'fa-bug', label:'Bug/İstek', page:'bug-reports' },
+        { icon:'fa-bullhorn', label:'Yenilikler', page:'announcements' },
         { icon:'fa-cog', label:'Ayarlar', page:'settings' },
       ].map(item => `
         <button onclick="document.getElementById('mobileProfileSheet').remove(); showPage('${item.page}');"
@@ -597,6 +619,21 @@ function showPage(page) {
       break;
     case 'subscriptions':
       loadSubscriptionsPage();
+      break;
+    case 'favorites':
+      loadFavoritesPage();
+      break;
+    case 'saved':
+      loadSavedPage();
+      break;
+    case 'notifications':
+      loadNotificationsPage();
+      break;
+    case 'bug-reports':
+      loadBugReportsPage();
+      break;
+    case 'announcements':
+      loadAnnouncementsPage();
       break;
     case 'favorites':
       loadFavoritesPage();
@@ -2014,20 +2051,15 @@ async function loadHomePage() {
     <!-- Kategori Filtreleri -->
     <div class="category-bar" id="categoryBar">
       <button class="category-chip active" onclick="filterCategory(this, '')">Tümü</button>
-      <button class="category-chip" onclick="filterCategory(this, 'shorts')">
+      <button class="category-chip" onclick="filterCategory(this, 'reals')">
         <i class="fas fa-film" style="margin-right:4px; font-size:11px;"></i>Reals
       </button>
-      <button class="category-chip" onclick="filterCategory(this, 'Yakın Zamanda')">Yakın Zamanda</button>
-      <button class="category-chip" onclick="filterCategory(this, 'Popüler')">Popüler</button>
-      <button class="category-chip" onclick="filterCategory(this, 'Abonelikler')">Abonelikler</button>
-      <button class="category-chip" onclick="filterCategory(this, 'Önerilen')">Önerilen</button>
-      <button class="category-chip" onclick="filterCategory(this, 'Vlog')">Vlog</button>
-      <button class="category-chip" onclick="filterCategory(this, 'Gameplay')">Gameplay</button>
-      <button class="category-chip" onclick="filterCategory(this, 'Müzik klibi')">Müzik</button>
-      <button class="category-chip" onclick="filterCategory(this, 'Ders anlatımı')">Eğitim</button>
-      <button class="category-chip" onclick="filterCategory(this, 'Komedi')">Komedi</button>
-      <button class="category-chip" onclick="filterCategory(this, 'Spor highlights')">Spor</button>
-      <button class="category-chip" onclick="filterCategory(this, 'Seyahat vlog')">Seyahat</button>
+      <button class="category-chip" onclick="filterCategory(this, 'photo')">
+        <i class="fas fa-image" style="margin-right:4px; font-size:11px;"></i>Foto
+      </button>
+      <button class="category-chip" onclick="filterCategory(this, 'text')">
+        <i class="fas fa-align-left" style="margin-right:4px; font-size:11px;"></i>Metin
+      </button>
     </div>
     <div id="homeContent" style="margin-top: 24px;"></div>
     <div id="homeLoading" style="display:none; text-align:center; padding:40px;">
@@ -2123,12 +2155,12 @@ async function loadHomeVideos(category) {
   if (loading) loading.style.display = 'block';
 
   try {
-    // Sadece Shorts kategorisi
-    if (category === 'shorts') {
+    // Reals kategorisi
+    if (category === 'reals') {
       const shorts = await fetch(`${API_URL}/shorts`).then(r => r.json()).catch(() => []);
       if (loading) loading.style.display = 'none';
       if (!shorts.length) {
-        container.innerHTML = '<p style="color:var(--yt-spec-text-secondary);">Henüz shorts yok</p>';
+        container.innerHTML = '<p style="color:var(--yt-spec-text-secondary);">Henüz reals yok</p>';
         return;
       }
       container.innerHTML = `
@@ -2138,6 +2170,44 @@ async function loadHomeVideos(category) {
         <div class="shorts-grid" id="shortsGrid"></div>
       `;
       renderShortsGrid(shorts, 'shortsGrid');
+      return;
+    }
+
+    // Foto kategorisi
+    if (category === 'photo') {
+      const allVideos = await fetch(`${API_URL}/videos?limit=100`).then(r => r.json()).catch(() => []);
+      const photos = allVideos.filter(v => v.video_type === 'Fotoğraf');
+      if (loading) loading.style.display = 'none';
+      if (!photos.length) {
+        container.innerHTML = '<p style="color:var(--yt-spec-text-secondary);">Henüz fotoğraf yok</p>';
+        return;
+      }
+      container.innerHTML = `
+        <h2 class="section-header" style="margin-bottom:16px;">
+          <i class="fas fa-image" style="color:var(--yt-spec-brand-background-solid); margin-right:8px;"></i>Fotoğraflar
+        </h2>
+        <div class="photo-grid" id="photoGrid"></div>
+      `;
+      renderPhotoGrid(photos, 'photoGrid');
+      return;
+    }
+
+    // Metin kategorisi
+    if (category === 'text') {
+      const allVideos = await fetch(`${API_URL}/videos?limit=100`).then(r => r.json()).catch(() => []);
+      const texts = allVideos.filter(v => v.video_type === 'Metin');
+      if (loading) loading.style.display = 'none';
+      if (!texts.length) {
+        container.innerHTML = '<p style="color:var(--yt-spec-text-secondary);">Henüz metin içerik yok</p>';
+        return;
+      }
+      container.innerHTML = `
+        <h2 class="section-header" style="margin-bottom:16px;">
+          <i class="fas fa-align-left" style="color:var(--yt-spec-brand-background-solid); margin-right:8px;"></i>Metin İçerikler
+        </h2>
+        <div class="text-grid" id="textGrid"></div>
+      `;
+      renderTextGrid(texts, 'textGrid');
       return;
     }
 
@@ -2218,6 +2288,60 @@ function renderShortsGrid(shorts, containerId) {
       </div>
     </div>
   `).join('');
+}
+
+// Foto grid - kare grid
+function renderPhotoGrid(photos, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = photos.map(v => `
+    <div class="photo-card" onclick="playVideo(${v.id})">
+      <img src="${v.video_url}" alt="${v.title}" />
+      <div class="photo-card-overlay">
+        <div class="photo-card-stats">
+          <span><i class="fas fa-heart"></i> ${v.likes || 0}</span>
+          <span><i class="fas fa-eye"></i> ${v.views || 0}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Metin grid - Twitter/Ekşi benzeri kartlar
+function renderTextGrid(texts, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = texts.map(v => {
+    const content = v.text_content || v.description || '';
+    const isTeaWeet = v.text_type === 'teaweet';
+    
+    // TeaWeet için hashtag'leri mavi yap
+    let displayContent = content;
+    if (isTeaWeet) {
+      displayContent = content.replace(/#(\w+)/g, '<span style="color:#1da1f2; font-weight:600;">#$1</span>');
+    }
+    
+    return `
+      <div class="text-card" onclick="playVideo(${v.id})">
+        <div class="text-card-header">
+          <img src="${getProfilePhotoUrl(v.profile_photo)}" class="text-card-avatar" />
+          <div class="text-card-user">
+            <p class="text-card-name">${v.channel_name || 'Kullanıcı'}</p>
+            <p class="text-card-time">${timeAgo(v.created_at)}</p>
+          </div>
+          ${isTeaWeet ? '<span class="text-card-badge"><i class="fas fa-bolt"></i> TeaWeet</span>' : '<span class="text-card-badge"><i class="fas fa-align-left"></i> Düz Metin</span>'}
+        </div>
+        <div class="text-card-content ${isTeaWeet ? 'teaweet-content' : 'plain-content'}">
+          ${displayContent}
+        </div>
+        <div class="text-card-footer">
+          <span><i class="fas fa-heart"></i> ${v.likes || 0}</span>
+          <span><i class="fas fa-comment"></i> ${v.comment_count || 0}</span>
+          <span><i class="fas fa-eye"></i> ${v.views || 0}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function openShortFromHome(videoId) {
@@ -3274,7 +3398,7 @@ function showUploadVideoModal() {
     <!-- Format Seçimi -->
     <div class="yt-form-group">
       <label class="yt-form-label">Ne yüklemek istiyorsun?</label>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:4px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:4px;">
         <label class="upload-type-btn active" id="typeBtn_reals" onclick="switchUploadType('reals')">
           <input type="radio" name="uploadType" value="reals" checked style="display:none;" />
           <i class="fas fa-film" style="font-size:20px; margin-bottom:6px;"></i>
@@ -3286,6 +3410,12 @@ function showUploadVideoModal() {
           <i class="fas fa-image" style="font-size:20px; margin-bottom:6px;"></i>
           <span>Foto</span>
           <small>Fotoğraf paylaş</small>
+        </label>
+        <label class="upload-type-btn" id="typeBtn_text" onclick="switchUploadType('text')">
+          <input type="radio" name="uploadType" value="text" style="display:none;" />
+          <i class="fas fa-align-left" style="font-size:20px; margin-bottom:6px;"></i>
+          <span>Metin</span>
+          <small>Yazı paylaş</small>
         </label>
       </div>
     </div>
@@ -3343,6 +3473,34 @@ function showUploadVideoModal() {
       </div>
     </div>
 
+    <!-- Metin alanları -->
+    <div id="textFields" style="display:none;">
+      <div class="yt-form-group">
+        <label class="yt-form-label">Metin Tipi</label>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <label class="upload-type-btn active" id="textTypeBtn_teaweet" onclick="switchTextType('teaweet')">
+            <input type="radio" name="textType" value="teaweet" checked style="display:none;" />
+            <i class="fas fa-bolt" style="font-size:18px; margin-bottom:4px; color:#1da1f2;"></i>
+            <span>TeaWeet</span>
+            <small>Twitter benzeri, #hashtag</small>
+          </label>
+          <label class="upload-type-btn" id="textTypeBtn_plain" onclick="switchTextType('plain')">
+            <input type="radio" name="textType" value="plain" style="display:none;" />
+            <i class="fas fa-align-left" style="font-size:18px; margin-bottom:4px;"></i>
+            <span>Düz Metin</span>
+            <small>Ekşi sözlük benzeri</small>
+          </label>
+        </div>
+      </div>
+      <div class="yt-form-group">
+        <label class="yt-form-label">İçerik</label>
+        <textarea id="textContent" class="yt-textarea" placeholder="Metninizi buraya yazın..." style="min-height:200px;"></textarea>
+        <p id="textTypeHint" style="font-size:12px; color:var(--yt-spec-text-secondary); margin-top:4px;">
+          <i class="fas fa-info-circle"></i> TeaWeet: #hashtag kullanabilirsiniz, kısa ve öz olmalı
+        </p>
+      </div>
+    </div>
+
     <div style="display:flex; gap:12px; margin-top:8px;">
       <button class="yt-btn" onclick="handleUpload()"><i class="fas fa-upload" style="margin-right:6px;"></i>Yükle</button>
       <button class="yt-btn yt-btn-secondary" onclick="closeModal()">İptal</button>
@@ -3354,21 +3512,39 @@ function showUploadVideoModal() {
 }
 
 function switchUploadType(type) {
-  ['reals','video','photo'].forEach(t => {
+  ['reals','video','photo','text'].forEach(t => {
     const btn = document.getElementById(`typeBtn_${t}`);
     if (btn) btn.classList.toggle('active', t === type);
   });
-  document.getElementById('videoFields').style.display = type !== 'photo' ? 'block' : 'none';
+  document.getElementById('videoFields').style.display = (type === 'reals' || type === 'video') ? 'block' : 'none';
   document.getElementById('photoFields').style.display = type === 'photo' ? 'block' : 'none';
+  document.getElementById('textFields').style.display = type === 'text' ? 'block' : 'none';
   // Reals için süre kontrolü
   const hint = document.getElementById('videoFileHint');
   if (hint) hint.textContent = type === 'reals' ? 'Maksimum 3 dakika' : '';
+}
+
+function switchTextType(textType) {
+  ['teaweet','plain'].forEach(t => {
+    const btn = document.getElementById(`textTypeBtn_${t}`);
+    if (btn) btn.classList.toggle('active', t === textType);
+  });
+  const hint = document.getElementById('textTypeHint');
+  if (hint) {
+    if (textType === 'teaweet') {
+      hint.innerHTML = '<i class="fas fa-info-circle"></i> TeaWeet: #hashtag kullanabilirsiniz, kısa ve öz olmalı (Twitter benzeri)';
+    } else {
+      hint.innerHTML = '<i class="fas fa-info-circle"></i> Düz Metin: Uzun yazılar yazabilirsiniz (Ekşi sözlük benzeri)';
+    }
+  }
 }
 
 function handleUpload() {
   const type = document.querySelector('input[name="uploadType"]:checked')?.value || 'reals';
   if (type === 'photo') {
     uploadPhoto();
+  } else if (type === 'text') {
+    uploadText();
   } else {
     uploadVideo(type === 'reals');
   }
@@ -3528,6 +3704,70 @@ async function uploadPhoto() {
     setTimeout(() => {
       progressOverlay.classList.remove('show');
       showToast('Fotoğraf yüklendi!', 'success');
+      closeModal();
+      loadMyVideosPage();
+    }, 800);
+  } catch(e) {
+    progressOverlay.classList.remove('show');
+    showToast('Yükleme hatası: ' + e.message, 'error');
+  }
+}
+
+// Metin yükleme
+async function uploadText() {
+  const title = document.getElementById('videoTitle').value.trim();
+  const description = document.getElementById('videoDescription').value.trim();
+  const textContent = document.getElementById('textContent').value.trim();
+  const textType = document.querySelector('input[name="textType"]:checked')?.value || 'teaweet';
+
+  if (!title) {
+    showToast('Başlık gerekli', 'error');
+    return;
+  }
+
+  if (!textContent) {
+    showToast('Metin içeriği gerekli', 'error');
+    return;
+  }
+
+  const progressOverlay = document.getElementById('uploadProgressOverlay');
+  const progressBar = document.getElementById('uploadProgressBar');
+  const progressPercentage = document.getElementById('uploadProgressPercentage');
+  const progressTitle = document.getElementById('uploadProgressTitle');
+  const progressStatus = document.getElementById('uploadProgressStatus');
+
+  progressOverlay.classList.add('show');
+  progressTitle.textContent = 'Metin yükleniyor...';
+  progressStatus.textContent = 'Hazırlanıyor...';
+  progressBar.style.width = '0%';
+  progressPercentage.textContent = '0%';
+  closeModal();
+
+  try {
+    progressBar.style.width = '50%';
+    progressPercentage.textContent = '50%';
+    progressStatus.textContent = 'Gönderiliyor...';
+
+    const formData = new FormData();
+    formData.append('channelId', currentChannel.id);
+    formData.append('title', title);
+    formData.append('description', description);
+    formData.append('videoType', 'Metin');
+    formData.append('textContent', textContent);
+    formData.append('textType', textType);
+    formData.append('tags', textType === 'teaweet' ? 'teaweet' : 'metin');
+    formData.append('commentsEnabled', 1);
+    formData.append('likesVisible', 1);
+
+    await fetch(`${API_URL}/text`, { method: 'POST', body: formData });
+
+    progressBar.style.width = '100%';
+    progressPercentage.textContent = '100%';
+    progressStatus.textContent = 'Tamamlandı!';
+
+    setTimeout(() => {
+      progressOverlay.classList.remove('show');
+      showToast('Metin paylaşıldı!', 'success');
       closeModal();
       loadMyVideosPage();
     }, 800);
@@ -7127,3 +7367,264 @@ function showAnnouncement(a) {
 const annStyle = document.createElement('style');
 annStyle.textContent = '@keyframes slideDown{from{transform:translateX(-50%) translateY(-20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}';
 document.head.appendChild(annStyle);
+
+
+// ==================== BUG/İSTEK SAYFASI ====================
+
+async function loadBugReportsPage() {
+  const pageContent = document.getElementById('pageContent');
+  pageContent.innerHTML = `<div class="yt-loading"><div class="yt-spinner"></div></div>`;
+
+  try {
+    const reports = await fetch(`${API_URL}/bug-reports`).then(r => r.json());
+
+    pageContent.innerHTML = `
+      <div class="bug-reports-page">
+        <div class="bug-header">
+          <h2><i class="fas fa-bug"></i> Bug & İstek Bildirimi</h2>
+          <button class="yt-btn" onclick="showBugReportModal()">
+            <i class="fas fa-plus"></i> Yeni Bildir
+          </button>
+        </div>
+
+        <div class="bug-stats">
+          <div class="bug-stat-card">
+            <i class="fas fa-bug"></i>
+            <div>
+              <p class="stat-num">${reports.filter(r => r.type === 'bug').length}</p>
+              <p class="stat-label">Bug</p>
+            </div>
+          </div>
+          <div class="bug-stat-card">
+            <i class="fas fa-lightbulb"></i>
+            <div>
+              <p class="stat-num">${reports.filter(r => r.type === 'feature').length}</p>
+              <p class="stat-label">İstek</p>
+            </div>
+          </div>
+          <div class="bug-stat-card">
+            <i class="fas fa-check-circle"></i>
+            <div>
+              <p class="stat-num">${reports.filter(r => r.status === 'resolved').length}</p>
+              <p class="stat-label">Çözüldü</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bug-list">
+          ${reports.length === 0 ? '<p class="empty-state">Henüz bildirim yok</p>' : reports.map(r => `
+            <div class="bug-card ${r.status}">
+              <div class="bug-card-header">
+                <img src="${getProfilePhotoUrl(r.profile_photo)}" class="bug-avatar" />
+                <div class="bug-user-info">
+                  <p class="bug-user-name">${r.nickname}</p>
+                  <p class="bug-time">${timeAgo(r.created_at)}</p>
+                </div>
+                <span class="bug-type-badge ${r.type}">
+                  <i class="fas fa-${r.type === 'bug' ? 'bug' : 'lightbulb'}"></i>
+                  ${r.type === 'bug' ? 'Bug' : 'İstek'}
+                </span>
+                <span class="bug-status-badge ${r.status}">
+                  ${r.status === 'open' ? 'Açık' : r.status === 'in_progress' ? 'İnceleniyor' : 'Çözüldü'}
+                </span>
+              </div>
+              <div class="bug-card-body">
+                <h3 class="bug-title">${r.title}</h3>
+                <p class="bug-description">${r.description}</p>
+                ${r.photo_url ? `<img src="${r.photo_url}" class="bug-photo" onclick="showImageModal('${r.photo_url}')" />` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  } catch(e) {
+    pageContent.innerHTML = '<p class="error-state">Yüklenemedi</p>';
+  }
+}
+
+function showBugReportModal() {
+  const modalContent = `
+    <div class="bug-modal">
+      <div class="yt-form-group">
+        <label class="yt-form-label">Bildirim Tipi</label>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <label class="upload-type-btn active" id="bugTypeBtn_bug" onclick="switchBugType('bug')">
+            <input type="radio" name="bugType" value="bug" checked style="display:none;" />
+            <i class="fas fa-bug" style="font-size:24px; margin-bottom:8px; color:#ff4444;"></i>
+            <span>Bug</span>
+            <small>Hata bildirimi</small>
+          </label>
+          <label class="upload-type-btn" id="bugTypeBtn_feature" onclick="switchBugType('feature')">
+            <input type="radio" name="bugType" value="feature" style="display:none;" />
+            <i class="fas fa-lightbulb" style="font-size:24px; margin-bottom:8px; color:#ffa500;"></i>
+            <span>İstek</span>
+            <small>Özellik isteği</small>
+          </label>
+        </div>
+      </div>
+
+      <div class="yt-form-group">
+        <label class="yt-form-label">Başlık</label>
+        <input type="text" id="bugTitle" class="yt-input" placeholder="Kısa ve açıklayıcı bir başlık" />
+      </div>
+
+      <div class="yt-form-group">
+        <label class="yt-form-label">Açıklama</label>
+        <textarea id="bugDescription" class="yt-textarea" placeholder="Detaylı açıklama..." style="min-height:150px;"></textarea>
+      </div>
+
+      <div class="yt-form-group">
+        <label class="yt-form-label">Ekran Görüntüsü (Opsiyonel)</label>
+        <input type="file" id="bugPhoto" class="yt-input" accept="image/*" />
+      </div>
+
+      <div style="display:flex; gap:12px; margin-top:20px;">
+        <button class="yt-btn" onclick="submitBugReport()">
+          <i class="fas fa-paper-plane"></i> Gönder
+        </button>
+        <button class="yt-btn yt-btn-secondary" onclick="closeModal()">İptal</button>
+      </div>
+    </div>
+  `;
+  showModal(modalContent, 'Bug/İstek Bildirimi');
+}
+
+function switchBugType(type) {
+  ['bug','feature'].forEach(t => {
+    const btn = document.getElementById(`bugTypeBtn_${t}`);
+    if (btn) btn.classList.toggle('active', t === type);
+  });
+}
+
+async function submitBugReport() {
+  const type = document.querySelector('input[name="bugType"]:checked')?.value || 'bug';
+  const title = document.getElementById('bugTitle').value.trim();
+  const description = document.getElementById('bugDescription').value.trim();
+  const photoFile = document.getElementById('bugPhoto').files[0];
+
+  if (!title || !description) {
+    showToast('Başlık ve açıklama gerekli', 'error');
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('userId', currentUser.id);
+    formData.append('type', type);
+    formData.append('title', title);
+    formData.append('description', description);
+    if (photoFile) formData.append('photo', photoFile);
+
+    await fetch(`${API_URL}/bug-report`, { method: 'POST', body: formData });
+    showToast('Bildiriminiz alındı!', 'success');
+    closeModal();
+    loadBugReportsPage();
+  } catch(e) {
+    showToast('Hata: ' + e.message, 'error');
+  }
+}
+
+// ==================== YENİLİKLER SAYFASI ====================
+
+async function loadAnnouncementsPage() {
+  const pageContent = document.getElementById('pageContent');
+  pageContent.innerHTML = `<div class="yt-loading"><div class="yt-spinner"></div></div>`;
+
+  try {
+    const announcements = await fetch(`${API_URL}/announcements`).then(r => r.json());
+
+    pageContent.innerHTML = `
+      <div class="announcements-page">
+        <div class="announcements-header">
+          <h2><i class="fas fa-bullhorn"></i> Yenilikler</h2>
+          ${currentUser.id === 1 ? '<button class="yt-btn" onclick="showAnnouncementModal()"><i class="fas fa-plus"></i> Yeni Ekle</button>' : ''}
+        </div>
+
+        <div class="announcements-list">
+          ${announcements.length === 0 ? '<p class="empty-state">Henüz yenilik yok</p>' : announcements.map(a => `
+            <div class="announcement-card">
+              <div class="announcement-header">
+                <img src="logoteatube.png" class="announcement-avatar" />
+                <div class="announcement-user-info">
+                  <p class="announcement-user-name">TeaTube Admin</p>
+                  <p class="announcement-time">${timeAgo(a.created_at)}</p>
+                </div>
+                ${currentUser.id === 1 ? `<button class="yt-btn yt-btn-secondary" onclick="deleteAnnouncement(${a.id})" style="margin-left:auto;"><i class="fas fa-trash"></i></button>` : ''}
+              </div>
+              <div class="announcement-body">
+                <h3 class="announcement-title">${a.title}</h3>
+                <p class="announcement-content">${a.content.replace(/\n/g, '<br>')}</p>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  } catch(e) {
+    pageContent.innerHTML = '<p class="error-state">Yüklenemedi</p>';
+  }
+}
+
+function showAnnouncementModal() {
+  const modalContent = `
+    <div class="announcement-modal">
+      <div class="yt-form-group">
+        <label class="yt-form-label">Başlık</label>
+        <input type="text" id="announcementTitle" class="yt-input" placeholder="Yenilik başlığı" />
+      </div>
+
+      <div class="yt-form-group">
+        <label class="yt-form-label">İçerik</label>
+        <textarea id="announcementContent" class="yt-textarea" placeholder="Yenilik detayları..." style="min-height:200px;"></textarea>
+      </div>
+
+      <div style="display:flex; gap:12px; margin-top:20px;">
+        <button class="yt-btn" onclick="submitAnnouncement()">
+          <i class="fas fa-bullhorn"></i> Yayınla
+        </button>
+        <button class="yt-btn yt-btn-secondary" onclick="closeModal()">İptal</button>
+      </div>
+    </div>
+  `;
+  showModal(modalContent, 'Yeni Yenilik');
+}
+
+async function submitAnnouncement() {
+  const title = document.getElementById('announcementTitle').value.trim();
+  const content = document.getElementById('announcementContent').value.trim();
+
+  if (!title || !content) {
+    showToast('Başlık ve içerik gerekli', 'error');
+    return;
+  }
+
+  try {
+    await fetch(`${API_URL}/announcement`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content })
+    });
+    showToast('Yenilik yayınlandı!', 'success');
+    closeModal();
+    loadAnnouncementsPage();
+  } catch(e) {
+    showToast('Hata: ' + e.message, 'error');
+  }
+}
+
+async function deleteAnnouncement(id) {
+  if (!confirm('Bu yeniliği silmek istediğinize emin misiniz?')) return;
+  try {
+    await fetch(`${API_URL}/announcement/${id}`, { method: 'DELETE' });
+    showToast('Yenilik silindi', 'success');
+    loadAnnouncementsPage();
+  } catch(e) {
+    showToast('Hata: ' + e.message, 'error');
+  }
+}
+
+function showImageModal(url) {
+  const modalContent = `<img src="${url}" style="width:100%; border-radius:12px;" />`;
+  showModal(modalContent, 'Görsel');
+}

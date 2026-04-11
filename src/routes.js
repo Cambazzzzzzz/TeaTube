@@ -1678,6 +1678,37 @@ router.post('/photo', upload.single('photo'), async (req, res) => {
   }
 });
 
+// Metin paylaşımı (TeaWeet veya Düz Metin)
+router.post('/text', async (req, res) => {
+  try {
+    const { channelId, title, description, textContent, textType, tags } = req.body;
+    
+    if (!textContent) return res.status(400).json({ error: 'Metin içeriği gerekli' });
+
+    // Placeholder görsel (metin için)
+    const placeholderUrl = 'https://via.placeholder.com/400x400/1f1f1f/ffffff?text=' + encodeURIComponent(title.substring(0, 20));
+
+    const result = db.prepare(
+      'INSERT INTO videos (channel_id, title, description, video_url, banner_url, video_type, text_content, text_type, tags, comments_enabled, likes_visible, is_short) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 0)'
+    ).run(
+      channelId, 
+      title, 
+      description || '', 
+      placeholderUrl, 
+      placeholderUrl, 
+      'Metin', 
+      textContent, 
+      textType || 'plain', 
+      tags || 'metin'
+    );
+
+    res.json({ success: true, textId: result.lastInsertRowid });
+  } catch(e) {
+    console.error('Metin yükleme hatası:', e);
+    res.status(500).json({ error: 'Metin yüklenemedi' });
+  }
+});
+
 // ==================== ARKADAŞLIK SİSTEMİ ====================
 
 // Arkadaş isteği gönder
@@ -2245,3 +2276,90 @@ function assignDemlikBadge(userId) {
 module.exports = router;
 module.exports.VIDEO_TYPES = VIDEO_TYPES;
 module.exports.assignDemlikBadge = assignDemlikBadge;
+
+
+// ==================== BUG/İSTEK SİSTEMİ ====================
+
+// Bug/İstek gönder
+router.post('/bug-report', upload.single('photo'), async (req, res) => {
+  try {
+    const { userId, type, title, description } = req.body;
+    let photoUrl = null;
+
+    if (req.file) {
+      photoUrl = await cloudinary.uploadProfilePhoto(req.file.buffer, req.file.originalname);
+    }
+
+    const result = db.prepare(
+      'INSERT INTO bug_reports (user_id, type, title, description, photo_url) VALUES (?, ?, ?, ?, ?)'
+    ).run(userId, type, title, description, photoUrl);
+
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch(e) {
+    console.error('Bug raporu hatası:', e);
+    res.status(500).json({ error: 'Rapor gönderilemedi' });
+  }
+});
+
+// Tüm bug/istekleri getir
+router.get('/bug-reports', (req, res) => {
+  try {
+    const reports = db.prepare(`
+      SELECT br.*, u.nickname, u.profile_photo
+      FROM bug_reports br
+      JOIN users u ON u.id = br.user_id
+      ORDER BY br.created_at DESC
+    `).all();
+    res.json(reports);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Bug/İstek durumunu güncelle (admin)
+router.put('/bug-report/:id/status', (req, res) => {
+  try {
+    const { status } = req.body;
+    db.prepare('UPDATE bug_reports SET status = ? WHERE id = ?').run(status, req.params.id);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ==================== YENİLİKLER SİSTEMİ ====================
+
+// Yenilik ekle (admin)
+router.post('/announcement', (req, res) => {
+  try {
+    const { title, content } = req.body;
+    const result = db.prepare(
+      'INSERT INTO announcements (title, content) VALUES (?, ?)'
+    ).run(title, content);
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Tüm yenilikleri getir
+router.get('/announcements', (req, res) => {
+  try {
+    const announcements = db.prepare('SELECT * FROM announcements ORDER BY created_at DESC').all();
+    res.json(announcements);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Yenilik sil (admin)
+router.delete('/announcement/:id', (req, res) => {
+  try {
+    db.prepare('DELETE FROM announcements WHERE id = ?').run(req.params.id);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+module.exports = router;

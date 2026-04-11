@@ -270,6 +270,41 @@ try {
   db.prepare('ALTER TABLE videos ADD COLUMN is_short INTEGER DEFAULT 0').run();
 } catch(e) {}
 
+// text_content kolonu ekle (metin içerikler için)
+try {
+  db.prepare('ALTER TABLE videos ADD COLUMN text_content TEXT').run();
+} catch(e) {}
+
+// text_type kolonu ekle (teaweet veya plain)
+try {
+  db.prepare('ALTER TABLE videos ADD COLUMN text_type TEXT DEFAULT "plain"').run();
+} catch(e) {}
+
+// Bug/İstek tablosu
+db.exec(`
+  CREATE TABLE IF NOT EXISTS bug_reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    photo_url TEXT,
+    status TEXT DEFAULT 'open',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+// Yenilikler tablosu
+db.exec(`
+  CREATE TABLE IF NOT EXISTS announcements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 // is_hidden kolonu ekle (yoksa)
 try {
   db.prepare('ALTER TABLE videos ADD COLUMN is_hidden INTEGER DEFAULT 0').run();

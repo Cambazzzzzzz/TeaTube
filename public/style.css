@@ -1883,3 +1883,501 @@ input[type="checkbox"]:checked::after {
     margin-top: auto;
   }
 }
+
+/* ==================== FOTO GRID ==================== */
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 4px;
+}
+
+.photo-card {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.photo-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.photo-card:hover img {
+  transform: scale(1.05);
+}
+
+.photo-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+  display: flex;
+  align-items: flex-end;
+  padding: 12px;
+}
+
+.photo-card:hover .photo-card-overlay {
+  opacity: 1;
+}
+
+.photo-card-stats {
+  display: flex;
+  gap: 16px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.photo-card-stats span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ==================== METİN GRID ==================== */
+.text-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.text-card {
+  background: var(--yt-spec-raised-background);
+  border-radius: 14px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.text-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  border-color: rgba(255,255,255,0.12);
+}
+
+.text-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.text-card-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.text-card-user {
+  flex: 1;
+  min-width: 0;
+}
+
+.text-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--yt-spec-text-primary);
+}
+
+.text-card-time {
+  font-size: 12px;
+  color: var(--yt-spec-text-secondary);
+}
+
+.text-card-badge {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+  color: var(--yt-spec-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.text-card-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--yt-spec-text-primary);
+  margin-bottom: 12px;
+  word-wrap: break-word;
+}
+
+.teaweet-content {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.plain-content {
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.text-card-footer {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  color: var(--yt-spec-text-secondary);
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.text-card-footer span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.text-card-footer span:hover {
+  color: var(--yt-spec-text-primary);
+}
+
+/* Mobil için */
+@media (max-width: 768px) {
+  .photo-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+  }
+  
+  .text-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .text-card {
+    padding: 14px;
+  }
+}
+
+
+/* ==================== BUG/İSTEK SAYFASI ==================== */
+.bug-reports-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.bug-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.bug-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bug-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.bug-stat-card {
+  background: var(--yt-spec-raised-background);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.bug-stat-card i {
+  font-size: 32px;
+  color: var(--yt-spec-brand-background-solid);
+}
+
+.stat-num {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--yt-spec-text-primary);
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--yt-spec-text-secondary);
+}
+
+.bug-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bug-card {
+  background: var(--yt-spec-raised-background);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: all 0.2s;
+}
+
+.bug-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.bug-card.resolved {
+  opacity: 0.7;
+}
+
+.bug-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.bug-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.bug-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.bug-user-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--yt-spec-text-primary);
+}
+
+.bug-time {
+  font-size: 12px;
+  color: var(--yt-spec-text-secondary);
+}
+
+.bug-type-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bug-type-badge.bug {
+  background: rgba(255,68,68,0.15);
+  color: #ff4444;
+}
+
+.bug-type-badge.feature {
+  background: rgba(255,165,0,0.15);
+  color: #ffa500;
+}
+
+.bug-status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bug-status-badge.open {
+  background: rgba(29,161,242,0.15);
+  color: #1da1f2;
+}
+
+.bug-status-badge.in_progress {
+  background: rgba(255,165,0,0.15);
+  color: #ffa500;
+}
+
+.bug-status-badge.resolved {
+  background: rgba(0,204,102,0.15);
+  color: #00cc66;
+}
+
+.bug-card-body {
+  padding-left: 56px;
+}
+
+.bug-title {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--yt-spec-text-primary);
+}
+
+.bug-description {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--yt-spec-text-secondary);
+  margin-bottom: 12px;
+}
+
+.bug-photo {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.bug-photo:hover {
+  transform: scale(1.02);
+}
+
+/* ==================== YENİLİKLER SAYFASI ==================== */
+.announcements-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.announcements-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.announcements-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.announcements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.announcement-card {
+  background: var(--yt-spec-raised-background);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: all 0.2s;
+}
+
+.announcement-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.announcement-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.announcement-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--yt-spec-brand-background-solid);
+}
+
+.announcement-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.announcement-user-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--yt-spec-brand-background-solid);
+}
+
+.announcement-time {
+  font-size: 12px;
+  color: var(--yt-spec-text-secondary);
+}
+
+.announcement-body {
+  padding-left: 60px;
+}
+
+.announcement-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--yt-spec-text-primary);
+}
+
+.announcement-content {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--yt-spec-text-secondary);
+}
+
+.empty-state, .error-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--yt-spec-text-secondary);
+  font-size: 15px;
+}
+
+/* MOBİL OPTİMİZASYON - SÜPER AKICI */
+@media (max-width: 768px) {
+  .bug-reports-page, .announcements-page {
+    padding: 12px;
+  }
+
+  .bug-header, .announcements-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .bug-header h2, .announcements-header h2 {
+    font-size: 20px;
+  }
+
+  .bug-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .bug-stat-card {
+    padding: 16px;
+  }
+
+  .bug-card, .announcement-card {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .bug-card-body, .announcement-body {
+    padding-left: 0;
+    margin-top: 12px;
+  }
+
+  .bug-title, .announcement-title {
+    font-size: 16px;
+  }
+
+  .bug-description, .announcement-content {
+    font-size: 14px;
+  }
+
+  .bug-type-badge, .bug-status-badge {
+    font-size: 11px;
+    padding: 4px 10px;
+  }
+}
