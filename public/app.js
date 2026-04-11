@@ -2447,15 +2447,9 @@ function displayVideos(videos, containerId) {
 
 // Profil fotoğrafı URL'sini düzelt
 function getProfilePhotoUrl(photo) {
-  // Boş, null, undefined, '?' kontrolü
-  if (!photo || photo === '?' || photo === 'null' || photo === 'undefined' || photo.trim() === '') {
+  if (!photo || photo === '?' || photo === 'null' || photo === 'undefined' || photo === 'undefined') {
     return 'logoteatube.png';
   }
-  // Eğer zaten tam URL ise direkt döndür
-  if (photo.startsWith('http://') || photo.startsWith('https://')) {
-    return photo;
-  }
-  // Relative path ise direkt döndür
   return photo;
 }
 
@@ -7382,16 +7376,7 @@ async function loadBugReportsPage() {
   pageContent.innerHTML = `<div class="yt-loading"><div class="yt-spinner"></div></div>`;
 
   try {
-    console.log('Bug reports yükleniyor...');
-    const response = await fetch(`${API_URL}/bug-reports`);
-    console.log('Response status:', response.status);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const reports = await response.json();
-    console.log('Bug reports:', reports);
+    const reports = await fetch(`${API_URL}/bug-reports`).then(r => r.json());
 
     pageContent.innerHTML = `
       <div class="bug-reports-page">
@@ -7430,9 +7415,9 @@ async function loadBugReportsPage() {
           ${reports.length === 0 ? '<p class="empty-state">Henüz bildirim yok</p>' : reports.map(r => `
             <div class="bug-card ${r.status}">
               <div class="bug-card-header">
-                <img src="${getProfilePhotoUrl(r.profile_photo)}" class="bug-avatar" onerror="this.src='logoteatube.png'" />
+                <img src="${getProfilePhotoUrl(r.profile_photo)}" class="bug-avatar" />
                 <div class="bug-user-info">
-                  <p class="bug-user-name">${r.nickname || 'Kullanıcı'}</p>
+                  <p class="bug-user-name">${r.nickname}</p>
                   <p class="bug-time">${timeAgo(r.created_at)}</p>
                 </div>
                 <span class="bug-type-badge ${r.type}">
@@ -7453,11 +7438,6 @@ async function loadBugReportsPage() {
         </div>
       </div>
     `;
-  } catch(e) {
-    console.error('Bug reports yükleme hatası:', e);
-    pageContent.innerHTML = `<p class="error-state">Yüklenemedi: ${e.message}</p>`;
-  }
-}
   } catch(e) {
     pageContent.innerHTML = '<p class="error-state">Yüklenemedi</p>';
   }
