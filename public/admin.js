@@ -120,7 +120,7 @@ async function loadUsers(search='') {
     </div>
     <div id="userTableWrap"><p>Yukleniyor...</p></div>`;
   try {
-    const url = API+'/admin/users'+(search?'?search='+encodeURIComponent(search):'');
+    const url = API+'/admin/users'+(search?'?q='+encodeURIComponent(search):'');
     const r = await fetch(url, {headers:{'x-admin-token': adminData?.token||''}});
     const d = await r.json();
     if (!r.ok) { document.getElementById('userTableWrap').innerHTML='<p>Hata: '+d.error+'</p>'; return; }
@@ -149,12 +149,14 @@ async function loadUsers(search='') {
 
 async function showUserDetail(userId) {
   try {
-    const r = await fetch(API+'/admin/users/'+userId, {headers:{'x-admin-token': adminData?.token||''}});
-    const d = await r.json();
-    if (!r.ok) { showToast(d.error||'Hata', false); return; }
-    const u = d.user || d;
-    const attempts = d.loginAttempts || [];
-    const bans = d.bans || [];
+    const [userR, attR, bansR] = await Promise.all([
+      fetch(API+'/admin/user/'+userId),
+      fetch(API+'/admin/user/'+userId+'/login-attempts'),
+      fetch(API+'/admin/user/'+userId+'/bans')
+    ]);
+    const u = await userR.json();
+    const attempts = await attR.json().catch(() => []);
+    const bans = await bansR.json().catch(() => []);
     const attRows = attempts.map(a=>`<tr><td>${a.ip||'-'}</td><td>${a.created_at?a.created_at.slice(0,19):'-'}</td><td>${a.success?'Basarili':'Basarisiz'}</td></tr>`).join('') || '<tr><td colspan="3">Kayit yok</td></tr>';
     const banRows = bans.map(b=>`<tr><td>${esc(b.reason||'-')}</td><td>${b.created_at?b.created_at.slice(0,10):'-'}</td><td>${b.expires_at?b.expires_at.slice(0,10):'Kalici'}</td><td><button class="a-btn a-btn-sm" style="background:#ff0033" onclick="removeBan(${b.id},${userId})">Kaldir</button></td></tr>`).join('') || '<tr><td colspan="4">Ban yok</td></tr>';
     showModal(`
@@ -184,7 +186,7 @@ async function showUserDetail(userId) {
 
 async function toggleSuspend(userId, suspend) {
   try {
-    const r = await fetch(API+'/admin/users/'+userId+'/suspend', {method:'POST', headers:{'Content-Type':'application/json','x-admin-token':adminData?.token||''}, body:JSON.stringify({suspend:!!suspend})});
+    const r = await fetch(API+'/admin/user/'+userId+'/suspend', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({suspend:!!suspend})});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast(suspend?'Kullanici askiya alindi':'Kullanici aktif edildi');
@@ -195,7 +197,7 @@ async function toggleSuspend(userId, suspend) {
 async function deleteUser(userId, username) {
   if (!confirm(username+' kullanicisini silmek istediginize emin misiniz?')) return;
   try {
-    const r = await fetch(API+'/admin/users/'+userId, {method:'DELETE', headers:{'x-admin-token':adminData?.token||''}});
+    const r = await fetch(API+'/admin/user/'+userId, {method:'DELETE'});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast('Kullanici silindi');
@@ -207,7 +209,7 @@ async function changeUserPassword(userId) {
   const pw = document.getElementById('newPwInput')?.value;
   if (!pw || pw.length < 4) { showToast('Sifre en az 4 karakter olmali', false); return; }
   try {
-    const r = await fetch(API+'/admin/users/'+userId+'/password', {method:'POST', headers:{'Content-Type':'application/json','x-admin-token':adminData?.token||''}, body:JSON.stringify({password:pw})});
+    const r = await fetch(API+'/admin/user/'+userId+'/password', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({newPassword:pw})});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast('Sifre degistirildi');
@@ -219,7 +221,7 @@ async function addBan(userId) {
   const reason = document.getElementById('banReason')?.value.trim();
   const expires = document.getElementById('banExpires')?.value;
   try {
-    const r = await fetch(API+'/admin/users/'+userId+'/bans', {method:'POST', headers:{'Content-Type':'application/json','x-admin-token':adminData?.token||''}, body:JSON.stringify({reason, expires_at: expires||null})});
+    const r = await fetch(API+'/admin/user/'+userId+'/ban', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({banType:'all', reason, isPermanent:!expires, bannedUntil:expires||null})});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast('Ban eklendi');
@@ -302,7 +304,7 @@ async function loadVideos() {
 
 async function toggleVideoSuspend(videoId, suspend) {
   try {
-    const r = await fetch(API+'/admin/videos/'+videoId+'/suspend', {method:'POST', headers:{'Content-Type':'application/json','x-admin-token':adminData?.token||''}, body:JSON.stringify({suspend:!!suspend})});
+    const r = await fetch(API+'/admin/video/'+videoId+'/suspend', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({suspend:!!suspend})});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast(suspend?'Video askiya alindi':'Video aktif edildi');
@@ -322,7 +324,7 @@ async function saveVideoTitle(videoId) {
   const title = document.getElementById('editVideoTitleInput')?.value.trim();
   if (!title) { showToast('Baslik bos olamaz', false); return; }
   try {
-    const r = await fetch(API+'/admin/videos/'+videoId, {method:'PATCH', headers:{'Content-Type':'application/json','x-admin-token':adminData?.token||''}, body:JSON.stringify({title})});
+    const r = await fetch(API+'/admin/video/'+videoId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title})});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast('Baslik guncellendi');
@@ -334,7 +336,7 @@ async function saveVideoTitle(videoId) {
 async function deleteVideo(videoId, title) {
   if (!confirm('"'+title+'" videosunu silmek istediginize emin misiniz?')) return;
   try {
-    const r = await fetch(API+'/admin/videos/'+videoId, {method:'DELETE', headers:{'x-admin-token':adminData?.token||''}});
+    const r = await fetch(API+'/admin/video/'+videoId, {method:'DELETE'});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast('Video silindi');
@@ -478,7 +480,7 @@ async function loadMusicArtists() {
 
 async function toggleArtistSuspend(artistId, suspend) {
   try {
-    const r = await fetch(API+'/admin/music/artists/'+artistId+'/suspend', {method:'POST', headers:{'Content-Type':'application/json','x-admin-token':adminData?.token||''}, body:JSON.stringify({suspend:!!suspend})});
+    const r = await fetch(API+'/admin/music/artist/'+artistId+'/suspend', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({suspend:!!suspend})});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast(suspend?'Sanatci askiya alindi':'Sanatci aktif edildi');
@@ -498,7 +500,7 @@ async function saveArtistName(artistId) {
   const name = document.getElementById('editArtistNameInput')?.value.trim();
   if (!name) { showToast('Ad bos olamaz', false); return; }
   try {
-    const r = await fetch(API+'/admin/music/artists/'+artistId, {method:'PATCH', headers:{'Content-Type':'application/json','x-admin-token':adminData?.token||''}, body:JSON.stringify({name})});
+    const r = await fetch(API+'/admin/music/artist/'+artistId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({artist_name:name})});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast('Sanatci adi guncellendi');
@@ -510,7 +512,7 @@ async function saveArtistName(artistId) {
 async function deleteArtist(artistId, name) {
   if (!confirm('"'+name+'" sanatcisini silmek istediginize emin misiniz?')) return;
   try {
-    const r = await fetch(API+'/admin/music/artists/'+artistId, {method:'DELETE', headers:{'x-admin-token':adminData?.token||''}});
+    const r = await fetch(API+'/admin/music/artist/'+artistId, {method:'DELETE'});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast('Sanatci silindi');
@@ -553,7 +555,7 @@ async function loadMusicSongs() {
 
 async function toggleSongSuspend(songId, suspend) {
   try {
-    const r = await fetch(API+'/admin/music/songs/'+songId+'/suspend', {method:'POST', headers:{'Content-Type':'application/json','x-admin-token':adminData?.token||''}, body:JSON.stringify({suspend:!!suspend})});
+    const r = await fetch(API+'/admin/music/song/'+songId+'/suspend', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({suspend:!!suspend})});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast(suspend?'Sarki askiya alindi':'Sarki aktif edildi');
@@ -573,7 +575,7 @@ async function saveSongTitle(songId) {
   const title = document.getElementById('editSongTitleInput')?.value.trim();
   if (!title) { showToast('Baslik bos olamaz', false); return; }
   try {
-    const r = await fetch(API+'/admin/music/songs/'+songId, {method:'PATCH', headers:{'Content-Type':'application/json','x-admin-token':adminData?.token||''}, body:JSON.stringify({title})});
+    const r = await fetch(API+'/admin/music/song/'+songId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title})});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast('Sarki basligi guncellendi');
@@ -585,7 +587,7 @@ async function saveSongTitle(songId) {
 async function deleteSong(songId, title) {
   if (!confirm('"'+title+'" sarkisini silmek istediginize emin misiniz?')) return;
   try {
-    const r = await fetch(API+'/admin/music/songs/'+songId, {method:'DELETE', headers:{'x-admin-token':adminData?.token||''}});
+    const r = await fetch(API+'/admin/music/song/'+songId, {method:'DELETE'});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast('Sarki silindi');

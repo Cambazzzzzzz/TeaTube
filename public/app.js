@@ -2312,8 +2312,8 @@ function displayVideos(videos, containerId) {
 
 // Profil fotoğrafı URL'sini düzelt
 function getProfilePhotoUrl(photo) {
-  if (!photo || photo === '?') {
-    return 'logoteatube.png';
+  if (!photo || photo === '?' || photo === 'null' || photo === 'undefined') {
+    return 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'40\' viewBox=\'0 0 40 40\'%3E%3Ccircle cx=\'20\' cy=\'20\' r=\'20\' fill=\'%23333\'/%3E%3Ctext x=\'50%25\' y=\'55%25\' text-anchor=\'middle\' dominant-baseline=\'middle\' font-size=\'20\' fill=\'%23fff\'%3E%E2%98%95%3C/text%3E%3C/svg%3E';
   }
   return photo;
 }
@@ -6080,7 +6080,7 @@ function renderTSSongRow(s) {
       <img src="${s.cover_url}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=48 height=48%3E%3Crect width=48 height=48 fill=%23333/%3E%3C/svg%3E'" />
       <div style="flex:1;min-width:0">
         <p style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title || ''}</p>
-        <p style="font-size:12px;color:var(--yt-spec-text-secondary)">${s.artist_name || ''}</p>
+        <p style="font-size:12px;color:var(--yt-spec-text-secondary);display:flex;align-items:center;gap:3px">${s.artist_name || ''}<i class="fas fa-check-circle" style="color:#1db954;font-size:10px"></i></p>
       </div>
       ${playCount}
       <button onclick="event.stopPropagation();addToPlaylistPrompt(${s.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:4px 8px"><i class="fas fa-plus"></i></button>
@@ -6092,7 +6092,7 @@ function renderTSArtistCard(a) {
   return `
     <div onclick="viewArtistPage(${a.id})" style="flex-shrink:0;width:100px;cursor:pointer;text-align:center">
       <img src="${photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;margin:0 auto 6px;display:block" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=80 height=80%3E%3Ccircle cx=40 cy=40 r=40 fill=%23333/%3E%3C/svg%3E'" />
-      <p style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.artist_name || ''}</p>
+      <p style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:center;gap:3px">${a.artist_name || ''}<i class="fas fa-check-circle" style="color:#1db954;font-size:10px;flex-shrink:0"></i></p>
       <p style="font-size:11px;color:var(--yt-spec-text-secondary)">${a.song_count || 0} şarkı</p>
     </div>`;
 }
@@ -6118,22 +6118,59 @@ function updateTSMiniPlayer() {
   if (!player) {
     player = document.createElement('div');
     player.id = 'tsMiniPlayer';
-    player.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:5000;background:var(--yt-spec-raised-background);border-top:1px solid rgba(255,255,255,0.08);padding:10px 16px;display:flex;align-items:center;gap:12px;backdrop-filter:blur(10px)';
+    player.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:5000;background:var(--yt-spec-raised-background);border-top:1px solid rgba(255,255,255,0.08);padding:8px 16px 12px;backdrop-filter:blur(10px)';
     document.body.appendChild(player);
   }
   const s = tsMusicCurrentSong;
+  const dur = tsMusicAudio?.duration || 0;
+  const cur = tsMusicAudio?.currentTime || 0;
+  const vol = tsMusicAudio?.volume !== undefined ? Math.round(tsMusicAudio.volume * 100) : 100;
+  const fmt = t => { const m = Math.floor(t/60); const sec = Math.floor(t%60); return m+':'+(sec<10?'0':'')+sec; };
+
   player.innerHTML = `
-    <img src="${s.cover_url}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0" />
-    <div style="flex:1;min-width:0">
-      <p style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title || ''}</p>
-      <p style="font-size:11px;color:var(--yt-spec-text-secondary)">${s.artist_name || ''}</p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <img src="${s.cover_url}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0" />
+      <div style="flex:1;min-width:0">
+        <p style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title || ''}</p>
+        <p style="font-size:11px;color:var(--yt-spec-text-secondary)">${s.artist_name || ''}</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+        <i class="fas fa-volume-up" style="font-size:11px;color:var(--yt-spec-text-secondary)"></i>
+        <input type="range" min="0" max="100" value="${vol}" oninput="setTSVolume(this.value)" style="width:56px;height:3px;accent-color:#ff0033;cursor:pointer" />
+      </div>
+      <button onclick="toggleTSMusicPlay()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:20px;padding:4px 6px;flex-shrink:0">
+        <i class="fas ${tsMusicIsPlaying ? 'fa-pause' : 'fa-play'}"></i>
+      </button>
+      <button onclick="closeTSMiniPlayer()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:16px;padding:4px 6px;flex-shrink:0">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
-    <button onclick="toggleTSMusicPlay()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:20px;padding:4px 8px">
-      <i class="fas ${tsMusicIsPlaying ? 'fa-pause' : 'fa-play'}"></i>
-    </button>
-    <button onclick="closeTSMiniPlayer()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:16px;padding:4px 8px">
-      <i class="fas fa-times"></i>
-    </button>`;
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="tsMiniCur" style="font-size:10px;color:var(--yt-spec-text-secondary);width:28px;text-align:right;flex-shrink:0">${fmt(cur)}</span>
+      <input id="tsMiniSeek" type="range" min="0" max="${Math.round(dur)||100}" value="${Math.round(cur)}" oninput="seekTSMusic(this.value)" style="flex:1;height:3px;accent-color:#ff0033;cursor:pointer" />
+      <span style="font-size:10px;color:var(--yt-spec-text-secondary);width:28px;flex-shrink:0">${fmt(dur)}</span>
+    </div>`;
+
+  // Seek bar'ı canlı güncelle
+  if (tsMusicAudio) {
+    tsMusicAudio.ontimeupdate = () => {
+      const seek = document.getElementById('tsMiniSeek');
+      const curEl = document.getElementById('tsMiniCur');
+      if (seek && tsMusicAudio.duration) {
+        seek.max = Math.round(tsMusicAudio.duration);
+        seek.value = Math.round(tsMusicAudio.currentTime);
+      }
+      if (curEl) curEl.textContent = fmt(tsMusicAudio.currentTime);
+    };
+  }
+}
+
+function seekTSMusic(val) {
+  if (tsMusicAudio) tsMusicAudio.currentTime = parseFloat(val);
+}
+
+function setTSVolume(val) {
+  if (tsMusicAudio) tsMusicAudio.volume = parseFloat(val) / 100;
 }
 
 function toggleTSMusicPlay() {
