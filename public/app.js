@@ -1429,7 +1429,7 @@ async function deleteSelectedMessages(chatId) {
   const allMine = !hasOthers;
 
   if (allMine) {
-    // Hepsi benim → seçenek sun
+    // Hepsi benim → seçenek sun: benden sil veya herkesten sil
     const menu = document.createElement('div');
     menu.style.cssText = `position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--yt-spec-raised-background); border-radius:12px; padding:20px; box-shadow:0 8px 32px rgba(0,0,0,0.5); z-index:9999; min-width:240px;`;
     menu.innerHTML = `
@@ -1452,7 +1452,7 @@ async function deleteSelectedMessages(chatId) {
     document.body.appendChild(menu);
     setTimeout(() => document.addEventListener('click', e => { if (!menu.contains(e.target)) menu.remove(); }, { once: true }), 100);
   } else {
-    // Karşının mesajı var → sadece benden sil
+    // Karşının mesajı var → sadece benden sil (karşının mesajları sadece kendi görünümünden gizlenir)
     await confirmBulkDelete(chatId, 'sender');
   }
 }
@@ -1462,10 +1462,16 @@ async function confirmBulkDelete(chatId, type) {
   const promises = [];
   for (const [msgId, info] of selectedMessages) {
     const msgRef = window.firebaseRef(window.firebaseDB, `chats/${chatId}/messages/${msgId}`);
-    if (type === 'all' && info.isMe) {
-      promises.push(window.firebaseUpdate(msgRef, { deletedForSender: true, deletedForReceiver: true }));
+    if (type === 'all') {
+      // Herkesten sil: sadece kendi mesajlarımı herkesten silebilirim
+      if (info.isMe) {
+        promises.push(window.firebaseUpdate(msgRef, { deletedForSender: true, deletedForReceiver: true }));
+      } else {
+        // Karşının mesajı - sadece benden gizle
+        promises.push(window.firebaseUpdate(msgRef, { deletedForReceiver: true }));
+      }
     } else {
-      // Benden sil: kendi mesajım → deletedForSender, karşınınki → deletedForReceiver
+      // Benden sil: kendi mesajım → deletedForSender, karşınınki → deletedForReceiver (sadece benim görünümümden gizle)
       if (info.isMe) {
         promises.push(window.firebaseUpdate(msgRef, { deletedForSender: true }));
       } else {
@@ -1702,6 +1708,11 @@ async function loadShortsPage() {
     }
 
     currentShortIndex = 0;
+    // Her girişte karışık sırala
+    for (let i = shortsVideos.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shortsVideos[i], shortsVideos[j]] = [shortsVideos[j], shortsVideos[i]];
+    }
     renderShortsPlayer();
   } catch(e) { console.error(e); }
 }
@@ -1720,7 +1731,6 @@ function renderShortsPlayer() {
     <div class="shorts-container" id="shortsContainer">
       <div class="shorts-player-wrap">
 
-        <!-- Ses Kontrolü (sağ alt) -->
         <!-- Video Kutusu -->
         <div class="shorts-video-box" onclick="toggleShortPlay()">
           <video id="shortsVideo" src="${v.video_url}" autoplay loop playsinline
@@ -1728,7 +1738,7 @@ function renderShortsPlayer() {
 
           <!-- Play/Pause overlay -->
           <div id="shortPlayOverlay" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; opacity:0; transition:opacity 0.3s;">
-            <div style="background:rgba(0,0,0,0.6); border-radius:50%; width:72px; height:72px; display:flex; align-items:center; justify-content:center;">
+            <div style="background:rgba(0,0,0,0.5); border-radius:50%; width:72px; height:72px; display:flex; align-items:center; justify-content:center;">
               <i id="shortPlayIcon" class="fas fa-pause" style="font-size:32px; color:white;"></i>
             </div>
           </div>
@@ -1744,13 +1754,13 @@ function renderShortsPlayer() {
               class="short-vol-slider" />
           </div>
 
-          <!-- Kanal + Başlık -->
+          <!-- Kanal + Başlık (sol alt) -->
           <div class="shorts-info">
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; cursor:pointer;" onclick="event.stopPropagation(); viewChannel(${v.channel_id})">
               <img src="${getProfilePhotoUrl(v.profile_photo)}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid white;" onerror="onProfilePhotoError(this)" />
               <div>
                 <p style="font-size:14px; font-weight:600;">${v.channel_name}</p>
-                <p style="font-size:12px; color:rgba(255,255,255,0.7);">${v.subscriber_count} abone</p>
+                <p style="font-size:12px; color:rgba(255,255,255,0.7);">${v.subscriber_count} takipçi</p>
               </div>
             </div>
             <p style="font-size:14px; line-height:1.4; cursor:pointer; user-select:none;" onclick="toggleShortDesc()" id="shortTitleEl">
@@ -1763,34 +1773,30 @@ function renderShortsPlayer() {
               </div>
             ` : ''}
           </div>
+
+          <!-- Sağ: Aksiyonlar (Instagram tarzı, video üzerinde) -->
+          <div class="shorts-right-actions" onclick="event.stopPropagation()">
+            <button class="sra-btn" id="shortLikeBtn" onclick="likeShort(${v.id}, 1)">
+              <i class="fas fa-heart" id="shortLikeIcon"></i>
+              <span id="shortLikeCount">${v.likes || 0}</span>
+            </button>
+            <button class="sra-btn" onclick="toggleShortsComments(${v.id}, ${v.channel_id})">
+              <i class="fas fa-comment"></i>
+              <span>${v.comment_count || 0}</span>
+            </button>
+            <button class="sra-btn" onclick="shareContent(${v.id}, '${(v.title || '').replace(/'/g, "\\'")}', '${v.video_url}')">
+              <i class="fas fa-paper-plane"></i>
+              <span>Paylaş</span>
+            </button>
+            <button class="sra-btn" onclick="toggleSaved(${v.id})">
+              <i class="fas fa-bookmark"></i>
+              <span>Kaydet</span>
+            </button>
+          </div>
         </div>
 
-        <!-- Sağ: Aksiyonlar + Navigasyon -->
-        <div style="display:flex; flex-direction:column; gap:12px; align-items:center;">
-          <button class="shorts-action-btn" id="shortPlayPauseBtn" onclick="toggleShortPlay()">
-            <i class="fas fa-pause" id="shortPlayPauseIcon"></i>
-            <span id="shortPlayPauseLabel">Durdur</span>
-          </button>
-          <button class="shorts-action-btn" id="shortLikeBtn" onclick="likeShort(${v.id}, 1)">
-            <i class="fas fa-thumbs-up"></i>
-            <span id="shortLikeCount">${v.likes || 0}</span>
-          </button>
-          <button class="shorts-action-btn" id="shortDislikeBtn" onclick="likeShort(${v.id}, -1)">
-            <i class="fas fa-thumbs-down"></i>
-            <span id="shortDislikeCount">${v.dislikes || 0}</span>
-          </button>
-          <button class="shorts-action-btn" onclick="toggleSaved(${v.id})">
-            <i class="fas fa-bookmark"></i>
-            <span>Kaydet</span>
-          </button>
-          <button class="shorts-action-btn" onclick="toggleShortsComments(${v.id}, ${v.channel_id})">
-            <i class="fas fa-comment"></i>
-            <span>Yorum</span>
-          </button>
-
-          <div style="height:16px;"></div>
-
-          <!-- Navigasyon -->
+        <!-- Navigasyon (sağda, video dışında) -->
+        <div style="display:flex; flex-direction:column; gap:10px; align-items:center; justify-content:center;">
           <button class="shorts-nav-btn" onclick="prevShort()" ${currentShortIndex === 0 ? 'disabled' : ''}>
             <i class="fas fa-chevron-up"></i>
           </button>
@@ -1903,6 +1909,116 @@ function showVolumeSlider() {
   }, 2000);
 }
 
+// ==================== PAYLAŞ ====================
+async function shareContent(videoId, title, videoUrl) {
+  // Arkadaşları ve grupları yükle
+  const [friendsRes, groupsRes] = await Promise.all([
+    fetch(`${API_URL}/friends/${currentUser.id}`).then(r => r.json()).catch(() => []),
+    fetch(`${API_URL}/groups/user/${currentUser.id}`).then(r => r.json()).catch(() => [])
+  ]);
+
+  const shareMsg = `🎬 ${title}\n${window.location.origin}/?v=${videoId}`;
+  let selectedTargets = new Set();
+
+  const html = `
+    <h3 style="margin-bottom:16px;font-size:17px;font-weight:700"><i class="fas fa-paper-plane" style="color:#ff0033;margin-right:8px"></i>Paylaş</h3>
+    
+    <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;margin-bottom:16px;font-size:13px;color:var(--yt-spec-text-secondary)">
+      <i class="fas fa-film" style="margin-right:6px;color:#ff0033"></i>${title}
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button onclick="selectAllShareTargets()" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--yt-spec-text-primary);padding:7px;border-radius:8px;cursor:pointer;font-size:12px">Tümünü Seç</button>
+      <button onclick="clearAllShareTargets()" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--yt-spec-text-primary);padding:7px;border-radius:8px;cursor:pointer;font-size:12px">Temizle</button>
+    </div>
+
+    ${friendsRes.length > 0 ? `
+      <p style="font-size:11px;font-weight:600;color:var(--yt-spec-text-secondary);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Arkadaşlar</p>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:16px">
+        ${friendsRes.map(f => `
+          <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'" class="share-target-row">
+            <input type="checkbox" class="share-chk" data-type="friend" data-id="${f.friend_id}" style="width:16px;height:16px;accent-color:#ff0033;cursor:pointer" />
+            <img src="${getProfilePhotoUrl(f.profile_photo)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+            <span style="font-size:14px">${f.nickname || f.username}</span>
+          </label>
+        `).join('')}
+      </div>
+    ` : ''}
+
+    ${groupsRes.length > 0 ? `
+      <p style="font-size:11px;font-weight:600;color:var(--yt-spec-text-secondary);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Gruplar</p>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:16px">
+        ${groupsRes.map(g => `
+          <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'" class="share-target-row">
+            <input type="checkbox" class="share-chk" data-type="group" data-id="${g.id}" style="width:16px;height:16px;accent-color:#ff0033;cursor:pointer" />
+            <img src="${g.photo_url || 'data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=32 height=32%3E%3Ccircle cx=16 cy=16 r=16 fill=%23333/%3E%3C/svg%3E'}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+            <span style="font-size:14px">${g.name}</span>
+          </label>
+        `).join('')}
+      </div>
+    ` : ''}
+
+    ${friendsRes.length === 0 && groupsRes.length === 0 ? '<p style="color:var(--yt-spec-text-secondary);text-align:center;padding:20px 0">Paylaşacak arkadaş veya grup yok</p>' : ''}
+
+    <button onclick="sendShareMessages(${videoId},'${title.replace(/'/g, "\\'")}','${videoUrl}')" style="width:100%;background:#ff0033;border:none;color:#fff;padding:12px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px">
+      <i class="fas fa-paper-plane" style="margin-right:6px"></i>Gönder
+    </button>
+  `;
+  showModal(html, 'Paylaş');
+}
+
+function selectAllShareTargets() {
+  document.querySelectorAll('.share-chk').forEach(c => c.checked = true);
+}
+function clearAllShareTargets() {
+  document.querySelectorAll('.share-chk').forEach(c => c.checked = false);
+}
+
+async function sendShareMessages(videoId, title, videoUrl) {
+  const checked = document.querySelectorAll('.share-chk:checked');
+  if (!checked.length) { showToast('En az bir kişi/grup seç', 'error'); return; }
+
+  const shareText = `🎬 ${title}\n${window.location.origin}/?v=${videoId}`;
+  const promises = [];
+
+  checked.forEach(chk => {
+    const type = chk.dataset.type;
+    const id = chk.dataset.id;
+
+    if (type === 'friend') {
+      const chatId = getChatId(currentUser.id, parseInt(id));
+      promises.push(
+        window.firebasePush(window.firebaseRef(window.firebaseDB, `chats/${chatId}/messages`), {
+          senderId: currentUser.id,
+          receiverId: parseInt(id),
+          text: shareText,
+          timestamp: Date.now(),
+          read: false,
+          deletedForSender: false,
+          deletedForReceiver: false
+        })
+      );
+    } else if (type === 'group') {
+      promises.push(
+        window.firebasePush(window.firebaseRef(window.firebaseDB, `group_chats/${id}/messages`), {
+          senderId: currentUser.id,
+          text: shareText,
+          timestamp: Date.now()
+        })
+      );
+    }
+  });
+
+  try {
+    await Promise.all(promises);
+    closeModal();
+    showToast(`${promises.length} kişi/gruba paylaşıldı`, 'success');
+  } catch(e) {
+    showToast('Paylaşım başarısız', 'error');
+  }
+}
+
+
 function nextShort() {
   if (currentShortIndex < shortsVideos.length - 1) { currentShortIndex++; renderShortsPlayer(); }
 }
@@ -1939,19 +2055,37 @@ function toggleShortsComments(videoId, channelId) {
 
   const panel = document.createElement('div');
   panel.id = 'shortsCommentPanel';
-  panel.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:65vh;background:var(--yt-spec-raised-background);border-radius:20px 20px 0 0;z-index:4000;display:flex;flex-direction:column;box-shadow:0 -8px 32px rgba(0,0,0,0.5)';
+  panel.style.cssText = `
+    position:fixed; bottom:0; left:0; right:0; height:70vh;
+    background:#1a1a1a; border-radius:20px 20px 0 0;
+    z-index:4000; display:flex; flex-direction:column;
+    box-shadow:0 -8px 40px rgba(0,0,0,0.7);
+  `;
   panel.innerHTML = `
-    <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between">
-      <span style="font-size:15px;font-weight:600">Yorumlar</span>
-      <button onclick="document.getElementById('shortsCommentPanel').remove()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:18px"><i class="fas fa-times"></i></button>
+    <!-- Handle -->
+    <div style="padding:10px 0 4px;display:flex;justify-content:center">
+      <div style="width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px"></div>
     </div>
-    <div id="shortsCommentList" style="flex:1;overflow-y:auto;padding:12px 16px">
+    <!-- Başlık -->
+    <div style="padding:8px 16px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.08)">
+      <span style="font-size:15px;font-weight:700">Yorumlar</span>
+      <button onclick="document.getElementById('shortsCommentPanel').remove()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;cursor:pointer;width:28px;height:28px;border-radius:50%;font-size:14px;display:flex;align-items:center;justify-content:center">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <!-- Yorum Listesi -->
+    <div id="shortsCommentList" style="flex:1;overflow-y:auto;padding:12px 16px;-webkit-overflow-scrolling:touch">
       <div class="yt-loading"><div class="yt-spinner"></div></div>
     </div>
-    <div style="padding:10px 16px;border-top:1px solid rgba(255,255,255,0.08);display:flex;gap:8px;align-items:center">
+    <!-- Yorum Gir -->
+    <div style="padding:10px 16px 20px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:10px;background:#1a1a1a">
       <img src="${getProfilePhotoUrl(currentUser?.profile_photo)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" />
-      <input id="shortsCommentInput" class="yt-input" placeholder="Yorum ekle..." style="flex:1;height:36px;padding:0 12px" onkeydown="if(event.key==='Enter')addShortsComment(${videoId},${channelId})" />
-      <button onclick="addShortsComment(${videoId},${channelId})" style="background:none;border:none;color:var(--yt-spec-brand-background-solid);cursor:pointer;font-size:18px"><i class="fas fa-paper-plane"></i></button>
+      <div style="flex:1;display:flex;align-items:center;background:rgba(255,255,255,0.08);border-radius:24px;padding:0 14px;height:40px">
+        <input id="shortsCommentInput" placeholder="Yorum ekle..." style="flex:1;background:none;border:none;outline:none;color:#fff;font-size:14px" onkeydown="if(event.key==='Enter')addShortsComment(${videoId},${channelId})" />
+        <button onclick="addShortsComment(${videoId},${channelId})" style="background:none;border:none;color:#ff0033;cursor:pointer;font-size:16px;padding:0;flex-shrink:0">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
     </div>
   `;
   panel.addEventListener('click', e => e.stopPropagation());
@@ -1965,9 +2099,11 @@ async function loadShortsComments(videoId, channelId) {
   try {
     const r = await fetch(`${API_URL}/comments/${videoId}?userId=${currentUser.id}`);
     const comments = await r.json();
-    if (!comments.length) { list.innerHTML = '<p style="color:var(--yt-spec-text-secondary);text-align:center;padding:20px">Henüz yorum yok</p>'; return; }
+    if (!comments.length) {
+      list.innerHTML = '<p style="color:rgba(255,255,255,0.4);text-align:center;padding:32px 0;font-size:14px">Henüz yorum yok. İlk yorumu sen yap!</p>';
+      return;
+    }
     
-    // Video sahibi mi?
     const channelRes = await fetch(`${API_URL}/channel/${channelId}`);
     const channel = await channelRes.json();
     const isOwner = channel.user_id === currentUser.id;
@@ -1976,26 +2112,34 @@ async function loadShortsComments(videoId, channelId) {
       const isMyComment = c.user_id === currentUser.id;
       const canDelete = isMyComment || isOwner;
       const canPin = isOwner;
+      const liked = c.user_like === 1;
       return `
-        <div style="display:flex;gap:10px;margin-bottom:14px;${c.is_pinned ? 'background:rgba(255,255,255,0.04);border-radius:8px;padding:8px;' : ''}">
-          <img src="${getProfilePhotoUrl(c.profile_photo)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+        <div style="display:flex;gap:10px;margin-bottom:18px;${c.is_pinned ? 'background:rgba(255,255,255,0.03);border-radius:10px;padding:8px;' : ''}">
+          <img src="${getProfilePhotoUrl(c.profile_photo)}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer" onclick="viewChannel(${c.channel_id || 0})" />
           <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
-              <span style="font-size:13px;font-weight:600">${c.nickname}</span>
-              ${c.is_pinned ? '<span style="font-size:10px;color:var(--yt-spec-brand-background-solid)"><i class="fas fa-thumbtack"></i> Sabitlendi</span>' : ''}
-              ${c.liked_by_owner ? '<span style="font-size:10px;color:#ff0033"><i class="fas fa-heart"></i></span>' : ''}
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+              <span style="font-size:13px;font-weight:600;color:#fff">${c.nickname}</span>
+              <span style="font-size:11px;color:rgba(255,255,255,0.4)">${timeAgo(c.created_at)}</span>
+              ${c.is_pinned ? '<span style="font-size:10px;color:#ff0033"><i class="fas fa-thumbtack"></i> Sabitlendi</span>' : ''}
             </div>
-            <p id="commentText_${c.id}" style="font-size:13px;line-height:1.4">${c.comment_text}</p>
-            <div style="display:flex;gap:12px;margin-top:6px;align-items:center">
-              <button onclick="likeComment(${c.id},1,${videoId},${channelId})" style="background:none;border:none;color:${c.user_like===1?'#ff0033':'var(--yt-spec-text-secondary)'};cursor:pointer;font-size:12px"><i class="fas fa-heart"></i> ${c.likes||0}</button>
-              ${isMyComment ? `<button onclick="editShortsComment(${c.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:12px"><i class="fas fa-edit"></i></button>` : ''}
-              ${canDelete ? `<button onclick="deleteShortsComment(${c.id},${videoId},${channelId})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:12px"><i class="fas fa-trash"></i></button>` : ''}
-              ${canPin ? `<button onclick="pinShortsComment(${c.id},${videoId},${channelId},${c.is_pinned?0:1})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:12px"><i class="fas fa-thumbtack"></i></button>` : ''}
+            <p id="commentText_${c.id}" style="font-size:14px;line-height:1.5;color:rgba(255,255,255,0.9);word-break:break-word">${c.comment_text}</p>
+            <div style="display:flex;gap:14px;margin-top:6px;align-items:center">
+              <button onclick="likeComment(${c.id},1,${videoId},${channelId})" style="background:none;border:none;color:${liked ? '#ff0033' : 'rgba(255,255,255,0.5)'};cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;padding:0">
+                <i class="fas fa-heart${liked ? '' : '-o'}" style="font-size:14px"></i>
+                <span>${c.likes || 0}</span>
+              </button>
+              ${isMyComment ? `<button onclick="editShortsComment(${c.id})" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:12px;padding:0">Düzenle</button>` : ''}
+              ${canDelete ? `<button onclick="deleteShortsComment(${c.id},${videoId},${channelId})" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:12px;padding:0">Sil</button>` : ''}
+              ${canPin ? `<button onclick="pinShortsComment(${c.id},${videoId},${channelId},${c.is_pinned?0:1})" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:12px;padding:0">${c.is_pinned ? 'Sabiti Kaldır' : 'Sabitle'}</button>` : ''}
             </div>
           </div>
+          <!-- Beğeni butonu sağda (Instagram tarzı) -->
+          <button onclick="likeComment(${c.id},1,${videoId},${channelId})" style="background:none;border:none;color:${liked ? '#ff0033' : 'rgba(255,255,255,0.4)'};cursor:pointer;font-size:18px;padding:0 0 0 4px;flex-shrink:0;align-self:flex-start;margin-top:2px">
+            <i class="fas fa-heart"></i>
+          </button>
         </div>`;
     }).join('');
-  } catch(e) { list.innerHTML = '<p style="color:var(--yt-spec-text-secondary)">Yüklenemedi</p>'; }
+  } catch(e) { list.innerHTML = '<p style="color:rgba(255,255,255,0.4)">Yüklenemedi</p>'; }
 }
 
 async function addShortsComment(videoId, channelId) {
@@ -2094,9 +2238,11 @@ async function loadMobileHomePage() {
     const seenUsers = new Set();
     
     for (const real of reals) {
-      if (!seenUsers.has(real.channel_id)) {
+      // channel_id veya user_id ile tekil yap
+      const uid = real.channel_id || real.user_id || real.id;
+      if (!seenUsers.has(uid)) {
         uniqueReals.push(real);
-        seenUsers.add(real.channel_id);
+        seenUsers.add(uid);
       }
     }
     
@@ -3488,7 +3634,7 @@ function showUploadVideoModal() {
         <p id="videoFileHint" style="font-size:12px; color:var(--yt-spec-text-secondary); margin-top:4px;"></p>
       </div>
       <div class="yt-form-group">
-        <label class="yt-form-label">Thumbnail</label>
+        <label class="yt-form-label">Thumbnail <span id="bannerOptionalHint" style="font-size:11px;color:var(--yt-spec-text-secondary)">(opsiyonel - boş bırakırsan video'dan alınır)</span></label>
         <input type="file" id="videoBanner" class="yt-input" accept="image/*" />
       </div>
       <div class="yt-form-group">
@@ -3575,7 +3721,12 @@ async function uploadVideo(isReals = false) {
   const likesVisible = document.getElementById('likesVisible')?.checked ? 1 : 0;
   const isShort = isReals ? 1 : 0;
 
-  if (!title || !videoFile || !bannerFile) {
+  // Reals için banner zorunlu değil
+  if (!title || !videoFile) {
+    showToast('Başlık ve video gerekli', 'error');
+    return;
+  }
+  if (!isReals && !bannerFile) {
     showToast('Başlık, video ve banner gerekli', 'error');
     return;
   }
@@ -3600,7 +3751,7 @@ async function uploadVideo(isReals = false) {
   formData.append('videoType', videoType);
   formData.append('tags', tags);
   formData.append('video', videoFile);
-  formData.append('banner', bannerFile);
+  if (bannerFile) formData.append('banner', bannerFile);
   formData.append('commentsEnabled', commentsEnabled);
   formData.append('likesVisible', likesVisible);
   formData.append('isShort', isShort);
@@ -7146,14 +7297,15 @@ function loadGroupMessages(groupId, members) {
       if (!selectedMsgs.size) return;
       const isOwnerOrMod = members.find(m => m.user_id === currentUser.id && ['owner','moderator'].includes(m.role));
       
-      // Hepsi benim mi?
-      const allMine = [...selectedMsgs].every(id => {
+      // Seçilenler arasında başkasının mesajı var mı?
+      const hasOthers = [...selectedMsgs].some(id => {
         const msg = msgs.find(m => m.id === id);
-        return msg && msg.senderId == currentUser.id;
+        return msg && msg.senderId != currentUser.id;
       });
+      const allMine = !hasOthers;
 
       if (allMine) {
-        // Seçenek sun
+        // Hepsi benim → seçenek sun: benden sil veya herkesten sil
         const menu = document.createElement('div');
         menu.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--yt-spec-raised-background);border-radius:14px;padding:20px;z-index:9999;min-width:240px;box-shadow:0 8px 32px rgba(0,0,0,0.5)';
         menu.innerHTML = `
@@ -7165,10 +7317,9 @@ function loadGroupMessages(groupId, members) {
           </div>`;
         document.body.appendChild(menu);
         setTimeout(() => document.addEventListener('click', e => { if (!menu.contains(e.target)) menu.remove(); }, { once: true }), 100);
-      } else if (isOwnerOrMod) {
-        // Mod/owner - herkesten sil
-        await doDeleteGroupMsgs(gId, 'all');
       } else {
+        // Karışık seçim (başkasının mesajı da var) → sadece benden sil
+        // Kendi mesajlarım: benden sil, başkasının mesajları: sadece benim görünümümden gizle
         await doDeleteGroupMsgs(gId, 'me');
       }
     }
@@ -7180,9 +7331,13 @@ function loadGroupMessages(groupId, members) {
         const msg = msgs.find(m => m.id === msgId);
         if (!msg) continue;
         const ref = window.firebaseRef(window.firebaseDB, `group_chats/${gId}/messages/${msgId}`);
-        if (type === 'all') {
+        const isMyMsg = msg.senderId == currentUser.id;
+        
+        if (type === 'all' && isMyMsg) {
+          // Herkesten sil: sadece kendi mesajlarımı herkesten silebilirim
           promises.push(window.firebaseUpdate(ref, { deletedForAll: true, text: null, imageUrl: null }));
         } else {
+          // Benden sil: sadece benim görünümümden gizle
           const hidden = msg.hiddenFor || [];
           if (!hidden.includes(String(currentUser.id))) hidden.push(String(currentUser.id));
           promises.push(window.firebaseUpdate(ref, { hiddenFor: hidden }));

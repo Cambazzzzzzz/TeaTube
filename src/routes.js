@@ -593,20 +593,29 @@ router.post('/video', uploadDisk.fields([{ name: 'video' }, { name: 'banner' }])
   try {
     const { channelId, title, description, videoType, tags, commentsEnabled, likesVisible, isShort } = req.body;
 
-    if (!req.files || !req.files.video || !req.files.banner) {
+    if (!req.files || !req.files.video) {
+      return res.status(400).json({ error: 'Video gerekli' });
+    }
+    // Reals için banner zorunlu değil
+    if (!isShort && !req.files.banner) {
       return res.status(400).json({ error: 'Video ve banner gerekli' });
     }
 
     console.log('Video yükleme başladı:', title, '- Boyut:', (req.files.video[0].size / 1024 / 1024).toFixed(1) + 'MB', isShort ? '[SHORTS]' : '');
 
-    // Banner yükle
-    const bannerBuffer = fs.readFileSync(bannerPath);
-    const bannerUrl = await cloudinary.uploadBanner(bannerBuffer, req.files.banner[0].originalname);
-    console.log('Banner yüklendi');
-
-    // Video stream ile yükle
+    // Video stream ile yükle (önce video, sonra banner - Reals için banner opsiyonel)
     const videoUrl = await cloudinary.uploadVideoFromPath(videoPath, req.files.video[0].originalname);
     console.log('Video yüklendi:', videoUrl);
+
+    let bannerUrl = videoUrl; // Reals için banner yoksa video URL'ini kullan
+    if (bannerPath) {
+      const bannerBuffer = fs.readFileSync(bannerPath);
+      bannerUrl = await cloudinary.uploadBanner(bannerBuffer, req.files.banner[0].originalname);
+      console.log('Banner yüklendi');
+    } else if (isShort) {
+      // Reals için Cloudinary'den video thumbnail al
+      bannerUrl = videoUrl.replace('/upload/', '/upload/so_0,w_400,h_400,c_fill/').replace('.mp4', '.jpg').replace('.mov', '.jpg').replace('.webm', '.jpg');
+    }
 
     const result = db.prepare(
       'INSERT INTO videos (channel_id, title, description, video_url, banner_url, video_type, tags, comments_enabled, likes_visible, is_short) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'

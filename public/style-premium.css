@@ -2045,14 +2045,14 @@ body {
 
 .photo-card-img {
   position: relative;
-  aspect-ratio: 1 / 1;
   overflow: hidden;
 }
 
 .photo-card-img img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
   display: block;
   transition: transform 0.3s ease;
 }
@@ -2423,20 +2423,58 @@ body {
   }
 }
 
+/* ==================== REALS SAĞ BUTONLAR (Instagram tarzı) ==================== */
+.shorts-right-actions {
+  position: absolute;
+  right: 12px;
+  bottom: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  z-index: 10;
+}
+
+.sra-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 26px;
+  -webkit-tap-highlight-color: transparent;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6));
+  transition: transform 0.15s;
+}
+
+.sra-btn:active { transform: scale(0.88); }
+
+.sra-btn span {
+  font-size: 12px;
+  font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+}
+
+.sra-btn.liked i { color: #ff0033; }
+
 /* ==================== MOBİL REALS TAM EKRAN ==================== */
 @media (max-width: 768px) {
   .shorts-container {
-    min-height: calc(100vh - var(--ytd-masthead-height) - 60px);
+    min-height: calc(100dvh - var(--ytd-masthead-height, 56px) - 60px);
     padding: 0;
     align-items: stretch;
   }
 
   .shorts-player-wrap {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
     width: 100%;
-    height: calc(100vh - var(--ytd-masthead-height) - 60px);
+    height: calc(100dvh - var(--ytd-masthead-height, 56px) - 60px);
+    position: relative;
   }
 
   .shorts-video-box {
@@ -2452,31 +2490,25 @@ body {
     object-fit: cover;
   }
 
-  /* Sağ aksiyonlar reals'ta sağ kenara yapış */
+  /* Navigasyon butonları mobilde gizle (swipe ile geçiş) */
   .shorts-player-wrap > div:last-child {
-    position: absolute;
-    right: 8px;
+    display: none;
+  }
+
+  .shorts-right-actions {
+    right: 10px;
+    bottom: 90px;
+    gap: 22px;
+  }
+
+  .sra-btn { font-size: 28px; }
+}
+
+/* PC'de video kutusu yanında nav butonları */
+@media (min-width: 769px) {
+  .shorts-right-actions {
+    right: 16px;
     bottom: 80px;
-    gap: 16px;
-  }
-
-  /* Sol ses kontrolü */
-  .shorts-left-controls {
-    position: absolute;
-    right: 8px;
-    bottom: 16px;
-    left: auto;
-    z-index: 10;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-  }
-
-  /* Ses slider yatay */
-  .shorts-volume-slider {
-    writing-mode: horizontal-tb !important;
-    width: 80px !important;
-    height: 4px !important;
   }
 }
 
