@@ -6507,7 +6507,7 @@ async function openGroup(groupId) {
             <p style="font-size:12px;color:var(--yt-spec-text-secondary)">${group.member_count} üye</p>
           </div>
           <div style="display:flex;gap:6px">
-            <button onclick="showGroupMembersPanel(${group.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:16px;padding:4px 8px"><i class="fas fa-users"></i></button>
+            <button onclick="showGroupMembersPanel(${group.id},${isOwner || isMod})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:16px;padding:4px 8px" id="groupMembersBtn"><i class="fas fa-users"></i></button>
             ${isOwner ? `<button onclick="showGroupSettings(${group.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:16px;padding:4px 8px"><i class="fas fa-cog"></i></button>` : ''}
             ${isMember && !isOwner ? `<button onclick="leaveGroup(${group.id})" style="background:none;border:none;color:#ff4444;cursor:pointer;font-size:14px;padding:4px 8px"><i class="fas fa-sign-out-alt"></i></button>` : ''}
             ${!isMember ? `<button class="yt-btn" onclick="joinGroup(${group.id})" style="height:30px;padding:0 12px;font-size:12px">${group.is_private ? 'İstek Gönder' : 'Katıl'}</button>` : ''}
@@ -6793,17 +6793,38 @@ async function sendGroupMessage(groupId) {
   } catch(e) { showToast('Mesaj gönderilemedi', 'error'); }
 }
 
-function showGroupMembersPanel(groupId) {
-  fetch(`${API_URL}/groups/${groupId}/members`).then(r => r.json()).then(members => {
+function showGroupMembersPanel(groupId, canManage = false) {
+  fetch(`${API_URL}/groups/${groupId}/members`).then(r => r.json()).then(async members => {
+    let requestsHtml = '';
+    if (canManage) {
+      const requests = await fetch(`${API_URL}/groups/${groupId}/requests`).then(r => r.json()).catch(() => []);
+      if (requests.length > 0) {
+        requestsHtml = `
+          <div style="margin-bottom:16px;padding:12px;background:rgba(255,0,51,0.08);border:1px solid rgba(255,0,51,0.2);border-radius:10px">
+            <p style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--yt-spec-brand-background-solid)"><i class="fas fa-user-plus" style="margin-right:6px"></i>Katılma İstekleri (${requests.length})</p>
+            ${requests.map(r => `
+              <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--yt-spec-raised-background);border-radius:8px;margin-bottom:6px">
+                <img src="${getProfilePhotoUrl(r.profile_photo)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover" />
+                <div style="flex:1"><p style="font-size:13px;font-weight:500">${r.nickname}</p><p style="font-size:11px;color:var(--yt-spec-text-secondary)">@${r.username}</p></div>
+                <button class="yt-btn" onclick="respondGroupRequest(${groupId},${r.id},'accepted');closeModal()" style="height:28px;padding:0 10px;font-size:12px">Kabul</button>
+                <button class="yt-btn" onclick="respondGroupRequest(${groupId},${r.id},'rejected');closeModal()" style="height:28px;padding:0 10px;font-size:12px;background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)">Red</button>
+              </div>`).join('')}
+          </div>`;
+      }
+    }
+
     showModal(`
       <h3 style="margin-bottom:16px">Üyeler (${members.length})</h3>
-      <div style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto">
+      ${requestsHtml}
+      <div style="display:flex;flex-direction:column;gap:6px;max-height:350px;overflow-y:auto">
         ${members.map(m => {
           const roleIcon = m.role === 'owner' ? '<i class="fas fa-crown" style="color:#ffc800;font-size:11px;margin-left:4px"></i>' :
                            m.role === 'moderator' ? '<i class="fas fa-shield-alt" style="color:#3ea6ff;font-size:11px;margin-left:4px"></i>' : '';
+          const canAct = canManage && m.user_id !== currentUser.id && m.role !== 'owner';
           return `<div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--yt-spec-raised-background)">
             <img src="${getProfilePhotoUrl(m.profile_photo)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" />
             <div style="flex:1"><div style="display:flex;align-items:center;gap:4px"><span style="font-size:13px;font-weight:500">${m.nickname}</span>${roleIcon}</div><span style="font-size:11px;color:var(--yt-spec-text-secondary)">@${m.username}</span></div>
+            ${canAct ? `<button onclick="showMemberActions(${groupId},${m.user_id},'${m.nickname.replace(/'/g,"\\'")}','${m.role}');closeModal()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:4px 8px"><i class="fas fa-ellipsis-v"></i></button>` : ''}
           </div>`;
         }).join('')}
       </div>`);
@@ -6834,7 +6855,7 @@ async function loadJoinRequests(groupId) {
 async function respondGroupRequest(groupId, requestId, action) {
   await fetch(`${API_URL}/groups/${groupId}/requests/${requestId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action, adminId: currentUser.id }) });
   showToast(action === 'accepted' ? 'Kabul edildi' : 'Reddedildi', 'success');
-  loadJoinRequests(groupId);
+  openGroup(groupId);
 }
 
 function showMemberActions(groupId, memberId, memberName, memberRole) {

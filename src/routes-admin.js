@@ -360,7 +360,7 @@ router.put('/admin/music/application/:id', (req, res) => {
     const app = db.prepare('SELECT * FROM music_artist_applications WHERE id = ?').get(req.params.id);
     if (!app) return res.status(404).json({ error: 'Başvuru bulunamadı: id=' + req.params.id });
 
-    db.prepare('UPDATE music_artist_applications SET status = ?, admin_note = ?, reviewed_at = datetime("now") WHERE id = ?')
+    db.prepare('UPDATE music_artist_applications SET status = ?, admin_note = ?, reviewed_at = datetime(\'now\') WHERE id = ?')
       .run(action, note || null, req.params.id);
 
     if (action === 'accepted') {
