@@ -486,6 +486,179 @@ router.put('/admin/music/artist/:artistId', (req, res) => {
 
 module.exports = router;
 
+// ==================== FIREBASE ADMIN - MESAJLAŞMA ====================
+// Firebase Admin SDK'yı yükle
+let firebaseAdmin = null;
+try {
+  firebaseAdmin = require('./firebase-admin');
+} catch(e) {
+  console.warn('⚠️ Firebase Admin SDK yüklenmedi. Mesajlaşma özellikleri çalışmayacak.');
+}
+
+// Tüm DM konuşmalarını listele
+router.get('/admin/firebase/conversations', async (req, res) => {
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapılandırılmamış' });
+  try {
+    const snapshot = await firebaseAdmin.db.ref('conversations').once('value');
+    const conversations = [];
+    snapshot.forEach(child => {
+      conversations.push({ id: child.key, ...child.val() });
+    });
+    res.json(conversations);
+  } catch(e) {
+    res.status(500).json({ error: 'Konuşmalar alınamadı', message: e.message });
+  }
+});
+
+// Belirli bir konuşmanın mesajlarını getir
+router.get('/admin/firebase/messages/:conversationId', async (req, res) => {
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapılandırılmamış' });
+  try {
+    const snapshot = await firebaseAdmin.db.ref(`messages/${req.params.conversationId}`).once('value');
+    const messages = [];
+    snapshot.forEach(child => {
+      messages.push({ id: child.key, ...child.val() });
+    });
+    res.json(messages);
+  } catch(e) {
+    res.status(500).json({ error: 'Mesajlar alınamadı', message: e.message });
+  }
+});
+
+// Admin olarak mesaj gönder
+router.post('/admin/firebase/send-message', async (req, res) => {
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapılandırılmamış' });
+  try {
+    const { conversationId, senderId, text, type = 'text' } = req.body;
+    const messageRef = firebaseAdmin.db.ref(`messages/${conversationId}`).push();
+    await messageRef.set({
+      senderId,
+      text,
+      type,
+      timestamp: Date.now(),
+      read: false
+    });
+    res.json({ success: true, messageId: messageRef.key });
+  } catch(e) {
+    res.status(500).json({ error: 'Mesaj gönderilemedi', message: e.message });
+  }
+});
+
+// Mesaj sil
+router.delete('/admin/firebase/message/:conversationId/:messageId', async (req, res) => {
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapılandırılmamış' });
+  try {
+    await firebaseAdmin.db.ref(`messages/${req.params.conversationId}/${req.params.messageId}`).remove();
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Mesaj silinemedi', message: e.message });
+  }
+});
+
+// ==================== FIREBASE ADMIN - GRUP YÖNETİMİ ====================
+
+// Tüm grup mesajlarını listele
+router.get('/admin/firebase/group-messages/:groupId', async (req, res) => {
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapılandırılmamış' });
+  try {
+    const snapshot = await firebaseAdmin.db.ref(`groupMessages/${req.params.groupId}`).once('value');
+    const messages = [];
+    snapshot.forEach(child => {
+      messages.push({ id: child.key, ...child.val() });
+    });
+    res.json(messages);
+  } catch(e) {
+    res.status(500).json({ error: 'Grup mesajları alınamadı', message: e.message });
+  }
+});
+
+// Admin olarak gruba mesaj gönder
+router.post('/admin/firebase/send-group-message', async (req, res) => {
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapılandırılmamış' });
+  try {
+    const { groupId, senderId, text, type = 'text' } = req.body;
+    const messageRef = firebaseAdmin.db.ref(`groupMessages/${groupId}`).push();
+    await messageRef.set({
+      senderId,
+      text,
+      type,
+      timestamp: Date.now()
+    });
+    res.json({ success: true, messageId: messageRef.key });
+  } catch(e) {
+    res.status(500).json({ error: 'Grup mesajı gönderilemedi', message: e.message });
+  }
+});
+
+// Grup mesajı sil
+router.delete('/admin/firebase/group-message/:groupId/:messageId', async (req, res) => {
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapılandırılmamış' });
+  try {
+    await firebaseAdmin.db.ref(`groupMessages/${req.params.groupId}/${req.params.messageId}`).remove();
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Grup mesajı silinemedi', message: e.message });
+  }
+});
+
+// ==================== GRUP YÖNETİMİ (SQL) ====================
+
+// Grup adını değiştir
+router.put('/admin/group/:groupId/name', (req, res) => {
+  try {
+    const { name } = req.body;
+    db.prepare('UPDATE groups SET name = ? WHERE id = ?').run(name, req.params.groupId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Grup adı değiştirilemedi' });
+  }
+});
+
+// Grup açıklamasını değiştir
+router.put('/admin/group/:groupId/description', (req, res) => {
+  try {
+    const { description } = req.body;
+    db.prepare('UPDATE groups SET description = ? WHERE id = ?').run(description, req.params.groupId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Grup açıklaması değiştirilemedi' });
+  }
+});
+
+// Grup üyesini çıkar
+router.delete('/admin/group/:groupId/member/:userId', (req, res) => {
+  try {
+    db.prepare('DELETE FROM group_members WHERE group_id = ? AND user_id = ?')
+      .run(req.params.groupId, req.params.userId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Üye çıkarılamadı' });
+  }
+});
+
+// Grup üyesinin rolünü değiştir
+router.put('/admin/group/:groupId/member/:userId/role', (req, res) => {
+  try {
+    const { role } = req.body; // owner, moderator, member
+    db.prepare('UPDATE group_members SET role = ? WHERE group_id = ? AND user_id = ?')
+      .run(role, req.params.groupId, req.params.userId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Rol değiştirilemedi' });
+  }
+});
+
+// Grubu sil
+router.delete('/admin/group/:groupId', (req, res) => {
+  try {
+    db.prepare('DELETE FROM groups WHERE id = ?').run(req.params.groupId);
+    db.prepare('DELETE FROM group_members WHERE group_id = ?').run(req.params.groupId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Grup silinemedi' });
+  }
+});
+
 // ==================== ROZET YÖNETİMİ ====================
 
 // Tüm rozetler

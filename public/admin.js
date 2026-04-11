@@ -1060,6 +1060,9 @@ async function loadGroups() {
                   <button class="a-btn a-btn-sm a-btn-orange" onclick="sendGroupMessage(${g.id}, '${g.name}')">
                     <i class="fas fa-paper-plane"></i> Mesaj Gönder
                   </button>
+                  <button class="a-btn a-btn-sm a-btn-blue" onclick="editGroupName(${g.id}, '${g.name}')">
+                    <i class="fas fa-edit"></i> Düzenle
+                  </button>
                   <button class="a-btn a-btn-sm a-btn-gray" onclick="deleteGroup(${g.id})">
                     <i class="fas fa-trash"></i>
                   </button>
@@ -1175,8 +1178,13 @@ async function loadMessages() {
     c.innerHTML = `
       <div class="section-header">
         <h2>Tüm Mesajlaşmalar (${conversations.length})</h2>
-        <div class="search-row">
-          <input type="text" class="a-input" placeholder="Kullanıcı ara..." onkeyup="filterConversations(this.value)" />
+        <div style="display:flex;gap:8px;">
+          <button class="a-btn a-btn-sm a-btn-blue" onclick="viewFirebaseConversations()">
+            <i class="fas fa-fire"></i> Firebase Konuşmaları
+          </button>
+          <div class="search-row">
+            <input type="text" class="a-input" placeholder="Kullanıcı ara..." onkeyup="filterConversations(this.value)" />
+          </div>
         </div>
       </div>
       
@@ -1529,6 +1537,230 @@ async function assignBadgeToUser(badgeId, userId, userName) {
       const err = await assignR.json();
       showToast('Hata: ' + err.error, false);
     }
+  } catch(e) {
+    showToast('Hata: ' + e.message, false);
+  }
+}
+
+
+// ─── FIREBASE ADMIN - GRUP YÖNETİMİ ──────────────────────────────────────────
+
+async function sendGroupMessage(groupId, groupName) {
+  const html = `
+    <h3><i class="fas fa-paper-plane"></i> ${groupName} - Mesaj Gönder</h3>
+    <div class="a-form-group">
+      <label>Mesaj</label>
+      <textarea id="groupMessageText" class="a-input" placeholder="Mesajınızı yazın..." style="min-height:100px;"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="a-btn" onclick="sendGroupMessageNow(${groupId})">
+        <i class="fas fa-paper-plane"></i> Gönder
+      </button>
+      <button class="a-btn a-btn-gray" onclick="closeModal()">İptal</button>
+    </div>
+  `;
+  showModal(html);
+}
+
+async function sendGroupMessageNow(groupId) {
+  const text = document.getElementById('groupMessageText')?.value?.trim();
+  if (!text) {
+    showToast('Mesaj boş olamaz', false);
+    return;
+  }
+  
+  try {
+    const r = await fetch(API + '/admin/firebase/send-group-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        groupId,
+        senderId: currentAdmin.id,
+        text,
+        type: 'text'
+      })
+    });
+    
+    if (!r.ok) throw new Error('Mesaj gönderilemedi');
+    showToast('Mesaj gönderildi', true);
+    closeModal();
+  } catch(e) {
+    showToast('Hata: ' + e.message, false);
+  }
+}
+
+async function viewGroupMessages(groupId, groupName) {
+  try {
+    const r = await fetch(API + `/admin/firebase/group-messages/${groupId}`);
+    const messages = await r.json();
+    
+    const html = `
+      <h3><i class="fas fa-layer-group"></i> ${groupName} - Mesajlar (${messages.length})</h3>
+      <div style="max-height:500px;overflow-y:auto;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;background:#0a0a0a;margin-bottom:16px;">
+        ${messages.length === 0 ? '<p style="color:#666;text-align:center;">Henüz mesaj yok</p>' : messages.map(m => `
+          <div style="display:flex;gap:8px;margin-bottom:12px;padding:8px;background:rgba(255,255,255,0.02);border-radius:6px;">
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <span style="font-weight:500;font-size:13px;">User ${m.senderId}</span>
+                <span style="font-size:11px;color:#666;">${new Date(m.timestamp).toLocaleString('tr-TR')}</span>
+              </div>
+              <div style="font-size:13px;line-height:1.4;">${m.text || ''}</div>
+            </div>
+            <button class="a-btn a-btn-sm a-btn-gray" onclick="deleteGroupMessage(${groupId}, '${m.id}', '${groupName}')" style="flex-shrink:0;">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        `).join('')}
+      </div>
+      <button class="a-btn a-btn-gray" onclick="closeModal()">Kapat</button>
+    `;
+    showModal(html);
+  } catch(e) {
+    showToast('Hata: ' + e.message, false);
+  }
+}
+
+async function deleteGroupMessage(groupId, messageId, groupName) {
+  if (!confirm('Bu mesajı silmek istediğinize emin misiniz?')) return;
+  
+  try {
+    const r = await fetch(API + `/admin/firebase/group-message/${groupId}/${messageId}`, {
+      method: 'DELETE'
+    });
+    
+    if (!r.ok) throw new Error('Mesaj silinemedi');
+    showToast('Mesaj silindi', true);
+    closeModal();
+    setTimeout(() => viewGroupMessages(groupId, groupName), 300);
+  } catch(e) {
+    showToast('Hata: ' + e.message, false);
+  }
+}
+
+async function editGroupName(groupId, currentName) {
+  const html = `
+    <h3><i class="fas fa-edit"></i> Grup Adını Düzenle</h3>
+    <div class="a-form-group">
+      <label>Yeni Grup Adı</label>
+      <input type="text" id="newGroupName" class="a-input" value="${currentName}" />
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="a-btn" onclick="saveGroupName(${groupId})">
+        <i class="fas fa-save"></i> Kaydet
+      </button>
+      <button class="a-btn a-btn-gray" onclick="closeModal()">İptal</button>
+    </div>
+  `;
+  showModal(html);
+}
+
+async function saveGroupName(groupId) {
+  const name = document.getElementById('newGroupName')?.value?.trim();
+  if (!name) {
+    showToast('Grup adı boş olamaz', false);
+    return;
+  }
+  
+  try {
+    const r = await fetch(API + `/admin/group/${groupId}/name`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    
+    if (!r.ok) throw new Error('Grup adı değiştirilemedi');
+    showToast('Grup adı güncellendi', true);
+    closeModal();
+    loadGroups();
+  } catch(e) {
+    showToast('Hata: ' + e.message, false);
+  }
+}
+
+async function deleteGroup(groupId) {
+  if (!confirm('Bu grubu silmek istediğinize emin misiniz? Tüm mesajlar ve üyeler silinecek!')) return;
+  
+  try {
+    const r = await fetch(API + `/admin/group/${groupId}`, {
+      method: 'DELETE'
+    });
+    
+    if (!r.ok) throw new Error('Grup silinemedi');
+    showToast('Grup silindi', true);
+    loadGroups();
+  } catch(e) {
+    showToast('Hata: ' + e.message, false);
+  }
+}
+
+// ─── FIREBASE ADMIN - MESAJLAŞMA ─────────────────────────────────────────────
+
+async function viewFirebaseConversations() {
+  try {
+    const r = await fetch(API + '/admin/firebase/conversations');
+    const conversations = await r.json();
+    
+    const html = `
+      <h3><i class="fas fa-comment-dots"></i> Firebase Konuşmaları (${conversations.length})</h3>
+      <div style="max-height:500px;overflow-y:auto;">
+        ${conversations.length === 0 ? '<p style="color:#666;text-align:center;">Henüz konuşma yok</p>' : conversations.map(c => `
+          <div style="padding:12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;margin-bottom:8px;cursor:pointer;" onclick="viewFirebaseMessages('${c.id}')">
+            <div style="font-weight:500;margin-bottom:4px;">Konuşma ID: ${c.id}</div>
+            <div style="font-size:12px;color:#666;">Katılımcılar: ${c.participants ? Object.keys(c.participants).join(', ') : 'Bilinmiyor'}</div>
+          </div>
+        `).join('')}
+      </div>
+      <button class="a-btn a-btn-gray" onclick="closeModal()" style="margin-top:16px;">Kapat</button>
+    `;
+    showModal(html);
+  } catch(e) {
+    showToast('Hata: ' + e.message, false);
+  }
+}
+
+async function viewFirebaseMessages(conversationId) {
+  try {
+    const r = await fetch(API + `/admin/firebase/messages/${conversationId}`);
+    const messages = await r.json();
+    
+    const html = `
+      <h3><i class="fas fa-comment-dots"></i> Konuşma: ${conversationId}</h3>
+      <div style="max-height:500px;overflow-y:auto;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;background:#0a0a0a;margin-bottom:16px;">
+        ${messages.length === 0 ? '<p style="color:#666;text-align:center;">Henüz mesaj yok</p>' : messages.map(m => `
+          <div style="display:flex;gap:8px;margin-bottom:12px;padding:8px;background:rgba(255,255,255,0.02);border-radius:6px;">
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <span style="font-weight:500;font-size:13px;">User ${m.senderId}</span>
+                <span style="font-size:11px;color:#666;">${new Date(m.timestamp).toLocaleString('tr-TR')}</span>
+              </div>
+              <div style="font-size:13px;line-height:1.4;">${m.text || ''}</div>
+            </div>
+            <button class="a-btn a-btn-sm a-btn-gray" onclick="deleteFirebaseMessage('${conversationId}', '${m.id}')" style="flex-shrink:0;">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        `).join('')}
+      </div>
+      <button class="a-btn a-btn-gray" onclick="closeModal()">Kapat</button>
+    `;
+    showModal(html);
+  } catch(e) {
+    showToast('Hata: ' + e.message, false);
+  }
+}
+
+async function deleteFirebaseMessage(conversationId, messageId) {
+  if (!confirm('Bu mesajı silmek istediğinize emin misiniz?')) return;
+  
+  try {
+    const r = await fetch(API + `/admin/firebase/message/${conversationId}/${messageId}`, {
+      method: 'DELETE'
+    });
+    
+    if (!r.ok) throw new Error('Mesaj silinemedi');
+    showToast('Mesaj silindi', true);
+    closeModal();
+    setTimeout(() => viewFirebaseMessages(conversationId), 300);
   } catch(e) {
     showToast('Hata: ' + e.message, false);
   }

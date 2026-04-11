@@ -66,7 +66,7 @@ function showMobileUploadMenu() {
   sheet.innerHTML = `
     <div style="width:100%; background:var(--yt-spec-raised-background); border-radius:20px 20px 0 0; padding:20px 16px 32px;">
       <div style="width:40px; height:4px; background:rgba(255,255,255,0.2); border-radius:2px; margin:0 auto 20px;"></div>
-      <button id="mobileRealsBtn"
+      <button onclick="event.stopPropagation(); document.getElementById('mobileUploadSheet').remove(); setTimeout(() => { switchUploadType('reals'); showUploadVideoModal(); }, 100);"
         style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
         <div style="width:44px; height:44px; background:rgba(255,0,51,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
           <i class="fas fa-film" style="color:#ff0033; font-size:18px;"></i>
@@ -76,7 +76,7 @@ function showMobileUploadMenu() {
           <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Kısa video paylaş</p>
         </div>
       </button>
-      <button id="mobilePhotoBtn"
+      <button onclick="event.stopPropagation(); document.getElementById('mobileUploadSheet').remove(); setTimeout(() => { switchUploadType('photo'); showUploadVideoModal(); }, 100);"
         style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
         <div style="width:44px; height:44px; background:rgba(255,165,0,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
           <i class="fas fa-image" style="color:orange; font-size:18px;"></i>
@@ -86,7 +86,7 @@ function showMobileUploadMenu() {
           <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Fotoğraf paylaş</p>
         </div>
       </button>
-      <button id="mobileTextBtn"
+      <button onclick="event.stopPropagation(); document.getElementById('mobileUploadSheet').remove(); setTimeout(() => { switchUploadType('text'); showUploadVideoModal(); }, 100);"
         style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
         <div style="width:44px; height:44px; background:rgba(29,161,242,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
           <i class="fas fa-align-left" style="color:#1da1f2; font-size:18px;"></i>
@@ -96,50 +96,12 @@ function showMobileUploadMenu() {
           <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Yazı paylaş</p>
         </div>
       </button>
-      <button id="mobileCancelBtn"
+      <button onclick="event.stopPropagation(); document.getElementById('mobileUploadSheet').remove();"
         style="width:100%; background:rgba(255,255,255,0.06); border:none; color:var(--yt-spec-text-secondary); padding:14px; border-radius:10px; font-size:14px; cursor:pointer; margin-top:8px;">
         İptal
       </button>
     </div>
   `;
-  
-  // Event listener'ları doğrudan ekle
-  const realsBtn = sheet.querySelector('#mobileRealsBtn');
-  const photoBtn = sheet.querySelector('#mobilePhotoBtn');
-  const textBtn = sheet.querySelector('#mobileTextBtn');
-  const cancelBtn = sheet.querySelector('#mobileCancelBtn');
-  
-  realsBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    sheet.remove();
-    setTimeout(() => {
-      switchUploadType('reals');
-      showUploadVideoModal();
-    }, 100);
-  });
-  
-  photoBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    sheet.remove();
-    setTimeout(() => {
-      switchUploadType('photo');
-      showUploadVideoModal();
-    }, 100);
-  });
-  
-  textBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    sheet.remove();
-    setTimeout(() => {
-      switchUploadType('text');
-      showUploadVideoModal();
-    }, 100);
-  });
-  
-  cancelBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    sheet.remove();
-  });
   
   sheet.addEventListener('click', e => { 
     if (e.target === sheet) sheet.remove(); 
@@ -201,8 +163,12 @@ function showMobileProfileSheet() {
 // Mobil profil fotosu güncelle
 function updateMobileProfilePhoto() {
   const mobilePhoto = document.getElementById('mobileProfilePhoto');
+  const headerPhoto = document.getElementById('headerProfilePhoto');
   if (mobilePhoto && currentUser?.profile_photo && currentUser.profile_photo !== '?') {
     mobilePhoto.src = currentUser.profile_photo;
+  }
+  if (headerPhoto && currentUser?.profile_photo && currentUser.profile_photo !== '?') {
+    headerPhoto.src = currentUser.profile_photo;
   }
 }
 
@@ -2305,7 +2271,7 @@ function renderTextGrid(texts, containerId) {
   if (!container) return;
   container.innerHTML = texts.map(v => {
     const content = v.text_content || v.description || '';
-    const isTeaWeet = v.text_type === 'teaweet';
+    const isTeaWeet = v.video_type === 'TeaWeet' || v.text_type === 'teaweet';
     
     // TeaWeet için hashtag'leri mavi yap
     let displayContent = content;
