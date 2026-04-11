@@ -1290,6 +1290,27 @@ body {
   .shorts-player-wrap { gap: 8px; }
 }
 
+/* Ses slider mobilde gizli, hover/touch ile görünür */
+.short-vol-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.3);
+  outline: none;
+}
+.short-vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ff0033;
+  cursor: pointer;
+}
+@media (max-width: 768px) {
+  .short-vol-slider { width: 60px !important; }
+}
+
 /* Shorts Sol Kontroller */
 .shorts-left-controls {
   display: flex;

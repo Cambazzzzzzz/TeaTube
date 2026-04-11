@@ -1727,6 +1727,17 @@ function renderShortsPlayer() {
             </div>
           </div>
 
+          <!-- Ses Kontrolü (sol üst) -->
+          <div style="position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:8px;z-index:10;" onclick="event.stopPropagation()" onmouseenter="showVolumeSlider()" ontouchstart="showVolumeSlider()">
+            <button id="shortMuteBtn" onclick="toggleShortMute()" style="background:rgba(0,0,0,0.5);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-tap-highlight-color:transparent">
+              <i class="fas fa-volume-up" id="shortMuteIcon"></i>
+            </button>
+            <input type="range" id="shortVolumeSlider" min="0" max="100" value="100"
+              oninput="setShortVolume(this.value)"
+              style="width:80px;height:4px;accent-color:#ff0033;cursor:pointer;opacity:0;transition:opacity 0.2s;pointer-events:none"
+              class="short-vol-slider" />
+          </div>
+
           <!-- Kanal + Başlık -->
           <div class="shorts-info">
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; cursor:pointer;" onclick="event.stopPropagation(); viewChannel(${v.channel_id})">
@@ -1846,6 +1857,44 @@ function toggleShortDesc() {
   const isOpen = desc.style.display !== 'none';
   desc.style.display = isOpen ? 'none' : 'block';
   if (chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+function toggleShortMute() {
+  const video = document.getElementById('shortsVideo');
+  const icon = document.getElementById('shortMuteIcon');
+  const slider = document.getElementById('shortVolumeSlider');
+  if (!video) return;
+  video.muted = !video.muted;
+  if (icon) icon.className = video.muted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
+  if (slider) slider.value = video.muted ? 0 : Math.round(video.volume * 100);
+  // Slider'ı kısa süre göster
+  showVolumeSlider();
+}
+
+function setShortVolume(val) {
+  const video = document.getElementById('shortsVideo');
+  const icon = document.getElementById('shortMuteIcon');
+  if (!video) return;
+  const v = parseInt(val) / 100;
+  video.volume = v;
+  video.muted = v === 0;
+  if (icon) {
+    if (v === 0) icon.className = 'fas fa-volume-mute';
+    else if (v < 0.5) icon.className = 'fas fa-volume-down';
+    else icon.className = 'fas fa-volume-up';
+  }
+}
+
+function showVolumeSlider() {
+  const slider = document.getElementById('shortVolumeSlider');
+  if (!slider) return;
+  slider.style.opacity = '1';
+  slider.style.pointerEvents = 'auto';
+  clearTimeout(window._volHideTimer);
+  window._volHideTimer = setTimeout(() => {
+    slider.style.opacity = '0';
+    slider.style.pointerEvents = 'none';
+  }, 2000);
 }
 
 function nextShort() {
