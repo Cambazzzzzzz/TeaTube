@@ -1221,6 +1221,7 @@ router.get('/saved/:userId', (req, res) => {
   try {
     const saved = db.prepare(`
       SELECT s.*, v.title, v.banner_url, v.video_url, v.views, v.created_at,
+             v.is_short, v.video_type,
              c.channel_name, u.nickname, u.profile_photo
       FROM saved_videos s
       JOIN videos v ON s.video_id = v.id

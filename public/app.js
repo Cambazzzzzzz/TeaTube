@@ -121,6 +121,7 @@ function showMobileProfileSheet() {
       ${[
         { icon:'fa-photo-video', label:'İçeriklerim', page:'my-videos' },
         { icon:'fa-users', label:'Takip Ettiklerim', page:'subscriptions' },
+        { icon:'fa-music', label:'Şarkılarım', page:'my-songs' },
         { icon:'fa-star', label:'Favoriler', page:'favorites' },
         { icon:'fa-bookmark', label:'Kaydedilenler', page:'saved' },
         { icon:'fa-history', label:'Geçmiş', page:'history' },
@@ -500,6 +501,14 @@ async function loadUserData() {
     document.getElementById('mainApp').style.display = 'block';
     showPage('home');
     updateMobileProfilePhoto();
+
+    // Artist mi kontrol et - Şarkılarım menüsünü göster/gizle
+    fetch(`${API_URL}/music/artist-status/${currentUser.id}`)
+      .then(r => r.json())
+      .then(s => {
+        const mySongsItem = document.getElementById('mySongsMenuItem');
+        if (mySongsItem) mySongsItem.style.display = s.isArtist ? 'flex' : 'none';
+      }).catch(() => {});
   } catch (error) {
     console.error('Kullanıcı verisi yükleme hatası:', error);
   }
@@ -567,6 +576,9 @@ function showPage(page) {
       break;
     case 'my-videos':
       loadMyVideosPage();
+      break;
+    case 'my-songs':
+      loadMySongsPage();
       break;
     case 'watched':
       loadWatchedPage();
@@ -962,7 +974,7 @@ function openMobileChat(friendId, friendName, friendPhoto) {
         ${isMe ? `<img src="${getProfilePhotoUrl(currentUser.profile_photo)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;align-self:flex-end;margin-left:6px;" />` : ''}
       `;
       let pressTimer;
-      div.addEventListener('pointerdown', () => { pressTimer = setTimeout(() => enterSelectMode(msgId, isMe, chatId), 500); });
+      div.addEventListener('pointerdown', (e) => { pressTimer = setTimeout(() => { showMsgMenu(e, msgId, isMe, chatId); }, 500); });
       div.addEventListener('pointerup', () => clearTimeout(pressTimer));
       div.addEventListener('pointermove', () => clearTimeout(pressTimer));
       container.appendChild(div);
@@ -1180,10 +1192,10 @@ function openChat(friendId, friendName, friendPhoto) {
         ${isMe ? `<img src="${avatarSrc}" style="width:28px; height:28px; border-radius:50%; object-fit:cover; flex-shrink:0; align-self:flex-end; margin-left:6px;" />` : ''}
       `;
 
-      // Long press ile seçim modu
+      // Long press ile menü aç (Instagram tarzı)
       let pressTimer;
-      div.addEventListener('pointerdown', () => {
-        pressTimer = setTimeout(() => enterSelectMode(msgId, isMe, chatId), 500);
+      div.addEventListener('pointerdown', (e) => {
+        pressTimer = setTimeout(() => showMsgMenu(e, msgId, isMe, chatId), 500);
       });
       div.addEventListener('pointerup', () => clearTimeout(pressTimer));
       div.addEventListener('pointermove', () => clearTimeout(pressTimer));
@@ -1310,18 +1322,48 @@ async function sendMessage(friendId) {
   }
 
   const chatId = getChatId(currentUser.id, friendId);
+
+  // Düzenleme modu
+  if (input.dataset.editMode === 'true') {
+    const editMsgId = input.dataset.editMsgId;
+    const msgRef = window.firebaseRef(window.firebaseDB, `chats/${chatId}/messages/${editMsgId}`);
+    await window.firebaseUpdate(msgRef, { text, edited: true });
+    input.value = '';
+    input.style.height = 'auto';
+    delete input.dataset.editMode;
+    delete input.dataset.editMsgId;
+    delete input.dataset.editChatId;
+    document.getElementById('replyBanner')?.remove();
+    sendTypingStatus(friendId, false);
+    return;
+  }
+
   const msgsRef = window.firebaseRef(window.firebaseDB, `chats/${chatId}/messages`);
+  const msgData = {
+    senderId: currentUser.id,
+    receiverId: friendId,
+    text,
+    timestamp: Date.now(),
+    read: false,
+    deletedForSender: false,
+    deletedForReceiver: false
+  };
+
+  // Yanıtlama modu
+  if (input.dataset.replyMode === 'true') {
+    msgData.replyTo = {
+      msgId: input.dataset.replyMsgId,
+      text: input.dataset.replyText
+    };
+    delete input.dataset.replyMode;
+    delete input.dataset.replyMsgId;
+    delete input.dataset.replyChatId;
+    delete input.dataset.replyText;
+    document.getElementById('replyBanner')?.remove();
+  }
 
   try {
-    await window.firebasePush(msgsRef, {
-      senderId: currentUser.id,
-      receiverId: friendId,
-      text,
-      timestamp: Date.now(),
-      read: false,
-      deletedForSender: false,
-      deletedForReceiver: false
-    });
+    await window.firebasePush(msgsRef, msgData);
     input.value = '';
     input.style.height = 'auto';
     sendTypingStatus(friendId, false);
@@ -1555,34 +1597,51 @@ async function confirmBulkDelete(chatId, type) {
 
 function showMsgMenu(event, msgId, isMe, chatId) {
   event.preventDefault();
-  
-  // Eski menüyü kaldır
   document.getElementById('msgContextMenu')?.remove();
 
-  const menu = document.createElement('div');
-  menu.id = 'msgContextMenu';
-  menu.style.cssText = `position:fixed; top:${event.clientY}px; left:${event.clientX}px; background:var(--yt-spec-raised-background); border-radius:8px; padding:8px 0; box-shadow:0 4px 16px rgba(0,0,0,0.4); z-index:9999; min-width:160px;`;
-  
+  // Instagram tarzı bottom sheet
+  const sheet = document.createElement('div');
+  sheet.id = 'msgContextMenu';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:flex-end;';
+
   const items = isMe ? [
-    { icon: 'fa-edit', text: 'Düzenle', action: () => editChatMessage(chatId, msgId) },
-    { icon: 'fa-trash', text: 'Benden Sil', action: () => deleteMessage(chatId, msgId, 'sender') },
-    { icon: 'fa-trash-alt', text: 'Herkesten Sil', action: () => deleteMessage(chatId, msgId, 'all') }
+    { icon: 'fa-reply', text: 'Yanıtla', color: 'var(--yt-spec-text-primary)', action: () => startReplyMessage(msgId, chatId) },
+    { icon: 'fa-edit', text: 'Düzenle', color: 'var(--yt-spec-text-primary)', action: () => editChatMessage(chatId, msgId) },
+    { icon: 'fa-check-square', text: 'Seç', color: 'var(--yt-spec-text-primary)', action: () => { enterSelectMode(msgId, true, chatId); } },
+    { icon: 'fa-trash', text: 'Benden Sil', color: '#f44336', action: () => deleteMessage(chatId, msgId, 'sender') },
+    { icon: 'fa-trash-alt', text: 'Herkesten Sil', color: '#f44336', action: () => deleteMessage(chatId, msgId, 'all') }
   ] : [
-    { icon: 'fa-trash', text: 'Benden Sil', action: () => deleteMessage(chatId, msgId, 'receiver') }
+    { icon: 'fa-reply', text: 'Yanıtla', color: 'var(--yt-spec-text-primary)', action: () => startReplyMessage(msgId, chatId) },
+    { icon: 'fa-check-square', text: 'Seç', color: 'var(--yt-spec-text-primary)', action: () => { enterSelectMode(msgId, false, chatId); } },
+    { icon: 'fa-trash', text: 'Benden Sil', color: '#f44336', action: () => deleteMessage(chatId, msgId, 'receiver') }
   ];
 
-  items.forEach(item => {
-    const el = document.createElement('div');
-    el.style.cssText = 'padding:10px 16px; cursor:pointer; font-size:14px; display:flex; align-items:center; gap:10px;';
-    el.innerHTML = `<i class="fas ${item.icon}" style="width:16px;"></i> ${item.text}`;
-    el.onmouseover = () => el.style.background = 'rgba(255,255,255,0.1)';
-    el.onmouseout = () => el.style.background = '';
-    el.onclick = () => { item.action(); menu.remove(); };
-    menu.appendChild(el);
+  sheet.innerHTML = `
+    <div style="width:100%;background:var(--yt-spec-raised-background);border-radius:20px 20px 0 0;padding:8px 0 24px;box-shadow:0 -8px 32px rgba(0,0,0,0.5)">
+      <div style="width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:8px auto 16px"></div>
+      ${items.map(item => `
+        <button class="msg-menu-item" data-action="${item.text}" style="width:100%;display:flex;align-items:center;gap:16px;background:none;border:none;color:${item.color};padding:14px 24px;font-size:15px;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent">
+          <i class="fas ${item.icon}" style="width:20px;text-align:center"></i>
+          ${item.text}
+        </button>
+      `).join('')}
+    </div>
+  `;
+
+  // Butonlara action bağla
+  const btns = sheet.querySelectorAll('.msg-menu-item');
+  btns.forEach((btn, i) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sheet.remove();
+      items[i].action();
+    });
+    btn.addEventListener('touchstart', () => btn.style.background = 'rgba(255,255,255,0.06)', { passive: true });
+    btn.addEventListener('touchend', () => btn.style.background = '', { passive: true });
   });
 
-  document.body.appendChild(menu);
-  setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 100);
+  sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+  document.body.appendChild(sheet);
 }
 
 async function deleteMessage(chatId, msgId, type) {
@@ -1599,10 +1658,54 @@ async function deleteMessage(chatId, msgId, type) {
 
 function editChatMessage(chatId, msgId) {
   const bubble = document.querySelector(`[data-msg-id="${msgId}"] .msg-text`);
-  if (!bubble) return;
-  const current = bubble.textContent;
-  bubble.innerHTML = `<div style="display:flex;gap:6px;align-items:center"><input id="editMsgInput_${msgId}" class="yt-input" value="${current.replace(/"/g,'&quot;')}" style="flex:1;height:30px;padding:0 8px;font-size:13px;min-width:120px" /><button onclick="saveMsgEdit('${chatId}','${msgId}')" style="background:none;border:none;color:var(--yt-spec-brand-background-solid);cursor:pointer"><i class="fas fa-check"></i></button><button onclick="cancelMsgEdit('${msgId}','${current.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer"><i class="fas fa-times"></i></button></div>`;
-  document.getElementById(`editMsgInput_${msgId}`)?.focus();
+  if (!bubble) { showToast('Mesaj bulunamadı', 'error'); return; }
+  const current = bubble.textContent.trim();
+  const input = document.getElementById('chatInput');
+  if (input) {
+    // Input'a düzenleme modunu aç
+    input.value = current;
+    input.dataset.editMode = 'true';
+    input.dataset.editMsgId = msgId;
+    input.dataset.editChatId = chatId;
+    input.focus();
+    // Düzenleme banner'ı göster
+    showReplyBanner(`✏️ Düzenleniyor: ${current.substring(0, 40)}${current.length > 40 ? '...' : ''}`, () => {
+      input.value = '';
+      delete input.dataset.editMode;
+      delete input.dataset.editMsgId;
+      delete input.dataset.editChatId;
+    });
+  }
+}
+
+function startReplyMessage(msgId, chatId) {
+  const msgEl = document.querySelector(`[data-msg-id="${msgId}"]`);
+  const textEl = msgEl?.querySelector('.msg-text');
+  const text = textEl?.textContent?.trim() || 'Mesaj';
+  const input = document.getElementById('chatInput');
+  if (input) {
+    input.dataset.replyMode = 'true';
+    input.dataset.replyMsgId = msgId;
+    input.dataset.replyChatId = chatId;
+    input.dataset.replyText = text;
+    input.focus();
+    showReplyBanner(`↩️ Yanıtlanıyor: ${text.substring(0, 40)}${text.length > 40 ? '...' : ''}`, () => {
+      delete input.dataset.replyMode;
+      delete input.dataset.replyMsgId;
+      delete input.dataset.replyChatId;
+      delete input.dataset.replyText;
+    });
+  }
+}
+
+function showReplyBanner(text, onCancel) {
+  document.getElementById('replyBanner')?.remove();
+  const banner = document.createElement('div');
+  banner.id = 'replyBanner';
+  banner.style.cssText = 'padding:8px 12px;background:rgba(255,255,255,0.06);border-left:3px solid #ff0033;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--yt-spec-text-secondary)';
+  banner.innerHTML = `<span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${text}</span><button onclick="document.getElementById('replyBanner').remove();(${onCancel.toString()})()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:16px;padding:0 4px">×</button>`;
+  const wrapper = document.querySelector('.chat-input-wrapper');
+  if (wrapper) wrapper.insertBefore(banner, wrapper.firstChild);
 }
 
 async function saveMsgEdit(chatId, msgId) {
@@ -5052,28 +5155,41 @@ async function loadSavedPage() {
 
     const pageContent = document.getElementById('pageContent');
     pageContent.innerHTML = `
-      <h2>Kaydedilenler</h2>
-      <div id="savedList" class="video-grid"></div>
+      <h2 class="section-header">Kaydedilenler</h2>
+      <div id="savedList"></div>
     `;
 
     if (saved.length === 0) {
-      document.getElementById('savedList').innerHTML = '<p style="color: var(--text-secondary);">Henüz kaydedilen video yok</p>';
+      document.getElementById('savedList').innerHTML = '<p style="color:var(--yt-spec-text-secondary);">Henüz kaydedilen içerik yok</p>';
       return;
     }
 
-    const videos = saved.map(s => ({
-      id: s.video_id,
-      title: s.title,
-      banner_url: s.banner_url,
-      video_url: s.video_url,
-      channel_name: s.channel_name,
-      nickname: s.nickname,
-      profile_photo: s.profile_photo,
-      views: s.views,
-      likes: 0
-    }));
+    const container = document.getElementById('savedList');
+    const reals = saved.filter(s => s.is_short);
+    const photos = saved.filter(s => s.video_type === 'Fotoğraf');
+    const videos = saved.filter(s => !s.is_short && s.video_type !== 'Fotoğraf');
 
-    displayVideos(videos, 'savedList');
+    let html = '';
+
+    if (reals.length > 0) {
+      html += `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px;margin-top:16px"><i class="fas fa-film" style="color:#ff0033;margin-right:8px"></i>Reals (${reals.length})</h3>
+        <div class="shorts-grid" id="savedRealsGrid"></div>`;
+    }
+    if (photos.length > 0) {
+      html += `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px;margin-top:16px"><i class="fas fa-image" style="color:#ff0033;margin-right:8px"></i>Fotoğraflar (${photos.length})</h3>
+        <div class="photo-grid" id="savedPhotosGrid"></div>`;
+    }
+    if (videos.length > 0) {
+      html += `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px;margin-top:16px"><i class="fas fa-video" style="color:#ff0033;margin-right:8px"></i>Videolar (${videos.length})</h3>
+        <div class="video-grid" id="savedVideosGrid"></div>`;
+    }
+
+    container.innerHTML = html;
+
+    if (reals.length > 0) renderShortsGrid(reals.map(s => ({ ...s, id: s.video_id })), 'savedRealsGrid');
+    if (photos.length > 0) renderPhotoGrid(photos.map(s => ({ ...s, id: s.video_id })), 'savedPhotosGrid');
+    if (videos.length > 0) displayVideos(videos.map(s => ({ ...s, id: s.video_id })), 'savedVideosGrid');
+
   } catch (error) {
     console.error('Kaydedilenler yükleme hatası:', error);
   }
@@ -6779,6 +6895,102 @@ async function searchTSMusic(q) {
     }
     results.innerHTML = html || '<p style="color:var(--yt-spec-text-secondary);text-align:center;padding:20px">Sonuç bulunamadı</p>';
   } catch(e) { results.innerHTML = '<p style="color:var(--yt-spec-text-secondary)">Arama hatası</p>'; }
+}
+
+// ==================== ŞARKILARIM ====================
+async function loadMySongsPage() {
+  const pageContent = document.getElementById('pageContent');
+  pageContent.innerHTML = '<div class="yt-loading"><div class="yt-spinner"></div></div>';
+  try {
+    // Artist mi kontrol et
+    const statusRes = await fetch(`${API_URL}/music/artist-status/${currentUser.id}`);
+    const status = await statusRes.json();
+    if (!status.isArtist) {
+      pageContent.innerHTML = `
+        <div style="text-align:center;padding:60px 20px">
+          <i class="fas fa-music" style="font-size:48px;color:rgba(255,255,255,0.1);margin-bottom:16px;display:block"></i>
+          <p style="font-size:16px;font-weight:600;margin-bottom:8px">Artist değilsin</p>
+          <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:20px">Şarkı yükleyebilmek için artist başvurusu yapman gerekiyor.</p>
+          <button class="yt-btn" onclick="showPage('ts-music')">TS Music'e Git</button>
+        </div>`;
+      return;
+    }
+
+    const r = await fetch(`${API_URL}/music/my-songs/${currentUser.id}`);
+    const songs = await r.json();
+
+    pageContent.innerHTML = `
+      <div style="max-width:700px;padding-bottom:120px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+          <h2 style="font-size:22px;font-weight:700"><i class="fas fa-music" style="color:#1db954;margin-right:8px"></i>Şarkılarım</h2>
+          <button class="yt-btn" onclick="showUploadSongModal()"><i class="fas fa-plus" style="margin-right:6px"></i>Yeni Şarkı</button>
+        </div>
+        ${songs.length === 0 ? '<p style="color:var(--yt-spec-text-secondary);text-align:center;padding:40px 0">Henüz şarkın yok</p>' : `
+          <div style="display:flex;flex-direction:column;gap:4px">
+            ${songs.map((s, i) => `
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
+                <span style="width:20px;text-align:center;font-size:13px;color:var(--yt-spec-text-secondary);flex-shrink:0">${i + 1}</span>
+                <img src="${s.cover_url}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer" onclick="playSong(${s.id})" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=44 height=44%3E%3Crect width=44 height=44 fill=%23333/%3E%3C/svg%3E'" />
+                <div style="flex:1;min-width:0;cursor:pointer" onclick="playSong(${s.id})">
+                  <p style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title}</p>
+                  <p style="font-size:12px;color:var(--yt-spec-text-secondary)">${s.play_count || 0} dinlenme</p>
+                </div>
+                <button onclick="editMySong(${s.id},'${s.title.replace(/'/g,"\\'")}','${s.cover_url}','${s.genre||''}','${s.lyrics||''}')" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:6px 8px;border-radius:8px;font-size:14px" title="Düzenle"><i class="fas fa-edit"></i></button>
+                <button onclick="deleteMySong(${s.id},'${s.title.replace(/'/g,"\\'")}',this)" style="background:none;border:none;color:rgba(255,0,0,0.5);cursor:pointer;padding:6px 8px;border-radius:8px;font-size:14px" title="Sil"><i class="fas fa-trash"></i></button>
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>`;
+  } catch(e) { pageContent.innerHTML = '<p>Hata oluştu</p>'; }
+}
+
+function editMySong(songId, title, coverUrl, genre, lyrics) {
+  showModal(`
+    <h3 style="margin-bottom:16px">Şarkıyı Düzenle</h3>
+    <div class="yt-form-group"><label class="yt-form-label">Şarkı Adı</label><input id="editSongTitle" class="yt-input" value="${title}" /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Tür</label><input id="editSongGenre" class="yt-input" value="${genre}" placeholder="Pop, Rock..." /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Yeni Kapak Fotoğrafı (opsiyonel)</label><input type="file" id="editSongCover" class="yt-input" accept="image/*" /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Şarkı Sözleri</label><textarea id="editSongLyrics" class="yt-input" style="height:80px;resize:vertical">${lyrics}</textarea></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="yt-btn" onclick="saveMySongEdit(${songId})" style="flex:1">Kaydet</button>
+      <button class="yt-btn yt-btn-secondary" onclick="closeModal()">İptal</button>
+    </div>
+  `);
+}
+
+async function saveMySongEdit(songId) {
+  const title = document.getElementById('editSongTitle')?.value.trim();
+  const genre = document.getElementById('editSongGenre')?.value.trim();
+  const lyrics = document.getElementById('editSongLyrics')?.value.trim();
+  const coverFile = document.getElementById('editSongCover')?.files[0];
+
+  if (!title) { showToast('Şarkı adı gerekli', 'error'); return; }
+
+  const formData = new FormData();
+  formData.append('title', title);
+  formData.append('genre', genre || '');
+  formData.append('lyrics', lyrics || '');
+  if (coverFile) formData.append('cover', coverFile);
+
+  try {
+    const r = await fetch(`${API_URL}/music/song/${songId}`, { method: 'PUT', body: formData });
+    if (!r.ok) throw new Error('Güncellenemedi');
+    showToast('Şarkı güncellendi', 'success');
+    closeModal();
+    loadMySongsPage();
+  } catch(e) { showToast('Hata: ' + e.message, 'error'); }
+}
+
+async function deleteMySong(songId, title, btn) {
+  if (!confirm(`"${title}" şarkısını silmek istediğine emin misin?`)) return;
+  if (!confirm(`Bu işlem geri alınamaz. "${title}" kalıcı olarak silinecek. Devam et?`)) return;
+  try {
+    const r = await fetch(`${API_URL}/music/song/${songId}`, { method: 'DELETE' });
+    if (!r.ok) throw new Error('Silinemedi');
+    showToast('Şarkı silindi', 'success');
+    btn.closest('div[style]').remove();
+  } catch(e) { showToast('Hata: ' + e.message, 'error'); }
 }
 
 async function viewArtistPage(artistId) {

@@ -322,4 +322,65 @@ router.put('/music/artist/settings', (req, res) => {
   }
 });
 
+// Artist durumu kontrol
+router.get('/music/artist-status/:userId', (req, res) => {
+  try {
+    const artist = db.prepare('SELECT * FROM music_artists WHERE user_id = ?').get(req.params.userId);
+    res.json({ isArtist: !!artist, artist: artist || null });
+  } catch(e) {
+    res.status(500).json({ error: 'Kontrol yapılamadı' });
+  }
+});
+
+// Kendi şarkılarım
+router.get('/music/my-songs/:userId', (req, res) => {
+  try {
+    const artist = db.prepare('SELECT id FROM music_artists WHERE user_id = ?').get(req.params.userId);
+    if (!artist) return res.json([]);
+    const songs = db.prepare('SELECT * FROM songs WHERE artist_id = ? ORDER BY created_at DESC').all(artist.id);
+    res.json(songs);
+  } catch(e) {
+    res.status(500).json({ error: 'Şarkılar alınamadı' });
+  }
+});
+
+// Şarkı güncelle (dinlenme sayısı sıfırlanmaz)
+router.put('/music/song/:songId', upload.single('cover'), async (req, res) => {
+  try {
+    const { title, genre, lyrics } = req.body;
+    let updateQuery = 'UPDATE songs SET title = ?, genre = ?, lyrics = ?';
+    let params = [title, genre || null, lyrics || null];
+
+    if (req.file) {
+      const coverUrl = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { resource_type: 'image', folder: 'teatube/music/covers' },
+          (err, result) => err ? reject(err) : resolve(result.secure_url)
+        );
+        stream.end(req.file.buffer);
+      });
+      updateQuery += ', cover_url = ?';
+      params.push(coverUrl);
+    }
+
+    updateQuery += ' WHERE id = ?';
+    params.push(req.params.songId);
+    db.prepare(updateQuery).run(...params);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Güncellenemedi: ' + e.message });
+  }
+});
+
+// Şarkı sil
+router.delete('/music/song/:songId', (req, res) => {
+  try {
+    db.prepare('DELETE FROM songs WHERE id = ?').run(req.params.songId);
+    db.prepare('DELETE FROM playlist_songs WHERE song_id = ?').run(req.params.songId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Silinemedi' });
+  }
+});
+
 module.exports = router;
