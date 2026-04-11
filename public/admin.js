@@ -1,8 +1,15 @@
 ﻿const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3456/api' : window.location.origin + '/api';
 let adminData = null;
 window.addEventListener('DOMContentLoaded', () => {
-  const s = localStorage.getItem('tea_admin');
-  if (s) { adminData = JSON.parse(s); document.getElementById('loginScreen').style.display='none'; document.getElementById('adminApp').style.display='block'; showSection('dashboard'); }
+  const saved = localStorage.getItem('tea_admin');
+  if (saved) {
+    adminData = JSON.parse(saved);
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('adminApp').style.display='block';
+    const nameEl = document.getElementById('sidebarAdminName');
+    if (nameEl) nameEl.textContent = adminData.username || 'Admin';
+    showSection('dashboard');
+  }
 });
 
 async function adminLogin() {
@@ -18,6 +25,8 @@ async function adminLogin() {
     localStorage.setItem('tea_admin', JSON.stringify(adminData));
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('adminApp').style.display='block';
+    const nameEl = document.getElementById('sidebarAdminName');
+    if (nameEl) nameEl.textContent = adminData.username || 'Admin';
     showSection('dashboard');
   } catch(e) { err.textContent='Baglanti hatasi'; err.style.display='block'; }
 }
@@ -43,6 +52,9 @@ function closeModal() { document.querySelector('.a-modal-bg')?.remove(); }
 function showSection(sec) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>{ if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes(sec)) n.classList.add('active'); });
+  const titles = {dashboard:'Dashboard',users:'Kullanicilar',channels:'Kanallar',personal:'Kisisel Hesaplar','ip-bans':'IP Banlari',videos:'Videolar','music-applications':'TS Music - Basvurular','music-artists':'TS Music - Artistler','music-songs':'TS Music - Sarkilar','admin-settings':'Admin Ayarlari'};
+  const tb = document.getElementById('topbarTitle');
+  if (tb) tb.textContent = titles[sec] || sec;
   switch(sec) {
     case 'dashboard': loadDashboard(); break;
     case 'users': loadUsers(); break;
@@ -61,25 +73,39 @@ function showSection(sec) {
 // ─── DASHBOARD ───────────────────────────────────────────────────────────────
 async function loadDashboard() {
   const c = document.getElementById('mainContent');
-  c.innerHTML = '<p>Yukleniyor...</p>';
+  document.getElementById('topbarTitle').textContent = 'Dashboard';
+  c.innerHTML = '<p style="color:#666">Yukleniyor...</p>';
   try {
-    const r = await fetch(API+'/admin/stats', {headers:{'x-admin-token': adminData?.token||''}});
-    const d = await r.json();
-    if (!r.ok) { c.innerHTML='<p>Hata: '+d.error+'</p>'; return; }
-    const s = d.stats || d;
+    const r = await fetch(API+'/admin/stats');
+    const s = await r.json();
+    
+    // Pending badge guncelle
+    const pb = document.getElementById('pendingBadge');
+    if (pb && s.pendingApplications > 0) { pb.textContent = s.pendingApplications; pb.style.display = 'inline'; }
+
+    const cards = [
+      { icon:'fa-users', color:'#3b82f6', bg:'rgba(59,130,246,0.12)', val: s.totalUsers??0, lbl:'Toplam Kullanici' },
+      { icon:'fa-user-slash', color:'#ef4444', bg:'rgba(239,68,68,0.12)', val: s.suspendedUsers??0, lbl:'Askiya Alinan' },
+      { icon:'fa-video', color:'#8b5cf6', bg:'rgba(139,92,246,0.12)', val: s.totalVideos??0, lbl:'Toplam Video' },
+      { icon:'fa-tv', color:'#06b6d4', bg:'rgba(6,182,212,0.12)', val: s.totalChannels??0, lbl:'Kanal' },
+      { icon:'fa-user', color:'#f59e0b', bg:'rgba(245,158,11,0.12)', val: s.totalPersonal??0, lbl:'Kisisel Hesap' },
+      { icon:'fa-music', color:'#1db954', bg:'rgba(29,185,84,0.12)', val: s.totalSongs??0, lbl:'Sarki' },
+      { icon:'fa-microphone', color:'#ec4899', bg:'rgba(236,72,153,0.12)', val: s.totalArtists??0, lbl:'Artist' },
+      { icon:'fa-file-alt', color:'#ff0033', bg:'rgba(255,0,51,0.12)', val: s.pendingApplications??0, lbl:'Bekleyen Basvuru' },
+      { icon:'fa-ban', color:'#6b7280', bg:'rgba(107,114,128,0.12)', val: s.bannedIPs??0, lbl:'Banli IP' },
+    ];
+
     c.innerHTML = `
-      <h2>Dashboard</h2>
+      <div class="section-header"><h2>Dashboard</h2></div>
       <div class="stat-grid">
-        <div class="stat-card"><div class="stat-num">${s.totalUsers??0}</div><div class="stat-label">Kullanici</div></div>
-        <div class="stat-card"><div class="stat-num">${s.totalVideos??0}</div><div class="stat-label">Video</div></div>
-        <div class="stat-card"><div class="stat-num">${s.totalChannels??0}</div><div class="stat-label">Kanal</div></div>
-        <div class="stat-card"><div class="stat-num">${s.totalViews??0}</div><div class="stat-label">Izlenme</div></div>
-        <div class="stat-card"><div class="stat-num">${s.totalComments??0}</div><div class="stat-label">Yorum</div></div>
-        <div class="stat-card"><div class="stat-num">${s.suspendedUsers??0}</div><div class="stat-label">Askiya Alinan</div></div>
-        <div class="stat-card"><div class="stat-num">${s.totalMusicSongs??0}</div><div class="stat-label">Muzik</div></div>
-        <div class="stat-card"><div class="stat-num">${s.pendingMusicApps??0}</div><div class="stat-label">Bekleyen Basvuru</div></div>
+        ${cards.map(card => `
+          <div class="stat-card">
+            <div class="s-icon" style="background:${card.bg};color:${card.color}"><i class="fas ${card.icon}"></i></div>
+            <div class="val" style="color:${card.color}">${card.val}</div>
+            <div class="lbl">${card.lbl}</div>
+          </div>`).join('')}
       </div>`;
-  } catch(e) { c.innerHTML='<p>Baglanti hatasi</p>'; }
+  } catch(e) { c.innerHTML='<p style="color:#666">Baglanti hatasi</p>'; }
 }
 
 // ─── USERS ────────────────────────────────────────────────────────────────────
@@ -407,7 +433,7 @@ async function loadMusicApplications(tab) {
 async function reviewMusicApp(appId, action) {
   const note = prompt(action==='accept'?'Kabul notu (opsiyonel):':'Red sebebi:') ?? '';
   try {
-    const r = await fetch(API+'/admin/music/applications/'+appId+'/review', {method:'POST', headers:{'Content-Type':'application/json','x-admin-token':adminData?.token||''}, body:JSON.stringify({action, note})});
+    const r = await fetch(API+'/admin/music/application/'+appId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action, note})});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast(action==='accept'?'Basvuru kabul edildi':'Basvuru reddedildi');
