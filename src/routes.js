@@ -219,9 +219,6 @@ router.post('/login-attempts/:userId', async (req, res) => {
   }
 });
 
-module.exports = router;
-module.exports.VIDEO_TYPES = VIDEO_TYPES;
-
 // Kullanıcı adını değiştir
 router.put('/user/:userId/username', async (req, res) => {
   try {
@@ -2161,3 +2158,6 @@ router.put('/comment/:commentId/owner-like', (req, res) => {
   }
 });
 
+
+module.exports = router;
+module.exports.VIDEO_TYPES = VIDEO_TYPES;
