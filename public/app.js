@@ -6546,6 +6546,10 @@ function loadGroupMessages(groupId, members) {
   const memberMap = {};
   members.forEach(m => { memberMap[m.user_id] = m; });
 
+  // Seçim modu state
+  let selectMode = false;
+  let selectedMsgs = new Set();
+
   const msgsRef = window.firebaseRef(window.firebaseDB, `group_chats/${groupId}/messages`);
   window.firebaseOnValue(msgsRef, snap => {
     const msgs = [];
@@ -6556,7 +6560,98 @@ function loadGroupMessages(groupId, members) {
       return;
     }
 
+    // Seçim toolbar'ı
+    let toolbar = document.getElementById('groupSelectToolbar');
+    if (!toolbar) {
+      toolbar = document.createElement('div');
+      toolbar.id = 'groupSelectToolbar';
+      toolbar.style.cssText = 'display:none;position:sticky;top:0;background:var(--yt-spec-raised-background);padding:8px 12px;border-radius:10px;margin-bottom:8px;display:none;align-items:center;gap:8px;z-index:10';
+      toolbar.innerHTML = `
+        <span id="groupSelectCount" style="flex:1;font-size:13px;font-weight:500">0 seçildi</span>
+        <button onclick="deleteGroupSelected('${groupId}')" style="background:rgba(255,0,0,0.15);border:1px solid rgba(255,0,0,0.3);color:#ff4444;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px">Sil</button>
+        <button onclick="exitGroupSelectMode()" style="background:rgba(255,255,255,0.08);border:none;color:var(--yt-spec-text-secondary);padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px">İptal</button>
+      `;
+      container.parentNode.insertBefore(toolbar, container);
+    }
+
+    function updateToolbar() {
+      toolbar.style.display = selectedMsgs.size > 0 ? 'flex' : 'none';
+      const cnt = document.getElementById('groupSelectCount');
+      if (cnt) cnt.textContent = selectedMsgs.size + ' seçildi';
+    }
+
+    function exitGroupSelectMode() {
+      selectMode = false;
+      selectedMsgs.clear();
+      toolbar.style.display = 'none';
+      container.querySelectorAll('.gmsg').forEach(el => {
+        el.classList.remove('gmsg-selected');
+        const chk = el.querySelector('.gmsg-chk');
+        if (chk) chk.style.display = 'none';
+      });
+    }
+    window.exitGroupSelectMode = exitGroupSelectMode;
+
+    async function deleteGroupSelected(gId) {
+      if (!selectedMsgs.size) return;
+      const isOwnerOrMod = members.find(m => m.user_id === currentUser.id && ['owner','moderator'].includes(m.role));
+      
+      // Hepsi benim mi?
+      const allMine = [...selectedMsgs].every(id => {
+        const msg = msgs.find(m => m.id === id);
+        return msg && msg.senderId == currentUser.id;
+      });
+
+      if (allMine) {
+        // Seçenek sun
+        const menu = document.createElement('div');
+        menu.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--yt-spec-raised-background);border-radius:14px;padding:20px;z-index:9999;min-width:240px;box-shadow:0 8px 32px rgba(0,0,0,0.5)';
+        menu.innerHTML = `
+          <p style="font-size:14px;font-weight:600;margin-bottom:14px">${selectedMsgs.size} mesajı sil</p>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button onclick="doDeleteGroupMsgs('${gId}','me');this.closest('div[style]').remove()" style="padding:10px;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.3);border-radius:8px;color:#ff4444;cursor:pointer;font-size:13px;text-align:left"><i class="fas fa-trash" style="margin-right:8px"></i>Benden Sil</button>
+            <button onclick="doDeleteGroupMsgs('${gId}','all');this.closest('div[style]').remove()" style="padding:10px;background:rgba(255,0,0,0.2);border:1px solid rgba(255,0,0,0.4);border-radius:8px;color:#ff4444;cursor:pointer;font-size:13px;text-align:left;font-weight:600"><i class="fas fa-trash-alt" style="margin-right:8px"></i>Herkesten Sil</button>
+            <button onclick="this.closest('div[style]').remove()" style="padding:10px;background:rgba(255,255,255,0.06);border:none;border-radius:8px;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:13px">İptal</button>
+          </div>`;
+        document.body.appendChild(menu);
+        setTimeout(() => document.addEventListener('click', e => { if (!menu.contains(e.target)) menu.remove(); }, { once: true }), 100);
+      } else if (isOwnerOrMod) {
+        // Mod/owner - herkesten sil
+        await doDeleteGroupMsgs(gId, 'all');
+      } else {
+        await doDeleteGroupMsgs(gId, 'me');
+      }
+    }
+    window.deleteGroupSelected = deleteGroupSelected;
+
+    async function doDeleteGroupMsgs(gId, type) {
+      const promises = [];
+      for (const msgId of selectedMsgs) {
+        const msg = msgs.find(m => m.id === msgId);
+        if (!msg) continue;
+        const ref = window.firebaseRef(window.firebaseDB, `group_chats/${gId}/messages/${msgId}`);
+        if (type === 'all') {
+          promises.push(window.firebaseUpdate(ref, { deletedForAll: true, text: null, imageUrl: null }));
+        } else {
+          const hidden = msg.hiddenFor || [];
+          if (!hidden.includes(String(currentUser.id))) hidden.push(String(currentUser.id));
+          promises.push(window.firebaseUpdate(ref, { hiddenFor: hidden }));
+        }
+      }
+      await Promise.all(promises);
+      exitGroupSelectMode();
+      showToast(promises.length + ' mesaj silindi', 'success');
+    }
+    window.doDeleteGroupMsgs = doDeleteGroupMsgs;
+
+    const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+
     container.innerHTML = msgs.map(msg => {
+      // Silinmiş veya gizlenmiş mesajları filtrele
+      if (msg.deletedForAll) return `<div style="text-align:center;padding:4px 0"><span style="font-size:11px;color:var(--yt-spec-text-secondary);font-style:italic">Mesaj silindi</span></div>`;
+      const hiddenFor = msg.hiddenFor || [];
+      if (hiddenFor.includes(String(currentUser.id))) return '';
+
       const isMe = msg.senderId == currentUser.id;
       const sender = memberMap[msg.senderId];
       const senderName = sender?.nickname || 'Kullanıcı';
@@ -6567,20 +6662,119 @@ function loadGroupMessages(groupId, members) {
       const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}) : '';
 
       return `
-        <div style="display:flex;gap:8px;align-items:flex-start;${isMe ? 'flex-direction:row-reverse' : ''}">
+        <div class="gmsg" data-id="${msg.id}" data-sender="${msg.senderId}" style="display:flex;gap:8px;align-items:flex-start;${isMe ? 'flex-direction:row-reverse' : ''};padding:2px 4px;border-radius:8px;cursor:pointer;transition:background 0.15s"
+          onclick="handleGroupMsgClick(this,'${msg.id}','${groupId}')"
+          oncontextmenu="event.preventDefault();showGroupMsgMenu(event,'${msg.id}','${groupId}',${isMe})"
+          ontouchstart="startGroupMsgLongPress(event,this,'${msg.id}','${groupId}',${isMe})"
+          ontouchend="clearGroupMsgLongPress()">
+          <div class="gmsg-chk" style="display:none;align-self:center;width:20px;height:20px;border-radius:50%;border:2px solid var(--yt-spec-brand-background-solid);flex-shrink:0;background:transparent;transition:all 0.15s"></div>
           ${!isMe ? `<img src="${senderPhoto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;margin-top:2px" />` : ''}
           <div style="max-width:70%;${isMe ? 'align-items:flex-end' : 'align-items:flex-start'};display:flex;flex-direction:column;gap:2px">
             ${!isMe ? `<div style="display:flex;align-items:center;gap:3px;margin-bottom:2px"><span style="font-size:11px;font-weight:600;color:var(--yt-spec-text-secondary)">${senderName}</span>${roleIcon}</div>` : ''}
-            ${msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width:200px;border-radius:10px;cursor:pointer" onclick="window.open('${msg.imageUrl}')" />` : ''}
+            ${msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width:200px;border-radius:10px;cursor:pointer" onclick="event.stopPropagation();window.open('${msg.imageUrl}')" />` : ''}
             ${msg.text ? `<div style="background:${isMe ? 'var(--yt-spec-brand-background-solid)' : 'var(--yt-spec-raised-background)'};padding:8px 12px;border-radius:${isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};font-size:14px;line-height:1.4;word-break:break-word">${msg.text}</div>` : ''}
             <span style="font-size:10px;color:var(--yt-spec-text-secondary)">${time}</span>
           </div>
         </div>`;
     }).join('');
 
-    // En alta scroll
-    container.scrollTop = container.scrollHeight;
+    // Seçim modunu koru
+    if (selectMode) {
+      container.querySelectorAll('.gmsg').forEach(el => {
+        const chk = el.querySelector('.gmsg-chk');
+        if (chk) chk.style.display = 'flex';
+        if (selectedMsgs.has(el.dataset.id)) {
+          el.classList.add('gmsg-selected');
+          el.style.background = 'rgba(255,0,51,0.08)';
+          if (chk) { chk.style.background = 'var(--yt-spec-brand-background-solid)'; chk.innerHTML = '<i class="fas fa-check" style="font-size:10px;color:#fff;margin:auto"></i>'; }
+        }
+      });
+    }
+
+    if (wasAtBottom) container.scrollTop = container.scrollHeight;
   });
+
+  // Tıklama handler
+  window.handleGroupMsgClick = function(el, msgId, gId) {
+    if (!selectMode) return;
+    const chk = el.querySelector('.gmsg-chk');
+    if (selectedMsgs.has(msgId)) {
+      selectedMsgs.delete(msgId);
+      el.classList.remove('gmsg-selected');
+      el.style.background = '';
+      if (chk) { chk.style.background = 'transparent'; chk.innerHTML = ''; }
+    } else {
+      selectedMsgs.add(msgId);
+      el.classList.add('gmsg-selected');
+      el.style.background = 'rgba(255,0,51,0.08)';
+      if (chk) { chk.style.background = 'var(--yt-spec-brand-background-solid)'; chk.innerHTML = '<i class="fas fa-check" style="font-size:10px;color:#fff;margin:auto;display:flex;align-items:center;justify-content:center;width:100%;height:100%"></i>'; }
+    }
+    updateToolbar();
+  };
+
+  // Sağ tık / uzun basma menüsü
+  window.showGroupMsgMenu = function(event, msgId, gId, isMe) {
+    document.getElementById('groupMsgCtxMenu')?.remove();
+    const menu = document.createElement('div');
+    menu.id = 'groupMsgCtxMenu';
+    menu.style.cssText = `position:fixed;top:${Math.min(event.clientY, window.innerHeight-160)}px;left:${Math.min(event.clientX, window.innerWidth-180)}px;background:var(--yt-spec-raised-background);border-radius:10px;padding:6px 0;box-shadow:0 4px 20px rgba(0,0,0,0.5);z-index:9999;min-width:170px`;
+    const items = [
+      { icon:'fa-check-square', text:'Seç', action:`enterGroupSelectMode('${msgId}','${gId}')` },
+      ...(isMe ? [
+        { icon:'fa-trash', text:'Benden Sil', action:`quickDeleteGroupMsg('${gId}','${msgId}','me')` },
+        { icon:'fa-trash-alt', text:'Herkesten Sil', action:`quickDeleteGroupMsg('${gId}','${msgId}','all')` }
+      ] : [
+        { icon:'fa-trash', text:'Benden Sil', action:`quickDeleteGroupMsg('${gId}','${msgId}','me')` }
+      ])
+    ];
+    menu.innerHTML = items.map(i => `<div onclick="${i.action};document.getElementById('groupMsgCtxMenu')?.remove()" style="padding:10px 16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:10px" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background=''"><i class="fas ${i.icon}" style="width:16px;color:var(--yt-spec-text-secondary)"></i>${i.text}</div>`).join('');
+    document.body.appendChild(menu);
+    setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 50);
+  };
+
+  // Seçim moduna gir
+  window.enterGroupSelectMode = function(msgId, gId) {
+    selectMode = true;
+    selectedMsgs.clear();
+    selectedMsgs.add(msgId);
+    container.querySelectorAll('.gmsg').forEach(el => {
+      const chk = el.querySelector('.gmsg-chk');
+      if (chk) chk.style.display = 'flex';
+      if (el.dataset.id === msgId) {
+        el.classList.add('gmsg-selected');
+        el.style.background = 'rgba(255,0,51,0.08)';
+        if (chk) { chk.style.background = 'var(--yt-spec-brand-background-solid)'; chk.innerHTML = '<i class="fas fa-check" style="font-size:10px;color:#fff;margin:auto;display:flex;align-items:center;justify-content:center;width:100%;height:100%"></i>'; }
+      }
+    });
+    updateToolbar();
+  };
+
+  // Tek mesaj hızlı sil
+  window.quickDeleteGroupMsg = async function(gId, msgId, type) {
+    const ref = window.firebaseRef(window.firebaseDB, `group_chats/${gId}/messages/${msgId}`);
+    if (type === 'all') {
+      await window.firebaseUpdate(ref, { deletedForAll: true, text: null, imageUrl: null });
+    } else {
+      const snap = await window.firebaseGet ? window.firebaseGet(ref) : null;
+      const msg = snap?.val() || {};
+      const hidden = msg.hiddenFor || [];
+      if (!hidden.includes(String(currentUser.id))) hidden.push(String(currentUser.id));
+      await window.firebaseUpdate(ref, { hiddenFor: hidden });
+    }
+    showToast('Mesaj silindi', 'success');
+  };
+
+  // Uzun basma (mobil)
+  let longPressTimer = null;
+  window.startGroupMsgLongPress = function(event, el, msgId, gId, isMe) {
+    longPressTimer = setTimeout(() => {
+      const touch = event.touches[0];
+      showGroupMsgMenu({ clientX: touch.clientX, clientY: touch.clientY }, msgId, gId, isMe);
+    }, 500);
+  };
+  window.clearGroupMsgLongPress = function() {
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  };
 }
 
 async function sendGroupMessage(groupId) {
