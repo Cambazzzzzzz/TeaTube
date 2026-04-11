@@ -688,14 +688,22 @@ async function loadBadges() {
   document.getElementById('topbarTitle').textContent = 'Rozetler';
   c.innerHTML = '<p style="color:#666">Yukleniyor...</p>';
   try {
-    const r = await fetch(API+'/admin/badges');
-    const badges = await r.json();
+    const [badgesR, usersR] = await Promise.all([
+      fetch(API+'/admin/badges'),
+      fetch(API+'/admin/users?limit=100')
+    ]);
+    const badges = await badgesR.json();
+    const usersData = await usersR.json();
+    const users = Array.isArray(usersData) ? usersData : (usersData.users || []);
+
     c.innerHTML = `
       <div class="section-header">
         <h2>Rozetler</h2>
         <button class="a-btn" onclick="showCreateBadgeModal()"><i class="fas fa-plus" style="margin-right:6px"></i>Yeni Rozet</button>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
+      
+      <!-- Rozetler -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:32px">
         ${badges.map(b => `
           <div style="background:#1a1a1a;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
             <div style="display:flex;align-items:center;gap:10px">
@@ -704,7 +712,7 @@ async function loadBadges() {
               </div>
               <div>
                 <p style="font-size:14px;font-weight:600;color:${b.name_color}">${esc(b.name)}</p>
-                <p style="font-size:11px;color:#666">${b.is_system ? 'Sistem Rozeti' : 'Özel Rozet'}</p>
+                <p style="font-size:11px;color:#666">${b.is_system ? 'Sistem Rozeti' : 'Ozel Rozet'}</p>
               </div>
             </div>
             ${b.description ? `<p style="font-size:12px;color:#888">${esc(b.description)}</p>` : ''}
@@ -714,8 +722,32 @@ async function loadBadges() {
               <button class="a-btn a-btn-sm" style="background:#c00" onclick="deleteBadge(${b.id})">Sil</button>` : ''}
             </div>
           </div>`).join('')}
+      </div>
+
+      <!-- Tüm Kullanıcılar - Rozet Atama -->
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:14px">Tum Kullanicilar</h3>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${users.map(u => `
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#1a1a1a;border-radius:10px;border:1px solid rgba(255,255,255,0.06)">
+            <img src="${u.profile_photo && u.profile_photo!=='?' ? u.profile_photo : 'logoteatube.png'}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.src='logoteatube.png'" />
+            <div style="flex:1;min-width:0">
+              <p style="font-size:13px;font-weight:500">${esc(u.nickname||u.username)}</p>
+              <p style="font-size:11px;color:#666">@${esc(u.username)} · ${u.created_at?u.created_at.slice(0,10):''}</p>
+            </div>
+            <select onchange="quickAssignBadge(this.value,${u.id},'${esc(u.nickname||u.username)}')" style="background:#111;border:1px solid rgba(255,255,255,0.1);color:#fff;padding:5px 10px;border-radius:8px;font-size:12px;cursor:pointer">
+              <option value="">Rozet Ver...</option>
+              ${badges.map(b => `<option value="${b.id}">${b.name}</option>`).join('')}
+            </select>
+          </div>`).join('')}
       </div>`;
-  } catch(e) { c.innerHTML = '<p style="color:#666">Hata</p>'; }
+  } catch(e) { c.innerHTML = '<p style="color:#666">Hata: '+e.message+'</p>'; }
+}
+
+async function quickAssignBadge(badgeId, userId, userName) {
+  if (!badgeId) return;
+  const r = await fetch(API+'/admin/badges/'+badgeId+'/assign/'+userId, { method:'POST' });
+  const d = await r.json();
+  showToast(r.ok ? userName+' kullanicisina rozet verildi' : (d.error||'Hata'), r.ok);
 }
 
 function showCreateBadgeModal() {

@@ -162,6 +162,11 @@ function showMobileProfileSheet() {
           ${item.label}
         </button>
       `).join('')}
+      <button onclick="document.getElementById('mobileProfileSheet').remove(); setTimeout(showMobileUploadMenu, 50);"
+        style="width:100%; display:flex; align-items:center; gap:14px; background:rgba(255,0,51,0.1); border:1px solid rgba(255,0,51,0.2); color:#ff0033; padding:12px 8px; font-size:15px; cursor:pointer; border-radius:8px; margin-bottom:4px;">
+        <i class="fas fa-upload" style="width:20px;"></i>
+        Reals / Fotoğraf Yükle
+      </button>
       <button onclick="document.getElementById('mobileProfileSheet').remove(); logout();"
         style="width:100%; display:flex; align-items:center; gap:14px; background:none; border:none; color:#ff4444; padding:12px 8px; font-size:15px; cursor:pointer; border-radius:8px; margin-top:4px;">
         <i class="fas fa-sign-out-alt" style="width:20px;"></i>
@@ -2318,8 +2323,8 @@ function displayVideos(videos, containerId) {
 
 // Profil fotoğrafı URL'sini düzelt
 function getProfilePhotoUrl(photo) {
-  if (!photo || photo === '?' || photo === 'null' || photo === 'undefined') {
-    return 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'40\' viewBox=\'0 0 40 40\'%3E%3Ccircle cx=\'20\' cy=\'20\' r=\'20\' fill=\'%23333\'/%3E%3Ctext x=\'50%25\' y=\'55%25\' text-anchor=\'middle\' dominant-baseline=\'middle\' font-size=\'20\' fill=\'%23fff\'%3E%E2%98%95%3C/text%3E%3C/svg%3E';
+  if (!photo || photo === '?' || photo === 'null' || photo === 'undefined' || photo === 'undefined') {
+    return 'logoteatube.png';
   }
   return photo;
 }
@@ -3947,29 +3952,6 @@ async function loadSettingsPage() {
           </p>
         </div>
 
-        <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:20px; margin-top:20px;">
-          <h3 class="settings-card-title" style="margin-bottom:12px;"><i class="fas fa-user-circle" style="margin-right:8px; color:var(--yt-spec-brand-background-solid);"></i>Hesap Türü</h3>
-          <div style="display:flex; gap:12px; margin-bottom:12px;">
-            <label class="yt-radio-label" style="flex:1; padding:16px; background:var(--yt-spec-raised-background); border-radius:8px; cursor:pointer; border:2px solid transparent;" id="accountTypeChannel">
-              <input type="radio" name="accountType" value="channel" class="yt-radio" onchange="updateAccountType('channel')" />
-              <div style="margin-left:8px;">
-                <div style="font-weight:600; margin-bottom:4px;"><i class="fas fa-tv" style="margin-right:6px;"></i>Kanal</div>
-                <div style="font-size:12px; color:var(--yt-spec-text-secondary);">Takipçiler "abone" olarak görünür</div>
-              </div>
-            </label>
-            <label class="yt-radio-label" style="flex:1; padding:16px; background:var(--yt-spec-raised-background); border-radius:8px; cursor:pointer; border:2px solid transparent;" id="accountTypePersonal">
-              <input type="radio" name="accountType" value="personal" class="yt-radio" onchange="updateAccountType('personal')" />
-              <div style="margin-left:8px;">
-                <div style="font-weight:600; margin-bottom:4px;"><i class="fas fa-user" style="margin-right:6px;"></i>Kişisel Hesap</div>
-                <div style="font-size:12px; color:var(--yt-spec-text-secondary);">Takipçiler "takipçi" olarak görünür</div>
-              </div>
-            </label>
-          </div>
-          <p style="font-size:12px; color:var(--yt-spec-text-secondary); line-height:1.5;">
-            Hesap türünü değiştirerek profilinizin nasıl görüneceğini belirleyebilirsiniz.
-          </p>
-        </div>
-        
         <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:20px;">
           <button class="yt-btn yt-btn-secondary"  onclick="clearSearchHistory()">Arama Geçmişini Temizle</button>
           <button class="yt-btn yt-btn-secondary"  onclick="clearWatchHistory()">İzleme Geçmişini Temizle</button>
