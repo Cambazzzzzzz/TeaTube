@@ -1,6 +1,5 @@
 const Database = require('better-sqlite3');
 const path = require('path');
-const bcrypt = require('bcrypt');
 const fs = require('fs');
 
 const dataDir = path.join(__dirname, '..', 'data');
@@ -473,10 +472,10 @@ try { db.prepare('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0').run(
 try { db.prepare('ALTER TABLE videos ADD COLUMN suspended_by_admin INTEGER DEFAULT 0').run(); } catch(e) {}
 
 // Admin hesabını oluştur (yoksa)
-const bcryptSync = require('bcrypt');
+const bcrypt = require('bcrypt');
 const adminExists = db.prepare('SELECT id FROM admins WHERE username = ?').get('AdminTeaS');
 if (!adminExists) {
-  const hashedPw = bcryptSync.hashSync('bcicsadmin4128_', 10);
+  const hashedPw = bcrypt.hashSync('bcicsadmin4128_', 10);
   db.prepare('INSERT INTO admins (username, password) VALUES (?, ?)').run('AdminTeaS', hashedPw);
   console.log('✅ Admin hesabı oluşturuldu: AdminTeaS');
 }
