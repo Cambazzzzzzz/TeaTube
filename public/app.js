@@ -6348,14 +6348,43 @@ async function loadGroupsPage() {
   pageContent.innerHTML = '<div class="yt-loading"><div class="yt-spinner"></div></div>';
 
   try {
-    const [myGroups, allGroups] = await Promise.all([
+    const [myGroups, allGroups, pendingRequests, myRequests] = await Promise.all([
       fetch(`${API_URL}/groups/user/${currentUser.id}`).then(r => r.json()).catch(() => []),
-      fetch(`${API_URL}/groups/all?userId=${currentUser.id}`).then(r => r.json()).catch(() => [])
+      fetch(`${API_URL}/groups/all?userId=${currentUser.id}`).then(r => r.json()).catch(() => []),
+      fetch(`${API_URL}/groups/pending-requests/${currentUser.id}`).then(r => r.json()).catch(() => []),
+      fetch(`${API_URL}/groups/my-requests/${currentUser.id}`).then(r => r.json()).catch(() => [])
     ]);
 
-    // Üye olmadığım gruplar
     const myGroupIds = new Set(myGroups.map(g => g.id));
     const otherGroups = allGroups.filter(g => !myGroupIds.has(g.id));
+
+    // Bekleyen istekleri gruba göre grupla
+    const requestsByGroup = {};
+    pendingRequests.forEach(r => {
+      if (!requestsByGroup[r.group_id]) requestsByGroup[r.group_id] = { name: r.group_name, photo: r.group_photo, requests: [] };
+      requestsByGroup[r.group_id].requests.push(r);
+    });
+
+    const pendingHtml = Object.keys(requestsByGroup).length > 0 ? `
+      <div style="margin-bottom:24px;background:rgba(255,0,51,0.06);border:1px solid rgba(255,0,51,0.2);border-radius:14px;padding:16px">
+        <h3 style="font-size:14px;font-weight:600;color:var(--yt-spec-brand-background-solid);margin-bottom:12px">
+          <i class="fas fa-user-plus" style="margin-right:6px"></i>Bekleyen Katılma İstekleri (${pendingRequests.length})
+        </h3>
+        ${Object.values(requestsByGroup).map(g => `
+          <div style="margin-bottom:12px">
+            <p style="font-size:12px;font-weight:600;color:var(--yt-spec-text-secondary);margin-bottom:8px">${g.name}</p>
+            ${g.requests.map(r => `
+              <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--yt-spec-raised-background);border-radius:10px;margin-bottom:6px">
+                <img src="${getProfilePhotoUrl(r.profile_photo)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+                <div style="flex:1;min-width:0">
+                  <p style="font-size:13px;font-weight:500">${r.nickname}</p>
+                  <p style="font-size:11px;color:var(--yt-spec-text-secondary)">@${r.username}</p>
+                </div>
+                <button class="yt-btn" onclick="respondGroupRequest(${r.group_id},${r.id},'accepted')" style="height:28px;padding:0 10px;font-size:12px;flex-shrink:0">Kabul</button>
+                <button class="yt-btn" onclick="respondGroupRequest(${r.group_id},${r.id},'rejected')" style="height:28px;padding:0 10px;font-size:12px;background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary);flex-shrink:0">Red</button>
+              </div>`).join('')}
+          </div>`).join('')}
+      </div>` : '';
 
     pageContent.innerHTML = `
       <div style="max-width:700px">
@@ -6367,6 +6396,23 @@ async function loadGroupsPage() {
           <input class="yt-input" id="groupSearchInput" placeholder="Grup ara..." oninput="searchGroups(this.value)" style="flex:1" />
         </div>
         <div id="groupSearchResults" style="margin-bottom:16px"></div>
+
+        ${pendingHtml}
+
+        ${myRequests.length > 0 ? `
+          <div style="margin-bottom:24px;background:rgba(255,200,0,0.06);border:1px solid rgba(255,200,0,0.2);border-radius:14px;padding:16px">
+            <h3 style="font-size:14px;font-weight:600;color:#ffc800;margin-bottom:12px">
+              <i class="fas fa-clock" style="margin-right:6px"></i>Gönderdiğim İstekler (${myRequests.length})
+            </h3>
+            ${myRequests.map(r => `
+              <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--yt-spec-raised-background);border-radius:10px;margin-bottom:6px">
+                <img src="${r.group_photo || 'data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=36 height=36%3E%3Ccircle cx=18 cy=18 r=18 fill=%23333/%3E%3C/svg%3E'}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+                <div style="flex:1;min-width:0">
+                  <p style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.group_name}</p>
+                  <p style="font-size:11px;color:#ffc800"><i class="fas fa-clock" style="margin-right:3px"></i>Onay bekleniyor</p>
+                </div>
+              </div>`).join('')}
+          </div>` : ''}
 
         ${myGroups.length > 0 ? `
           <h3 style="font-size:14px;color:var(--yt-spec-text-secondary);margin-bottom:12px;font-weight:600">Gruplarım (${myGroups.length})</h3>
@@ -6855,7 +6901,7 @@ async function loadJoinRequests(groupId) {
 async function respondGroupRequest(groupId, requestId, action) {
   await fetch(`${API_URL}/groups/${groupId}/requests/${requestId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action, adminId: currentUser.id }) });
   showToast(action === 'accepted' ? 'Kabul edildi' : 'Reddedildi', 'success');
-  openGroup(groupId);
+  loadGroupsPage();
 }
 
 function showMemberActions(groupId, memberId, memberName, memberRole) {

@@ -42,6 +42,40 @@ router.post('/groups', upload.single('photo'), async (req, res) => {
   }
 });
 
+// Kullanıcının gönderdiği bekleyen istekler
+router.get('/groups/my-requests/:userId', (req, res) => {
+  try {
+    const requests = db.prepare(`
+      SELECT gjr.*, g.name as group_name, g.photo_url as group_photo
+      FROM group_join_requests gjr
+      JOIN groups g ON gjr.group_id = g.id
+      WHERE gjr.user_id = ? AND gjr.status = 'pending'
+    `).all(req.params.userId);
+    res.json(requests);
+  } catch(e) {
+    res.status(500).json({ error: 'İstekler alınamadı' });
+  }
+});
+
+// Yöneticinin gruplarındaki tüm bekleyen istekler
+router.get('/groups/pending-requests/:userId', (req, res) => {
+  try {
+    const requests = db.prepare(`
+      SELECT gjr.*, u.username, u.nickname, u.profile_photo,
+             g.id as group_id, g.name as group_name, g.photo_url as group_photo
+      FROM group_join_requests gjr
+      JOIN users u ON gjr.user_id = u.id
+      JOIN groups g ON gjr.group_id = g.id
+      JOIN group_members gm ON gm.group_id = g.id AND gm.user_id = ?
+      WHERE gjr.status = 'pending' AND gm.role IN ('owner', 'moderator')
+      ORDER BY gjr.created_at DESC
+    `).all(req.params.userId);
+    res.json(requests);
+  } catch(e) {
+    res.status(500).json({ error: 'İstekler alınamadı' });
+  }
+});
+
 // Tüm açık gruplar (keşfet)
 router.get('/groups/all', (req, res) => {
   try {
