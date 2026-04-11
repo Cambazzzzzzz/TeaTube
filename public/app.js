@@ -2700,17 +2700,24 @@ function renderTextGrid(texts, containerId) {
 }
 
 function openShortFromHome(videoId) {
-  // Shorts sayfasına geç ve o videoyu aç
-  const idx = shortsVideos.findIndex(v => v.id === videoId);
+  // Önce mevcut listede ara
+  const idx = shortsVideos.findIndex(v => v.id === videoId || v.id === parseInt(videoId));
   if (idx !== -1) {
     currentShortIndex = idx;
-    showPage('shorts');
+    showPage('reals');
   } else {
-    // Shorts listesini yükle ve o videoyu bul
+    // Listeyi yükle, o videoyu başa koy
     fetch(`${API_URL}/shorts`).then(r => r.json()).then(shorts => {
-      shortsVideos = shorts;
-      currentShortIndex = shorts.findIndex(v => v.id === videoId) || 0;
-      showPage('shorts');
+      const targetIdx = shorts.findIndex(v => v.id === videoId || v.id === parseInt(videoId));
+      if (targetIdx !== -1) {
+        // Hedef videoyu başa al, geri kalanları arkasına ekle
+        const target = shorts.splice(targetIdx, 1)[0];
+        shortsVideos = [target, ...shorts];
+      } else {
+        shortsVideos = shorts;
+      }
+      currentShortIndex = 0;
+      showPage('reals');
     });
   }
 }
