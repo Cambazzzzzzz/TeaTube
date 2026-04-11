@@ -89,7 +89,7 @@ function showMobileUploadMenu() {
       <button id="mobileTextBtn"
         style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
         <div style="width:44px; height:44px; background:rgba(29,161,242,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
-          <i class="fas fa-align-left" style="color:#1da1f2; font-size:18px;"></i>
+          <i class="fas fa-shield-alt" style="color:#1da1f2; font-size:18px;"></i>
         </div>
         <div style="text-align:left;">
           <p style="font-weight:600; margin-bottom:2px;">Metin</p>
@@ -160,7 +160,7 @@ function showMobileProfileSheet() {
     <div style="width:100%; background:var(--yt-spec-raised-background); border-radius:20px 20px 0 0; padding:20px 16px 32px;">
       <div style="width:40px; height:4px; background:rgba(255,255,255,0.2); border-radius:2px; margin:0 auto 16px;"></div>
       <div style="display:flex; align-items:center; gap:12px; padding:0 8px 16px; border-bottom:1px solid rgba(255,255,255,0.08); margin-bottom:8px;">
-        <img src="${getProfilePhotoUrl(currentUser?.profile_photo)}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />
+        <img src="${getProfilePhotoUrl(currentUser?.profile_photo)}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" onerror="onProfilePhotoError(this)" />
         <div>
           <p style="font-weight:600; font-size:16px;">${currentUser?.nickname || ''}</p>
           <p style="font-size:13px; color:var(--yt-spec-text-secondary);">@${currentUser?.username || ''}</p>
@@ -1782,7 +1782,7 @@ function renderShortsPlayer() {
           <!-- Kanal + Başlık -->
           <div class="shorts-info">
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; cursor:pointer;" onclick="event.stopPropagation(); viewChannel(${v.channel_id})">
-              <img src="${getProfilePhotoUrl(v.profile_photo)}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid white;" />
+              <img src="${getProfilePhotoUrl(v.profile_photo)}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid white;" onerror="onProfilePhotoError(this)" />
               <div>
                 <p style="font-size:14px; font-weight:600;">${v.channel_name}</p>
                 <p style="font-size:12px; color:rgba(255,255,255,0.7);">${v.subscriber_count} abone</p>
@@ -2058,7 +2058,7 @@ async function loadHomePage() {
         <i class="fas fa-image" style="margin-right:4px; font-size:11px;"></i>Foto
       </button>
       <button class="category-chip" onclick="filterCategory(this, 'text')">
-        <i class="fas fa-align-left" style="margin-right:4px; font-size:11px;"></i>Metin
+        <i class="fas fa-shield-alt" style="margin-right:4px; font-size:11px;"></i>Metin
       </button>
     </div>
     <div id="homeContent" style="margin-top: 24px;"></div>
@@ -2092,7 +2092,7 @@ async function loadMobileHomePage() {
             ${realsItems.map(v => `
               <div class="mobile-story" onclick="openShortFromHome(${v.id})">
                 <div class="mobile-story-ring">
-                  <img src="${getProfilePhotoUrl(v.profile_photo)}" />
+                  <img src="${getProfilePhotoUrl(v.profile_photo)}" onerror="onProfilePhotoError(this)" />
                 </div>
                 <p>${v.channel_name?.split(' ')[0] || 'Tea'}</p>
               </div>
@@ -2195,7 +2195,7 @@ async function loadHomeVideos(category) {
     // Metin kategorisi
     if (category === 'text') {
       const allVideos = await fetch(`${API_URL}/videos?limit=100`).then(r => r.json()).catch(() => []);
-      const texts = allVideos.filter(v => v.video_type === 'Metin');
+      const texts = allVideos.filter(v => v.text_content && v.text_content.trim());
       if (loading) loading.style.display = 'none';
       if (!texts.length) {
         container.innerHTML = '<p style="color:var(--yt-spec-text-secondary);">Henüz metin içerik yok</p>';
@@ -2203,7 +2203,7 @@ async function loadHomeVideos(category) {
       }
       container.innerHTML = `
         <h2 class="section-header" style="margin-bottom:16px;">
-          <i class="fas fa-align-left" style="color:var(--yt-spec-brand-background-solid); margin-right:8px;"></i>Metin İçerikler
+          <i class="fas fa-shield-alt" style="color:var(--yt-spec-brand-background-solid); margin-right:8px;"></i>Metin İçerikler
         </h2>
         <div class="text-grid" id="textGrid"></div>
       `;
@@ -2324,12 +2324,12 @@ function renderTextGrid(texts, containerId) {
     return `
       <div class="text-card" onclick="playVideo(${v.id})">
         <div class="text-card-header">
-          <img src="${getProfilePhotoUrl(v.profile_photo)}" class="text-card-avatar" />
+          <img src="${getProfilePhotoUrl(v.profile_photo)}" class="text-card-avatar" onerror="onProfilePhotoError(this)" />
           <div class="text-card-user">
             <p class="text-card-name">${v.channel_name || 'Kullanıcı'}</p>
             <p class="text-card-time">${timeAgo(v.created_at)}</p>
           </div>
-          ${isTeaWeet ? '<span class="text-card-badge"><i class="fas fa-shield-alt"></i> TeaWeet</span>' : '<span class="text-card-badge"><i class="fas fa-align-left"></i> Düz Metin</span>'}
+          ${isTeaWeet ? '<span class="text-card-badge"><i class="fas fa-shield-alt"></i> TeaWeet</span>' : '<span class="text-card-badge"><i class="fas fa-shield-alt"></i> Düz Metin</span>'}
         </div>
         <div class="text-card-content ${isTeaWeet ? 'teaweet-content' : 'plain-content'}">
           ${displayContent}
@@ -2392,7 +2392,7 @@ function displayVideos(videos, containerId) {
               </div>
             </div>
             <div class="photo-card-info">
-              <img src="${getProfilePhotoUrl(p.profile_photo)}" class="channel-avatar" style="width:22px;height:22px;" />
+              <img src="${getProfilePhotoUrl(p.profile_photo)}" class="channel-avatar" style="width:22px;height:22px;" onerror="onProfilePhotoError(this)" />
               <span style="font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.channel_name}</span>
               <span style="font-size:11px; color:var(--yt-spec-text-secondary); margin-left:auto; flex-shrink:0;"><i class="fas fa-heart"></i> ${p.likes}</span>
             </div>
@@ -2418,7 +2418,7 @@ function displayVideos(videos, containerId) {
           <div class="video-type-badge"><i class="fas fa-video"></i></div>
         </div>
         <div class="video-info">
-          <img src="${getProfilePhotoUrl(video.profile_photo)}" alt="${video.nickname}" class="channel-avatar" />
+          <img src="${getProfilePhotoUrl(video.profile_photo)}" alt="${video.nickname}" class="channel-avatar" onerror="onProfilePhotoError(this)" />
           <div class="video-details">
             <div class="video-title">${video.title}</div>
             <div class="video-channel">${video.channel_name}</div>
@@ -2453,6 +2453,13 @@ function getProfilePhotoUrl(photo) {
   return photo;
 }
 
+// Profil fotoğrafı yükleme hatası için fallback
+function onProfilePhotoError(img) {
+  if (img.src !== window.location.origin + '/logoteatube.png') {
+    img.src = 'logoteatube.png';
+  }
+}
+
 // Rozet HTML'i oluştur
 function renderBadge(badge, size = 14) {
   if (!badge) return '';
@@ -2480,7 +2487,7 @@ async function showPhotoPage(video) {
       <div class="photo-page-right">
         <!-- Kanal -->
         <div style="display:flex; align-items:center; gap:12px; padding-bottom:16px; border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:16px;">
-          <img src="${getProfilePhotoUrl(video.profile_photo)}" style="width:44px; height:44px; border-radius:50%; object-fit:cover; cursor:pointer; flex-shrink:0;" onclick="viewChannel(${video.channel_id})" />
+          <img src="${getProfilePhotoUrl(video.profile_photo)}" style="width:44px; height:44px; border-radius:50%; object-fit:cover; cursor:pointer; flex-shrink:0;" onclick="viewChannel(${video.channel_id})" onerror="onProfilePhotoError(this)" />
           <div style="flex:1; cursor:pointer;" onclick="viewChannel(${video.channel_id})">
             <p style="font-size:15px; font-weight:600;">${video.channel_name}</p>
             <p style="font-size:12px; color:var(--yt-spec-text-secondary);">${video.subscriber_count} abone</p>
@@ -3486,7 +3493,7 @@ function showUploadVideoModal() {
           </label>
           <label class="upload-type-btn" id="textTypeBtn_plain" onclick="switchTextType('plain')">
             <input type="radio" name="textType" value="plain" style="display:none;" />
-            <i class="fas fa-align-left" style="font-size:18px; margin-bottom:4px;"></i>
+            <i class="fas fa-shield-alt" style="font-size:18px; margin-bottom:4px;"></i>
             <span>Düz Metin</span>
             <small>Uzun yazılar</small>
           </label>
