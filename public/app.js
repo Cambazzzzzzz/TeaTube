@@ -6411,11 +6411,11 @@ async function createGroup() {
   try {
     const r = await fetch(`${API_URL}/groups`, { method:'POST', body: formData });
     const d = await r.json();
-    if (!r.ok) { showToast(d.error || 'Hata', 'error'); return; }
+    if (!r.ok) { showToast(d.error || 'Hata: ' + JSON.stringify(d), 'error'); return; }
     showToast('Grup oluşturuldu!', 'success');
     closeModal();
     openGroup(d.groupId);
-  } catch(e) { showToast('Hata', 'error'); }
+  } catch(e) { showToast('Hata: ' + e.message, 'error'); }
 }
 
 async function openGroup(groupId) {

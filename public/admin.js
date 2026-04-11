@@ -432,8 +432,10 @@ async function loadMusicApplications(tab) {
 
 async function reviewMusicApp(appId, action) {
   const note = prompt(action==='accept'?'Kabul notu (opsiyonel):':'Red sebebi:') ?? '';
+  // Backend 'accepted'/'rejected' bekliyor
+  const backendAction = action === 'accept' ? 'accepted' : 'rejected';
   try {
-    const r = await fetch(API+'/admin/music/application/'+appId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action, note})});
+    const r = await fetch(API+'/admin/music/application/'+appId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action: backendAction, note})});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast(action==='accept'?'Basvuru kabul edildi':'Basvuru reddedildi');
