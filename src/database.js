@@ -279,15 +279,35 @@ try {
 // is_ad kolonu ekle (yoksa)
 try {
   db.prepare('ALTER TABLE videos ADD COLUMN is_ad INTEGER DEFAULT 0').run();
-} catch(e) {}
+  console.log('✅ is_ad kolonu eklendi');
+} catch(e) {
+  // Kolon zaten var
+}
 
-// Eski videoların is_ad değerini düzelt (migration)
+// Eski videoların is_ad değerini düzelt (migration) - HER BAŞLANGIŞTA ÇALIŞ
 try {
-  const result = db.prepare('UPDATE videos SET is_ad = 0 WHERE is_ad IS NULL').run();
-  if (result.changes > 0) {
-    console.log(`✅ ${result.changes} eski video güncellendi (is_ad = 0)`);
+  const nullCount = db.prepare('SELECT COUNT(*) as cnt FROM videos WHERE is_ad IS NULL').get();
+  if (nullCount.cnt > 0) {
+    const result = db.prepare('UPDATE videos SET is_ad = 0 WHERE is_ad IS NULL').run();
+    console.log(`✅ ${result.changes} video güncellendi (is_ad NULL → 0)`);
   }
-} catch(e) {}
+  
+  // Tüm videoları kontrol et ve 1 olanları 0 yap (sadece ilk çalıştırmada)
+  const adCount = db.prepare('SELECT COUNT(*) as cnt FROM videos WHERE is_ad = 1').get();
+  if (adCount.cnt > 0) {
+    console.log(`⚠️  ${adCount.cnt} video is_ad=1 olarak işaretli, kontrol ediliyor...`);
+    // Sadece ads tablosunda olmayan videoları 0 yap
+    const result = db.prepare(`
+      UPDATE videos SET is_ad = 0 
+      WHERE is_ad = 1 AND id NOT IN (SELECT video_id FROM ads)
+    `).run();
+    if (result.changes > 0) {
+      console.log(`✅ ${result.changes} video düzeltildi (is_ad 1 → 0, ads tablosunda yok)`);
+    }
+  }
+} catch(e) {
+  console.error('Migration hatası:', e);
+}
 
 // account_type ve is_private_account kolonları ekle (yoksa)
 try {

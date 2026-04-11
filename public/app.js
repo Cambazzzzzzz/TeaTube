@@ -66,7 +66,7 @@ function showMobileUploadMenu() {
   sheet.innerHTML = `
     <div style="width:100%; background:var(--yt-spec-raised-background); border-radius:20px 20px 0 0; padding:20px 16px 32px;">
       <div style="width:40px; height:4px; background:rgba(255,255,255,0.2); border-radius:2px; margin:0 auto 20px;"></div>
-      <button onclick="const sheet = document.getElementById('mobileUploadSheet'); if(sheet) sheet.remove(); setTimeout(() => { switchUploadType('reals'); showUploadVideoModal(); }, 300);"
+      <button id="mobileRealsBtn"
         style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
         <div style="width:44px; height:44px; background:rgba(255,0,51,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
           <i class="fas fa-film" style="color:#ff0033; font-size:18px;"></i>
@@ -76,7 +76,7 @@ function showMobileUploadMenu() {
           <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Kısa video paylaş</p>
         </div>
       </button>
-      <button onclick="const sheet = document.getElementById('mobileUploadSheet'); if(sheet) sheet.remove(); setTimeout(() => { switchUploadType('photo'); showUploadVideoModal(); }, 300);"
+      <button id="mobilePhotoBtn"
         style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
         <div style="width:44px; height:44px; background:rgba(255,165,0,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
           <i class="fas fa-image" style="color:orange; font-size:18px;"></i>
@@ -86,13 +86,45 @@ function showMobileUploadMenu() {
           <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Fotoğraf paylaş</p>
         </div>
       </button>
-      <button onclick="const sheet = document.getElementById('mobileUploadSheet'); if(sheet) sheet.remove();"
+      <button id="mobileCancelBtn"
         style="width:100%; background:rgba(255,255,255,0.06); border:none; color:var(--yt-spec-text-secondary); padding:14px; border-radius:10px; font-size:14px; cursor:pointer; margin-top:8px;">
         İptal
       </button>
     </div>
   `;
-  sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+  
+  // Event listener'ları doğrudan ekle
+  const realsBtn = sheet.querySelector('#mobileRealsBtn');
+  const photoBtn = sheet.querySelector('#mobilePhotoBtn');
+  const cancelBtn = sheet.querySelector('#mobileCancelBtn');
+  
+  realsBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    sheet.remove();
+    setTimeout(() => {
+      switchUploadType('reals');
+      showUploadVideoModal();
+    }, 100);
+  });
+  
+  photoBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    sheet.remove();
+    setTimeout(() => {
+      switchUploadType('photo');
+      showUploadVideoModal();
+    }, 100);
+  });
+  
+  cancelBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    sheet.remove();
+  });
+  
+  sheet.addEventListener('click', e => { 
+    if (e.target === sheet) sheet.remove(); 
+  });
+  
   document.body.appendChild(sheet);
 }
 
@@ -3188,25 +3220,39 @@ async function uploadVideo(isReals = false) {
   const commentsEnabled = document.getElementById('commentsEnabled')?.checked ? 1 : 0;
   const likesVisible = document.getElementById('likesVisible')?.checked ? 1 : 0;
   const isShort = isReals ? 1 : 0;
-  const isAd = document.getElementById('isAdEnabled')?.checked ? 1 : 0;
+  const isAdEnabled = document.getElementById('isAdEnabled')?.checked ? 1 : 0;
 
   if (!title || !videoFile || !bannerFile) {
     showToast('Başlık, video ve banner gerekli', 'error');
     return;
   }
   
-  // Reklam kontrolü
-  if (isAd) {
+  // Reklam kontrolü - ÖNCE kontrol et
+  let isAd = 0;
+  if (isAdEnabled) {
     const adCode = document.getElementById('adCode')?.value?.trim();
     if (!adCode) {
-      showToast('Reklam kodu gerekli', 'error');
+      showToast('Reklam için BCİCS kodu gerekli', 'error');
       return;
     }
-    // Reklam başlığı ve açıklamasını kullan
-    const adTitle = document.getElementById('adTitle')?.value?.trim();
-    const adDesc = document.getElementById('adDescription')?.value?.trim();
-    if (adTitle) formData.append('title', adTitle);
-    if (adDesc) formData.append('description', adDesc);
+    // Kodu doğrula
+    try {
+      const verifyRes = await fetch(`${API_URL}/ad-code/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: adCode })
+      });
+      const verifyData = await verifyRes.json();
+      if (!verifyRes.ok) {
+        showToast(verifyData.error || 'Geçersiz BCİCS kodu', 'error');
+        return;
+      }
+      // Kod geçerli, reklam olarak işaretle
+      isAd = 1;
+    } catch(e) {
+      showToast('Kod doğrulanamadı', 'error');
+      return;
+    }
   }
 
   const progressOverlay = document.getElementById('uploadProgressOverlay');
@@ -3280,48 +3326,10 @@ async function uploadVideo(isReals = false) {
       xhr.send(formData);
     });
 
-    setTimeout(async () => {
-      // Reklam seçeneği işle
-      const isAd = document.getElementById('isAdEnabled')?.checked;
-      if (isAd) {
-        const adTitle = document.getElementById('adTitle')?.value?.trim();
-        const adDescription = document.getElementById('adDescription')?.value?.trim();
-        const adCode = document.getElementById('adCode')?.value?.trim();
-        if (!adTitle || !adCode) {
-          progressOverlay.classList.remove('show');
-          showToast('Reklam başlığı ve kod gerekli', 'error');
-          return;
-        } else {
-          const verifyRes = await fetch(`${API_URL}/ad-code/verify`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code: adCode })
-          });
-          const verifyData = await verifyRes.json();
-          if (!verifyRes.ok) {
-            progressOverlay.classList.remove('show');
-            showToast(verifyData.error || 'Geçersiz kod', 'error');
-            return;
-          } else {
-            const lastVideo = await fetch(`${API_URL}/videos/channel/${currentChannel.id}?limit=1`).then(r => r.json()).catch(() => []);
-            const videoId = lastVideo[0]?.id;
-            if (videoId) {
-              const adRes = await fetch(`${API_URL}/ad`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ videoId, channelId: currentChannel.id, adTitle, adDescription, code: adCode, userId: currentUser.id })
-              });
-              const adData = await adRes.json();
-              if (adRes.ok) showToast('Video reklam olarak yayınlandı!', 'success');
-              else showToast(adData.error || 'Reklam kaydedilemedi', 'error');
-            }
-          }
-        }
-      }
-
+    // Başarılı - overlay'i kapat
+    setTimeout(() => {
       progressOverlay.classList.remove('show');
-      showToast('Video başarıyla yüklendi!', 'success');
-      closeModal();
+      showToast(isAd ? 'Reklam başarıyla yayınlandı!' : 'Video başarıyla yüklendi!', 'success');
       loadMyVideosPage();
     }, 1000);
 
