@@ -2318,6 +2318,19 @@ function getProfilePhotoUrl(photo) {
   return photo;
 }
 
+// Rozet HTML'i oluştur
+function renderBadge(badge, size = 14) {
+  if (!badge) return '';
+  return `<i class="fas ${badge.icon}" style="color:${badge.color};font-size:${size}px;margin-left:4px" title="${badge.name}"></i>`;
+}
+
+// Kullanıcı adını rozet rengiyle render et
+function renderUsername(nickname, badge) {
+  const color = badge?.name_color || '#ffffff';
+  const badgeHtml = badge ? renderBadge(badge) : '';
+  return `<span style="color:${color}">${nickname}</span>${badgeHtml}`;
+}
+
 // Video oynatma
 async function showPhotoPage(video) {
   const pageContent = document.getElementById('pageContent');
@@ -3831,8 +3844,12 @@ async function loadAlgorithmPage() {
 // Ayarlar sayfası
 async function loadSettingsPage() {
   try {
-    const settingsResponse = await fetch(`${API_URL}/settings/${currentUser.id}`);
+    const [settingsResponse, badgesResponse] = await Promise.all([
+      fetch(`${API_URL}/settings/${currentUser.id}`),
+      fetch(`${API_URL}/user/${currentUser.id}/badges`)
+    ]);
     const settings = await settingsResponse.json();
+    const myBadges = await badgesResponse.json().catch(() => []);
 
     const pageContent = document.getElementById('pageContent');
     pageContent.innerHTML = `
@@ -3954,6 +3971,23 @@ async function loadSettingsPage() {
           <button class="yt-btn yt-btn-secondary" onclick="showBlockedUsers()">Engellenen Kullanıcılar</button>
         </div>
       </div>
+
+      ${myBadges.length > 0 ? `
+      <div class="settings-card">
+        <h3 class="settings-card-title"><i class="fas fa-certificate" style="margin-right:8px;color:var(--yt-spec-brand-background-solid)"></i>Rozetlerim</h3>
+        <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:16px">Profilinde göstermek istediğin rozeti seç</p>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <div onclick="setActiveBadge(null)" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;cursor:pointer;border:2px solid ${!currentUser.active_badge_id ? 'var(--yt-spec-brand-background-solid)' : 'rgba(255,255,255,0.1)'};background:var(--yt-spec-raised-background)">
+            <i class="fas fa-times" style="font-size:16px;color:#888"></i>
+            <span style="font-size:13px">Rozet Yok</span>
+          </div>
+          ${myBadges.map(b => `
+            <div onclick="setActiveBadge(${b.id})" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;cursor:pointer;border:2px solid ${currentUser.active_badge_id === b.id ? 'var(--yt-spec-brand-background-solid)' : 'rgba(255,255,255,0.1)'};background:var(--yt-spec-raised-background)">
+              <i class="fas ${b.icon}" style="font-size:18px;color:${b.color}"></i>
+              <span style="font-size:13px;color:${b.name_color}">${b.name}</span>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
       
       <button class="yt-btn" style="width:auto; padding:0 24px; background: linear-gradient(135deg,#dc3545,#a71d2a); box-shadow: 0 2px 8px rgba(220,53,69,0.3);" onclick="logout()">
         <i class="fas fa-sign-out-alt" style="margin-right:8px;"></i>Çıkış Yap
@@ -6611,4 +6645,22 @@ async function deleteGroup(groupId) {
   showToast('Grup silindi', 'success');
   closeModal();
   loadGroupsPage();
+}
+
+// ==================== ROZET SİSTEMİ ====================
+
+async function setActiveBadge(badgeId) {
+  try {
+    const r = await fetch(`${API_URL}/user/${currentUser.id}/active-badge`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ badgeId })
+    });
+    if (r.ok) {
+      currentUser.active_badge_id = badgeId;
+      localStorage.setItem('Tea_user', JSON.stringify(currentUser));
+      showToast('Rozet güncellendi', 'success');
+      loadSettingsPage();
+    }
+  } catch(e) { showToast('Hata', 'error'); }
 }

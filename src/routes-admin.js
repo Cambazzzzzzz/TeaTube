@@ -482,3 +482,70 @@ router.put('/admin/music/artist/:artistId', (req, res) => {
 });
 
 module.exports = router;
+
+// ==================== ROZET YÖNETİMİ ====================
+
+// Tüm rozetler
+router.get('/admin/badges', (req, res) => {
+  try {
+    const badges = db.prepare('SELECT * FROM badges ORDER BY created_at DESC').all();
+    res.json(badges);
+  } catch(e) { res.status(500).json({ error: 'Rozetler alınamadı' }); }
+});
+
+// Rozet oluştur
+router.post('/admin/badges', (req, res) => {
+  try {
+    const { name, icon, color, nameColor, description } = req.body;
+    if (!name || !icon) return res.status(400).json({ error: 'Ad ve ikon gerekli' });
+    const result = db.prepare('INSERT INTO badges (name, icon, color, name_color, description) VALUES (?, ?, ?, ?, ?)')
+      .run(name, icon, color || '#ffffff', nameColor || '#ffffff', description || null);
+    res.json({ success: true, badgeId: result.lastInsertRowid });
+  } catch(e) { res.status(500).json({ error: 'Rozet oluşturulamadı' }); }
+});
+
+// Rozet güncelle
+router.put('/admin/badges/:id', (req, res) => {
+  try {
+    const { name, icon, color, nameColor, description } = req.body;
+    db.prepare('UPDATE badges SET name=?, icon=?, color=?, name_color=?, description=? WHERE id=?')
+      .run(name, icon, color, nameColor, description, req.params.id);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: 'Rozet güncellenemedi' }); }
+});
+
+// Rozet sil
+router.delete('/admin/badges/:id', (req, res) => {
+  try {
+    db.prepare('DELETE FROM badges WHERE id=? AND is_system=0').run(req.params.id);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: 'Rozet silinemedi' }); }
+});
+
+// Kullanıcıya rozet ver
+router.post('/admin/badges/:badgeId/assign/:userId', (req, res) => {
+  try {
+    db.prepare('INSERT OR IGNORE INTO user_badges (user_id, badge_id) VALUES (?, ?)').run(req.params.userId, req.params.badgeId);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: 'Rozet verilemedi' }); }
+});
+
+// Kullanıcıdan rozet al
+router.delete('/admin/badges/:badgeId/revoke/:userId', (req, res) => {
+  try {
+    db.prepare('DELETE FROM user_badges WHERE user_id=? AND badge_id=?').run(req.params.userId, req.params.badgeId);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: 'Rozet alınamadı' }); }
+});
+
+// Kullanıcının rozetleri
+router.get('/admin/users/:userId/badges', (req, res) => {
+  try {
+    const badges = db.prepare(`
+      SELECT b.*, ub.is_active, ub.assigned_at
+      FROM user_badges ub JOIN badges b ON ub.badge_id = b.id
+      WHERE ub.user_id = ?
+    `).all(req.params.userId);
+    res.json(badges);
+  } catch(e) { res.status(500).json({ error: 'Rozetler alınamadı' }); }
+});

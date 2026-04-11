@@ -65,6 +65,7 @@ function showSection(sec) {
     case 'music-applications': loadMusicApplications(); break;
     case 'music-artists': loadMusicArtists(); break;
     case 'music-songs': loadMusicSongs(); break;
+    case 'badges': loadBadges(); break;
     case 'admin-settings': loadAdminSettings(); break;
   }
 }
@@ -647,4 +648,195 @@ async function saveAdminPassword() {
 function esc(str) {
   if (str == null) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ─── ROZETLER ─────────────────────────────────────────────────────────────────
+
+const BADGE_ICONS = [
+  'fa-mug-hot','fa-star','fa-crown','fa-fire','fa-bolt','fa-gem','fa-heart','fa-shield-alt',
+  'fa-music','fa-microphone','fa-headphones','fa-guitar','fa-drum','fa-record-vinyl',
+  'fa-gamepad','fa-chess','fa-dice','fa-trophy','fa-medal','fa-award',
+  'fa-code','fa-laptop-code','fa-terminal','fa-robot','fa-brain','fa-atom',
+  'fa-camera','fa-film','fa-video','fa-photo-video','fa-palette','fa-paint-brush',
+  'fa-pen-nib','fa-feather-alt','fa-book','fa-graduation-cap','fa-university',
+  'fa-rocket','fa-satellite','fa-globe','fa-map-marker-alt','fa-compass',
+  'fa-leaf','fa-tree','fa-sun','fa-moon','fa-snowflake','fa-cloud-sun',
+  'fa-cat','fa-dog','fa-dragon','fa-dove','fa-fish','fa-spider',
+  'fa-pizza-slice','fa-hamburger','fa-ice-cream','fa-coffee','fa-wine-glass',
+  'fa-dumbbell','fa-running','fa-bicycle','fa-football-ball','fa-basketball-ball',
+  'fa-magic','fa-hat-wizard','fa-ghost','fa-skull','fa-alien','fa-user-astronaut',
+  'fa-infinity','fa-yin-yang','fa-peace','fa-rainbow','fa-meteor','fa-comet'
+];
+
+async function loadBadges() {
+  const c = document.getElementById('mainContent');
+  document.getElementById('topbarTitle').textContent = 'Rozetler';
+  c.innerHTML = '<p style="color:#666">Yukleniyor...</p>';
+  try {
+    const r = await fetch(API+'/admin/badges');
+    const badges = await r.json();
+    c.innerHTML = `
+      <div class="section-header">
+        <h2>Rozetler</h2>
+        <button class="a-btn" onclick="showCreateBadgeModal()"><i class="fas fa-plus" style="margin-right:6px"></i>Yeni Rozet</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
+        ${badges.map(b => `
+          <div style="background:#1a1a1a;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center">
+                <i class="fas ${b.icon}" style="color:${b.color};font-size:18px"></i>
+              </div>
+              <div>
+                <p style="font-size:14px;font-weight:600;color:${b.name_color}">${esc(b.name)}</p>
+                <p style="font-size:11px;color:#666">${b.is_system ? 'Sistem Rozeti' : 'Özel Rozet'}</p>
+              </div>
+            </div>
+            ${b.description ? `<p style="font-size:12px;color:#888">${esc(b.description)}</p>` : ''}
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="a-btn a-btn-sm a-btn-gray" onclick="showAssignBadgeModal(${b.id},'${esc(b.name)}')">Kullaniciya Ver</button>
+              ${!b.is_system ? `<button class="a-btn a-btn-sm a-btn-gray" onclick="showEditBadgeModal(${b.id},'${esc(b.name)}','${b.icon}','${b.color}','${b.name_color}','${esc(b.description||'')}')">Duzenle</button>
+              <button class="a-btn a-btn-sm" style="background:#c00" onclick="deleteBadge(${b.id})">Sil</button>` : ''}
+            </div>
+          </div>`).join('')}
+      </div>`;
+  } catch(e) { c.innerHTML = '<p style="color:#666">Hata</p>'; }
+}
+
+function showCreateBadgeModal() {
+  showModal(`
+    <h3 style="margin-bottom:16px">Yeni Rozet Olustur</h3>
+    <div class="a-form-group"><label>Rozet Adi</label><input id="bName" class="a-input" placeholder="Rozet adi" /></div>
+    <div class="a-form-group"><label>Aciklama</label><input id="bDesc" class="a-input" placeholder="Aciklama (opsiyonel)" /></div>
+    <div class="a-form-group"><label>Ikon Rengi</label><input id="bColor" type="color" value="#ff0033" style="width:100%;height:40px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:#1a1a1a;cursor:pointer" /></div>
+    <div class="a-form-group"><label>Isim Rengi</label><input id="bNameColor" type="color" value="#ffffff" style="width:100%;height:40px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:#1a1a1a;cursor:pointer" /></div>
+    <div class="a-form-group">
+      <label>Ikon Sec</label>
+      <input id="bIconSearch" class="a-input" placeholder="Ikon ara..." oninput="filterBadgeIcons(this.value)" style="margin-bottom:8px" />
+      <div id="bIconPreview" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:10px;background:#1a1a1a;border-radius:8px">
+        <i id="bIconPreviewEl" class="fas fa-star" style="font-size:24px;color:#ff0033"></i>
+        <span id="bIconName" style="font-size:13px;color:#888">fa-star</span>
+      </div>
+      <div id="bIconGrid" style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;max-height:200px;overflow-y:auto;padding:4px">
+        ${BADGE_ICONS.map(ic => `<button onclick="selectBadgeIcon('${ic}')" title="${ic}" style="background:rgba(255,255,255,0.06);border:1px solid transparent;border-radius:8px;padding:8px;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='#ff0033'" onmouseout="this.style.borderColor='transparent'"><i class="fas ${ic}" style="font-size:16px;color:#aaa"></i></button>`).join('')}
+      </div>
+    </div>
+    <input type="hidden" id="bIcon" value="fa-star" />
+    <button class="a-btn" style="width:100%;margin-top:8px" onclick="createBadge()">Olustur</button>`);
+}
+
+function filterBadgeIcons(q) {
+  const grid = document.getElementById('bIconGrid');
+  if (!grid) return;
+  const filtered = q ? BADGE_ICONS.filter(ic => ic.includes(q.toLowerCase())) : BADGE_ICONS;
+  grid.innerHTML = filtered.map(ic => `<button onclick="selectBadgeIcon('${ic}')" title="${ic}" style="background:rgba(255,255,255,0.06);border:1px solid transparent;border-radius:8px;padding:8px;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='#ff0033'" onmouseout="this.style.borderColor='transparent'"><i class="fas ${ic}" style="font-size:16px;color:#aaa"></i></button>`).join('');
+}
+
+function selectBadgeIcon(icon) {
+  document.getElementById('bIcon').value = icon;
+  const prev = document.getElementById('bIconPreviewEl');
+  const name = document.getElementById('bIconName');
+  const color = document.getElementById('bColor')?.value || '#ff0033';
+  if (prev) { prev.className = 'fas ' + icon; prev.style.color = color; }
+  if (name) name.textContent = icon;
+}
+
+async function createBadge() {
+  const name = document.getElementById('bName')?.value.trim();
+  const icon = document.getElementById('bIcon')?.value;
+  const color = document.getElementById('bColor')?.value;
+  const nameColor = document.getElementById('bNameColor')?.value;
+  const description = document.getElementById('bDesc')?.value.trim();
+  if (!name) { showToast('Rozet adi gerekli', false); return; }
+  const r = await fetch(API+'/admin/badges', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, icon, color, nameColor, description}) });
+  const d = await r.json();
+  if (!r.ok) { showToast(d.error||'Hata', false); return; }
+  showToast('Rozet olusturuldu');
+  closeModal();
+  loadBadges();
+}
+
+function showEditBadgeModal(id, name, icon, color, nameColor, desc) {
+  showModal(`
+    <h3 style="margin-bottom:16px">Rozet Duzenle</h3>
+    <div class="a-form-group"><label>Rozet Adi</label><input id="ebName" class="a-input" value="${esc(name)}" /></div>
+    <div class="a-form-group"><label>Aciklama</label><input id="ebDesc" class="a-input" value="${esc(desc)}" /></div>
+    <div class="a-form-group"><label>Ikon Rengi</label><input id="ebColor" type="color" value="${color}" style="width:100%;height:40px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:#1a1a1a;cursor:pointer" /></div>
+    <div class="a-form-group"><label>Isim Rengi</label><input id="ebNameColor" type="color" value="${nameColor}" style="width:100%;height:40px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:#1a1a1a;cursor:pointer" /></div>
+    <div class="a-form-group">
+      <label>Ikon (mevcut: ${icon})</label>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:10px;background:#1a1a1a;border-radius:8px">
+        <i id="ebIconPreviewEl" class="fas ${icon}" style="font-size:24px;color:${color}"></i>
+        <span id="ebIconName" style="font-size:13px;color:#888">${icon}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;max-height:160px;overflow-y:auto">
+        ${BADGE_ICONS.map(ic => `<button onclick="selectEditBadgeIcon('${ic}')" title="${ic}" style="background:rgba(255,255,255,0.06);border:1px solid transparent;border-radius:8px;padding:8px;cursor:pointer" onmouseover="this.style.borderColor='#ff0033'" onmouseout="this.style.borderColor='transparent'"><i class="fas ${ic}" style="font-size:16px;color:#aaa"></i></button>`).join('')}
+      </div>
+    </div>
+    <input type="hidden" id="ebIcon" value="${icon}" />
+    <button class="a-btn" style="width:100%;margin-top:8px" onclick="updateBadge(${id})">Kaydet</button>`);
+}
+
+function selectEditBadgeIcon(icon) {
+  document.getElementById('ebIcon').value = icon;
+  const prev = document.getElementById('ebIconPreviewEl');
+  const name = document.getElementById('ebIconName');
+  const color = document.getElementById('ebColor')?.value || '#ff0033';
+  if (prev) { prev.className = 'fas ' + icon; prev.style.color = color; }
+  if (name) name.textContent = icon;
+}
+
+async function updateBadge(id) {
+  const name = document.getElementById('ebName')?.value.trim();
+  const icon = document.getElementById('ebIcon')?.value;
+  const color = document.getElementById('ebColor')?.value;
+  const nameColor = document.getElementById('ebNameColor')?.value;
+  const description = document.getElementById('ebDesc')?.value.trim();
+  const r = await fetch(API+'/admin/badges/'+id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, icon, color, nameColor, description}) });
+  const d = await r.json();
+  if (!r.ok) { showToast(d.error||'Hata', false); return; }
+  showToast('Rozet guncellendi');
+  closeModal();
+  loadBadges();
+}
+
+async function deleteBadge(id) {
+  if (!confirm('Rozeti silmek istediginize emin misiniz?')) return;
+  await fetch(API+'/admin/badges/'+id, { method:'DELETE' });
+  showToast('Rozet silindi');
+  loadBadges();
+}
+
+async function showAssignBadgeModal(badgeId, badgeName) {
+  showModal(`
+    <h3 style="margin-bottom:16px">"${esc(badgeName)}" Rozetini Ver</h3>
+    <div class="a-form-group"><label>Kullanici Ara</label><input id="assignUserSearch" class="a-input" placeholder="Kullanici adi..." oninput="searchUsersForBadge(this.value,${badgeId})" /></div>
+    <div id="assignUserResults"></div>`);
+}
+
+async function searchUsersForBadge(q, badgeId) {
+  const results = document.getElementById('assignUserResults');
+  if (!results || !q || q.length < 2) { if(results) results.innerHTML=''; return; }
+  const r = await fetch(API+'/admin/users?q='+encodeURIComponent(q)+'&limit=10');
+  const users = await r.json();
+  const list = Array.isArray(users) ? users : (users.users || []);
+  results.innerHTML = list.map(u => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#1a1a1a;border-radius:8px;margin-bottom:6px">
+      <img src="${u.profile_photo && u.profile_photo!=='?' ? u.profile_photo : ''}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;background:#333" onerror="this.style.display='none'" />
+      <div style="flex:1"><p style="font-size:13px;font-weight:500">${esc(u.nickname)}</p><p style="font-size:11px;color:#666">@${esc(u.username)}</p></div>
+      <button class="a-btn a-btn-sm a-btn-green" onclick="assignBadge(${badgeId},${u.id},'${esc(u.nickname)}')">Ver</button>
+      <button class="a-btn a-btn-sm" style="background:#c00" onclick="revokeBadge(${badgeId},${u.id},'${esc(u.nickname)}')">Al</button>
+    </div>`).join('') || '<p style="color:#666;font-size:13px">Kullanici bulunamadi</p>';
+}
+
+async function assignBadge(badgeId, userId, name) {
+  const r = await fetch(API+'/admin/badges/'+badgeId+'/assign/'+userId, { method:'POST' });
+  const d = await r.json();
+  showToast(r.ok ? name+' kullanicisina rozet verildi' : (d.error||'Hata'), r.ok);
+}
+
+async function revokeBadge(badgeId, userId, name) {
+  const r = await fetch(API+'/admin/badges/'+badgeId+'/revoke/'+userId, { method:'DELETE' });
+  const d = await r.json();
+  showToast(r.ok ? name+' kullanicisinin rozeti alindi' : (d.error||'Hata'), r.ok);
 }

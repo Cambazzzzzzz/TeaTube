@@ -87,6 +87,12 @@ router.post('/register', upload.single('profile_photo'), async (req, res) => {
 
     db.prepare('INSERT INTO user_settings (user_id) VALUES (?)').run(result.lastInsertRowid);
 
+    // Demlikçi rozetini ver
+    try {
+      const demlikBadge = db.prepare("SELECT id FROM badges WHERE name='Demlikçi'").get();
+      if (demlikBadge) db.prepare('INSERT OR IGNORE INTO user_badges (user_id, badge_id) VALUES (?, ?)').run(result.lastInsertRowid, demlikBadge.id);
+    } catch(e) {}
+
     res.json({ success: true, userId: result.lastInsertRowid });
   } catch (error) {
     console.error('Kayıt hatası:', error);
@@ -175,11 +181,21 @@ router.post('/login', async (req, res) => {
 // Kullanıcı bilgilerini getir
 router.get('/user/:userId', (req, res) => {
   try {
-    const user = db.prepare('SELECT id, username, nickname, profile_photo, created_at, theme FROM users WHERE id = ?')
+    const user = db.prepare('SELECT id, username, nickname, profile_photo, created_at, theme, active_badge_id FROM users WHERE id = ?')
       .get(req.params.userId);
     
     if (!user) {
       return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+    }
+
+    // Aktif rozeti getir
+    if (user.active_badge_id) {
+      const badge = db.prepare('SELECT * FROM badges WHERE id = ?').get(user.active_badge_id);
+      user.active_badge = badge || null;
+    } else {
+      // Demlikçi rozeti varsayılan
+      const demlik = db.prepare("SELECT * FROM badges WHERE name='Demlikçi'").get();
+      user.active_badge = demlik || null;
     }
 
     res.json(user);
@@ -1598,7 +1614,7 @@ router.get('/supporter-channels/:channelId', (req, res) => {
 router.get('/shorts', (req, res) => {
   try {
     const shorts = db.prepare(`
-      SELECT v.*, c.channel_name, c.id as channel_id, c.user_id, u.profile_photo, u.nickname,
+      SELECT v.*, c.channel_name, c.id as channel_id, c.user_id as channel_owner_id, u.profile_photo, u.nickname,
              (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as subscriber_count
       FROM videos v
       JOIN channels c ON v.channel_id = c.id
@@ -2173,5 +2189,43 @@ router.put('/comment/:commentId/owner-like', (req, res) => {
 });
 
 
+// ==================== ROZET SİSTEMİ ====================
+
+// Kullanıcının rozetlerini getir
+router.get('/user/:userId/badges', (req, res) => {
+  try {
+    const badges = db.prepare(`
+      SELECT b.*, ub.is_active
+      FROM user_badges ub JOIN badges b ON ub.badge_id = b.id
+      WHERE ub.user_id = ?
+      ORDER BY b.is_system DESC, ub.assigned_at ASC
+    `).all(req.params.userId);
+    res.json(badges);
+  } catch(e) { res.status(500).json({ error: 'Rozetler alınamadı' }); }
+});
+
+// Aktif rozeti değiştir
+router.put('/user/:userId/active-badge', (req, res) => {
+  try {
+    const { badgeId } = req.body;
+    // Kullanıcının bu rozete sahip olup olmadığını kontrol et
+    if (badgeId) {
+      const has = db.prepare('SELECT id FROM user_badges WHERE user_id=? AND badge_id=?').get(req.params.userId, badgeId);
+      if (!has) return res.status(403).json({ error: 'Bu rozete sahip değilsiniz' });
+    }
+    db.prepare('UPDATE users SET active_badge_id=? WHERE id=?').run(badgeId || null, req.params.userId);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: 'Rozet değiştirilemedi' }); }
+});
+
+// Kayıt olunca Demlikçi rozeti ver
+function assignDemlikBadge(userId) {
+  try {
+    const badge = db.prepare("SELECT id FROM badges WHERE name='Demlikçi'").get();
+    if (badge) db.prepare('INSERT OR IGNORE INTO user_badges (user_id, badge_id) VALUES (?, ?)').run(userId, badge.id);
+  } catch(e) {}
+}
+
 module.exports = router;
 module.exports.VIDEO_TYPES = VIDEO_TYPES;
+module.exports.assignDemlikBadge = assignDemlikBadge;

@@ -640,4 +640,58 @@ try { db.prepare('ALTER TABLE group_members ADD COLUMN muted_until DATETIME').ru
 try { db.prepare('ALTER TABLE group_members ADD COLUMN is_banned INTEGER DEFAULT 0').run(); } catch(e) {}
 try { db.prepare('ALTER TABLE group_members ADD COLUMN banned_until DATETIME').run(); } catch(e) {}
 
+// ==================== ROZET SİSTEMİ ====================
+
+// Rozetler tablosu
+db.exec(`
+  CREATE TABLE IF NOT EXISTS badges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    icon TEXT NOT NULL,
+    color TEXT DEFAULT '#ffffff',
+    name_color TEXT DEFAULT '#ffffff',
+    description TEXT,
+    is_system INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+// Kullanıcı rozetleri
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_badges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    badge_id INTEGER NOT NULL,
+    is_active INTEGER DEFAULT 1,
+    assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, badge_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (badge_id) REFERENCES badges(id) ON DELETE CASCADE
+  )
+`);
+
+// Aktif rozet (profilde gösterilen)
+try { db.prepare('ALTER TABLE users ADD COLUMN active_badge_id INTEGER DEFAULT NULL').run(); } catch(e) {}
+
+// Demlikçi rozetini oluştur (sistem rozeti)
+const demlikBadge = db.prepare("SELECT id FROM badges WHERE name = 'Demlikçi'").get();
+if (!demlikBadge) {
+  db.prepare("INSERT INTO badges (name, icon, color, name_color, description, is_system) VALUES (?, ?, ?, ?, ?, 1)")
+    .run('Demlikçi', 'fa-mug-hot', '#ffffff', '#ffffff', 'TeaTube üyesi');
+  console.log('✅ Demlikçi rozeti oluşturuldu');
+}
+
+// Tüm kullanıcılara Demlikçi rozetini ver (yoksa)
+try {
+  const demlikId = db.prepare("SELECT id FROM badges WHERE name = 'Demlikçi'").get()?.id;
+  if (demlikId) {
+    const users = db.prepare('SELECT id FROM users').all();
+    const insertBadge = db.prepare('INSERT OR IGNORE INTO user_badges (user_id, badge_id) VALUES (?, ?)');
+    const tx = db.transaction(() => { for (const u of users) insertBadge.run(u.id, demlikId); });
+    tx();
+  }
+} catch(e) {}
+
+console.log('✅ Rozet sistemi hazır!');
+
 module.exports = db;
