@@ -89,7 +89,7 @@ function showMobileUploadMenu() {
       <button id="mobileTextBtn"
         style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
         <div style="width:44px; height:44px; background:rgba(29,161,242,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
-          <i class="fas fa-shield-alt" style="color:#1da1f2; font-size:18px;"></i>
+          <i class="fas fa-align-left" style="color:#1da1f2; font-size:18px;"></i>
         </div>
         <div style="text-align:left;">
           <p style="font-weight:600; margin-bottom:2px;">Metin</p>
@@ -2058,7 +2058,7 @@ async function loadHomePage() {
         <i class="fas fa-image" style="margin-right:4px; font-size:11px;"></i>Foto
       </button>
       <button class="category-chip" onclick="filterCategory(this, 'text')">
-        <i class="fas fa-shield-alt" style="margin-right:4px; font-size:11px;"></i>Metin
+        <i class="fas fa-align-left" style="margin-right:4px; font-size:11px;"></i>Metin
       </button>
     </div>
     <div id="homeContent" style="margin-top: 24px;"></div>
@@ -2203,7 +2203,7 @@ async function loadHomeVideos(category) {
       }
       container.innerHTML = `
         <h2 class="section-header" style="margin-bottom:16px;">
-          <i class="fas fa-shield-alt" style="color:var(--yt-spec-brand-background-solid); margin-right:8px;"></i>Metin İçerikler
+          <i class="fas fa-align-left" style="color:var(--yt-spec-brand-background-solid); margin-right:8px;"></i>Metin İçerikler
         </h2>
         <div class="text-grid" id="textGrid"></div>
       `;
@@ -2329,7 +2329,7 @@ function renderTextGrid(texts, containerId) {
             <p class="text-card-name">${v.channel_name || 'Kullanıcı'}</p>
             <p class="text-card-time">${timeAgo(v.created_at)}</p>
           </div>
-          ${isTeaWeet ? '<span class="text-card-badge"><i class="fas fa-shield-alt"></i> TeaWeet</span>' : '<span class="text-card-badge"><i class="fas fa-shield-alt"></i> Düz Metin</span>'}
+          ${isTeaWeet ? '<span class="text-card-badge"><i class="fas fa-shield-alt"></i> TeaWeet</span>' : '<span class="text-card-badge"><i class="fas fa-align-left"></i> Düz Metin</span>'}
         </div>
         <div class="text-card-content ${isTeaWeet ? 'teaweet-content' : 'plain-content'}">
           ${displayContent}
@@ -3493,7 +3493,7 @@ function showUploadVideoModal() {
           </label>
           <label class="upload-type-btn" id="textTypeBtn_plain" onclick="switchTextType('plain')">
             <input type="radio" name="textType" value="plain" style="display:none;" />
-            <i class="fas fa-shield-alt" style="font-size:18px; margin-bottom:4px;"></i>
+            <i class="fas fa-align-left" style="font-size:18px; margin-bottom:4px;"></i>
             <span>Düz Metin</span>
             <small>Uzun yazılar</small>
           </label>

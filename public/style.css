@@ -917,6 +917,11 @@ body:not([data-theme]) {
   .channel-info {
     font-size: 11px;
   }
+  
+  /* Mobil + butonu göster */
+  #uploadPlusBtn {
+    display: block !important;
+  }
 }
 
 

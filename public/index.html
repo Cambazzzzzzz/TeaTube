@@ -124,6 +124,9 @@
             <i class="fas fa-comment-dots"></i>
             <span id="msgBadge" class="badge" style="display: none;"></span>
           </button>
+          <button class="yt-icon-button" onclick="showPage('groups')" title="Gruplar" style="position:relative;">
+            <i class="fas fa-layer-group"></i>
+          </button>
           <button class="yt-icon-button" onclick="showPage('notifications')" style="position:relative;">
             <i class="fas fa-bell"></i>
             <span id="notifBadge" class="badge" style="display: none;"></span>
@@ -251,10 +254,13 @@
       <div id="pageContent"></div>
     </div>
 
-    <!-- Mobil Alt Bar (Arama sol, Reals orta, Profil sağ) -->
+    <!-- Mobil Alt Bar (Arama, Gruplar, Reals, Profil) -->
     <nav id="mobileBottomBar" class="mobile-bottom-bar">
       <button class="mbb-btn" onclick="toggleMobileSearch()">
         <i class="fas fa-search"></i>
+      </button>
+      <button class="mbb-btn" onclick="showPage('groups'); updateMobileBottomBar('groups')">
+        <i class="fas fa-layer-group"></i>
       </button>
       <button class="mbb-btn mbb-reals" onclick="showPage('shorts'); updateMobileBottomBar('shorts')">
         <i class="fas fa-film"></i>
