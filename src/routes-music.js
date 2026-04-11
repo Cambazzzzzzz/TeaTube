@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('./database');
 const multer = require('multer');
-const cloudinary = require('./cloudinary');
+const cloudinaryModule = require('./cloudinary');
+const cloudinary = cloudinaryModule.cloudinary;
 const path = require('path');
 const fs = require('fs');
 
@@ -71,7 +72,7 @@ router.post('/music/song', uploadDisk.fields([{ name: 'audio' }, { name: 'cover'
     // Kapak yükle
     const coverBuffer = fs.readFileSync(coverPath);
     const coverUrl = await new Promise((resolve, reject) => {
-      const stream = cloudinary.cloudinary.uploader.upload_stream(
+      const stream = cloudinary.uploader.upload_stream(
         { resource_type: 'image', folder: 'tsmusic/covers', public_id: `cover_${Date.now()}` },
         (err, result) => err ? reject(err) : resolve(result.secure_url)
       );
@@ -80,7 +81,7 @@ router.post('/music/song', uploadDisk.fields([{ name: 'audio' }, { name: 'cover'
 
     // Ses yükle
     const audioUrl = await new Promise((resolve, reject) => {
-      cloudinary.cloudinary.uploader.upload(audioPath, {
+      cloudinary.uploader.upload(audioPath, {
         resource_type: 'video', // Cloudinary'de audio = video resource_type
         folder: 'tsmusic/audio',
         public_id: `audio_${Date.now()}`,

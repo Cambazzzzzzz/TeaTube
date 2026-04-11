@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('./database');
 const multer = require('multer');
-const cloudinary = require('./cloudinary');
+const cloudinaryModule = require('./cloudinary');
+const cloudinary = cloudinaryModule.cloudinary;
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -14,13 +15,18 @@ router.post('/groups', upload.single('photo'), async (req, res) => {
 
     let photoUrl = null;
     if (req.file) {
-      photoUrl = await new Promise((resolve, reject) => {
-        const stream = cloudinary.cloudinary.uploader.upload_stream(
-          { resource_type: 'image', folder: 'teatube/groups', public_id: `group_${Date.now()}` },
-          (err, result) => err ? reject(err) : resolve(result.secure_url)
-        );
-        stream.end(req.file.buffer);
-      });
+      try {
+        photoUrl = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { resource_type: 'image', folder: 'teatube/groups', public_id: `group_${Date.now()}` },
+            (err, result) => err ? reject(err) : resolve(result.secure_url)
+          );
+          stream.end(req.file.buffer);
+        });
+      } catch(e) {
+        console.error('Grup fotoğrafı yüklenemedi:', e.message);
+        // Fotoğraf yüklenemese de grup oluştur
+      }
     }
 
     const result = db.prepare('INSERT INTO groups (name, description, photo_url, owner_id, is_private) VALUES (?, ?, ?, ?, ?)')
@@ -31,8 +37,8 @@ router.post('/groups', upload.single('photo'), async (req, res) => {
 
     res.json({ success: true, groupId: result.lastInsertRowid });
   } catch(e) {
-    console.error(e);
-    res.status(500).json({ error: 'Grup oluşturulamadı' });
+    console.error('Grup oluşturma hatası:', e);
+    res.status(500).json({ error: 'Grup oluşturulamadı: ' + e.message });
   }
 });
 
