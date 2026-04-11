@@ -83,7 +83,7 @@ router.get('/admin/users', (req, res) => {
     const { q, page = 1, limit = 30 } = req.query;
     const offset = (page - 1) * limit;
     let query = `
-      SELECT u.id, u.username, u.nickname, u.profile_photo, u.created_at, u.is_suspended, u.suspend_reason,
+      SELECT u.id, u.username, u.nickname, u.profile_photo, u.created_at, u.is_suspended, u.suspend_reason, u.last_ip,
              c.id as channel_id, c.channel_name, c.account_type,
              (SELECT COUNT(*) FROM videos WHERE channel_id = c.id) as video_count,
              (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as sub_count
