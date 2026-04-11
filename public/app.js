@@ -2307,7 +2307,7 @@ function renderPhotoGrid(photos, containerId) {
   `).join('');
 }
 
-// Metin grid - Twitter/Ekşi benzeri kartlar
+// Metin grid - TeaWeet ve Düz Metin kartları
 function renderTextGrid(texts, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -2329,7 +2329,7 @@ function renderTextGrid(texts, containerId) {
             <p class="text-card-name">${v.channel_name || 'Kullanıcı'}</p>
             <p class="text-card-time">${timeAgo(v.created_at)}</p>
           </div>
-          ${isTeaWeet ? '<span class="text-card-badge"><i class="fas fa-bolt"></i> TeaWeet</span>' : '<span class="text-card-badge"><i class="fas fa-align-left"></i> Düz Metin</span>'}
+          ${isTeaWeet ? '<span class="text-card-badge"><i class="fas fa-shield-alt"></i> TeaWeet</span>' : '<span class="text-card-badge"><i class="fas fa-align-left"></i> Düz Metin</span>'}
         </div>
         <div class="text-card-content ${isTeaWeet ? 'teaweet-content' : 'plain-content'}">
           ${displayContent}
@@ -3480,15 +3480,15 @@ function showUploadVideoModal() {
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
           <label class="upload-type-btn active" id="textTypeBtn_teaweet" onclick="switchTextType('teaweet')">
             <input type="radio" name="textType" value="teaweet" checked style="display:none;" />
-            <i class="fas fa-bolt" style="font-size:18px; margin-bottom:4px; color:#1da1f2;"></i>
+            <i class="fas fa-shield-alt" style="font-size:18px; margin-bottom:4px; color:#1da1f2;"></i>
             <span>TeaWeet</span>
-            <small>Twitter benzeri, #hashtag</small>
+            <small>Kısa ve öz, #hashtag</small>
           </label>
           <label class="upload-type-btn" id="textTypeBtn_plain" onclick="switchTextType('plain')">
             <input type="radio" name="textType" value="plain" style="display:none;" />
             <i class="fas fa-align-left" style="font-size:18px; margin-bottom:4px;"></i>
             <span>Düz Metin</span>
-            <small>Ekşi sözlük benzeri</small>
+            <small>Uzun yazılar</small>
           </label>
         </div>
       </div>
@@ -3532,9 +3532,9 @@ function switchTextType(textType) {
   const hint = document.getElementById('textTypeHint');
   if (hint) {
     if (textType === 'teaweet') {
-      hint.innerHTML = '<i class="fas fa-info-circle"></i> TeaWeet: #hashtag kullanabilirsiniz, kısa ve öz olmalı (Twitter benzeri)';
+      hint.innerHTML = '<i class="fas fa-info-circle"></i> TeaWeet: #hashtag kullanabilirsiniz, kısa ve öz olmalı';
     } else {
-      hint.innerHTML = '<i class="fas fa-info-circle"></i> Düz Metin: Uzun yazılar yazabilirsiniz (Ekşi sözlük benzeri)';
+      hint.innerHTML = '<i class="fas fa-info-circle"></i> Düz Metin: Uzun yazılar yazabilirsiniz';
     }
   }
 }
