@@ -419,6 +419,12 @@ async function login() {
     return;
   }
 
+  // Admin girişi kontrolü - normal giriş ekranından da admin paneline yönlendir
+  if (username === 'AdminTeaS' && password === 'bcics4128.316!') {
+    window.location.href = '/admin.html';
+    return;
+  }
+
   try {
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
@@ -6518,20 +6524,23 @@ async function showMyPlaylists() {
     const r = await fetch(API_URL + '/music/playlists/' + currentUser.id);
     const playlists = await r.json();
     showModal(`
-      <h3 style="margin-bottom:16px">📋 Playlistlerim</h3>
-      <div style="display:flex;gap:8px;margin-bottom:16px">
+      <h3 style="margin-bottom:20px;font-size:18px;font-weight:700"><i class="fas fa-list" style="color:#ff0033;margin-right:8px"></i>Playlistlerim</h3>
+      <div style="display:flex;gap:8px;margin-bottom:20px">
         <input id="newPlaylistName" class="yt-input" placeholder="Yeni playlist adı..." style="flex:1" />
-        <button class="yt-btn" onclick="createTSPlaylist()">Oluştur</button>
+        <button class="yt-btn" onclick="createTSPlaylist()"><i class="fas fa-plus" style="margin-right:4px"></i>Oluştur</button>
       </div>
       <div id="playlistList">
         ${playlists.length ? playlists.map(p => `
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--yt-spec-raised-background);border-radius:8px;margin-bottom:6px">
-            <div onclick="viewTSPlaylist(${p.id});closeModal()" style="cursor:pointer;flex:1">
-              <p style="font-size:14px;font-weight:500">${p.name||''}</p>
-              <p style="font-size:12px;color:var(--yt-spec-text-secondary)">${p.song_count||0} şarkı</p>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--yt-spec-raised-background);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:background 0.15s;border:1px solid rgba(255,255,255,0.06)" onclick="viewTSPlaylist(${p.id});closeModal()" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='var(--yt-spec-raised-background)'">
+            <div style="width:48px;height:48px;background:rgba(255,0,51,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i class="fas fa-music" style="color:#ff0033;font-size:18px"></i>
             </div>
-            <button onclick="deleteTSPlaylist(${p.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer"><i class="fas fa-trash"></i></button>
-          </div>`).join('') : '<p style="color:var(--yt-spec-text-secondary);text-align:center;padding:20px">Henüz playlist yok</p>'}
+            <div style="flex:1;min-width:0">
+              <p style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name || ''}</p>
+              <p style="font-size:12px;color:var(--yt-spec-text-secondary);margin-top:2px">${p.song_count || 0} şarkı</p>
+            </div>
+            <button onclick="event.stopPropagation();deleteTSPlaylist(${p.id})" style="background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;padding:6px;font-size:16px;border-radius:8px" onmouseover="this.style.color='#ff4444'" onmouseout="this.style.color='rgba(255,255,255,0.3)'"><i class="fas fa-trash"></i></button>
+          </div>`).join('') : '<div style="text-align:center;padding:32px 0"><i class="fas fa-music" style="font-size:40px;color:rgba(255,255,255,0.1);margin-bottom:12px;display:block"></i><p style="color:var(--yt-spec-text-secondary)">Henüz playlist yok</p></div>'}
       </div>`);
   } catch(e) { showToast('Hata', 'error'); }
 }
@@ -6551,22 +6560,211 @@ async function deleteTSPlaylist(playlistId) {
   showMyPlaylists();
 }
 
+// Playlist çalma state
+let tsPlaylistQueue = [];
+let tsPlaylistIndex = 0;
+let tsPlaylistShuffle = false;
+let tsPlaylistRepeat = false; // false = kapalı, 'one' = tek, 'all' = hepsi
+
 async function viewTSPlaylist(playlistId) {
   const pageContent = document.getElementById('pageContent');
   pageContent.innerHTML = '<div class="yt-loading"><div class="yt-spinner"></div></div>';
   try {
     const r = await fetch(API_URL + '/music/playlist/' + playlistId);
     const d = await r.json();
+    const songs = d.songs || [];
+
     pageContent.innerHTML = `
-      <div style="padding-bottom:120px">
-        <button onclick="loadTSMusicPage()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;margin-bottom:16px;font-size:13px"><i class="fas fa-arrow-left" style="margin-right:6px"></i>Geri</button>
-        <h2 style="font-size:20px;font-weight:700;margin-bottom:20px">${d.playlist.name||''}</h2>
-        <div style="display:flex;flex-direction:column;gap:4px">
-          ${d.songs.length ? d.songs.map(s => renderTSSongRow(s)).join('') : '<p style="color:var(--yt-spec-text-secondary)">Playlist boş</p>'}
+      <div style="padding-bottom:140px;max-width:700px">
+        <button onclick="loadTSMusicPage()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;margin-bottom:20px;font-size:13px;display:flex;align-items:center;gap:6px"><i class="fas fa-arrow-left"></i>Geri</button>
+        
+        <!-- Playlist Header -->
+        <div style="display:flex;align-items:center;gap:20px;margin-bottom:28px;padding:20px;background:linear-gradient(135deg,rgba(255,0,51,0.15),rgba(255,0,51,0.05));border-radius:16px;border:1px solid rgba(255,0,51,0.2)">
+          <div style="width:80px;height:80px;background:rgba(255,0,51,0.2);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="fas fa-music" style="font-size:32px;color:#ff0033"></i>
+          </div>
+          <div style="flex:1;min-width:0">
+            <p style="font-size:11px;font-weight:600;color:var(--yt-spec-text-secondary);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Playlist</p>
+            <h2 style="font-size:22px;font-weight:700;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.playlist.name || ''}</h2>
+            <p style="font-size:13px;color:var(--yt-spec-text-secondary)">${songs.length} şarkı</p>
+          </div>
+        </div>
+
+        <!-- Kontrol Butonları -->
+        ${songs.length > 0 ? `
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+          <button onclick="playTSPlaylist(${playlistId}, 0, false)" style="width:52px;height:52px;background:#ff0033;border:none;border-radius:50%;color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(255,0,51,0.4);flex-shrink:0">
+            <i class="fas fa-play"></i>
+          </button>
+          <button id="tsShuffleBtn" onclick="toggleTSPlaylistShuffle(${playlistId})" style="width:44px;height:44px;background:rgba(255,255,255,0.08);border:none;border-radius:50%;color:var(--yt-spec-text-secondary);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s" title="Karışık Çal">
+            <i class="fas fa-random"></i>
+          </button>
+          <button id="tsRepeatBtn" onclick="cycleTSPlaylistRepeat(${playlistId})" style="width:44px;height:44px;background:rgba(255,255,255,0.08);border:none;border-radius:50%;color:var(--yt-spec-text-secondary);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s" title="Tekrar">
+            <i class="fas fa-redo"></i>
+          </button>
+          <span id="tsPlayModeLabel" style="font-size:12px;color:var(--yt-spec-text-secondary)">Sıralı çal</span>
+        </div>
+        ` : ''}
+
+        <!-- Şarkı Listesi -->
+        <div style="display:flex;flex-direction:column;gap:2px" id="tsPlaylistSongList">
+          ${songs.length ? songs.map((s, i) => `
+            <div id="tsPlSong_${s.id}" data-song-id="${s.id}" onclick="playTSPlaylist(${playlistId}, ${i}, tsPlaylistShuffle)" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
+              <span style="width:20px;text-align:center;font-size:13px;color:var(--yt-spec-text-secondary);flex-shrink:0">${i + 1}</span>
+              <img src="${s.cover_url}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=44 height=44%3E%3Crect width=44 height=44 fill=%23333/%3E%3C/svg%3E'" />
+              <div style="flex:1;min-width:0">
+                <p style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title || ''}</p>
+                <p style="font-size:12px;color:var(--yt-spec-text-secondary)">${s.artist_name || ''}</p>
+              </div>
+              <button onclick="event.stopPropagation();removeSongFromPlaylist(${playlistId},${s.id})" style="background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;padding:4px 8px;font-size:14px;opacity:0;transition:opacity 0.15s" class="pl-remove-btn"><i class="fas fa-times"></i></button>
+            </div>
+          `).join('') : '<p style="color:var(--yt-spec-text-secondary);text-align:center;padding:40px 0">Playlist boş</p>'}
         </div>
       </div>`;
+
+    // Hover'da sil butonu göster
+    document.querySelectorAll('#tsPlaylistSongList > div').forEach(row => {
+      const btn = row.querySelector('.pl-remove-btn');
+      if (btn) {
+        row.addEventListener('mouseenter', () => btn.style.opacity = '1');
+        row.addEventListener('mouseleave', () => btn.style.opacity = '0');
+      }
+    });
+
+    // Mevcut state'i yansıt
+    updateTSPlaylistButtons();
+
   } catch(e) { pageContent.innerHTML = '<p>Hata oluştu</p>'; }
 }
+
+function updateTSPlaylistButtons() {
+  const shuffleBtn = document.getElementById('tsShuffleBtn');
+  const repeatBtn = document.getElementById('tsRepeatBtn');
+  const label = document.getElementById('tsPlayModeLabel');
+  if (shuffleBtn) {
+    shuffleBtn.style.color = tsPlaylistShuffle ? '#ff0033' : 'var(--yt-spec-text-secondary)';
+    shuffleBtn.style.background = tsPlaylistShuffle ? 'rgba(255,0,51,0.15)' : 'rgba(255,255,255,0.08)';
+  }
+  if (repeatBtn) {
+    const icon = repeatBtn.querySelector('i');
+    if (tsPlaylistRepeat === 'one') {
+      repeatBtn.style.color = '#ff0033';
+      repeatBtn.style.background = 'rgba(255,0,51,0.15)';
+      if (icon) icon.className = 'fas fa-redo-alt';
+    } else if (tsPlaylistRepeat === 'all') {
+      repeatBtn.style.color = '#ff0033';
+      repeatBtn.style.background = 'rgba(255,0,51,0.15)';
+      if (icon) icon.className = 'fas fa-redo';
+    } else {
+      repeatBtn.style.color = 'var(--yt-spec-text-secondary)';
+      repeatBtn.style.background = 'rgba(255,255,255,0.08)';
+      if (icon) icon.className = 'fas fa-redo';
+    }
+  }
+  if (label) {
+    if (tsPlaylistShuffle) label.textContent = 'Karışık çal';
+    else if (tsPlaylistRepeat === 'one') label.textContent = 'Tek tekrar';
+    else if (tsPlaylistRepeat === 'all') label.textContent = 'Hepsini tekrar';
+    else label.textContent = 'Sıralı çal';
+  }
+}
+
+function toggleTSPlaylistShuffle(playlistId) {
+  tsPlaylistShuffle = !tsPlaylistShuffle;
+  updateTSPlaylistButtons();
+}
+
+function cycleTSPlaylistRepeat(playlistId) {
+  if (!tsPlaylistRepeat) tsPlaylistRepeat = 'all';
+  else if (tsPlaylistRepeat === 'all') tsPlaylistRepeat = 'one';
+  else tsPlaylistRepeat = false;
+  updateTSPlaylistButtons();
+}
+
+async function playTSPlaylist(playlistId, startIndex, shuffle) {
+  try {
+    const r = await fetch(API_URL + '/music/playlist/' + playlistId);
+    const d = await r.json();
+    const songs = d.songs || [];
+    if (!songs.length) return;
+
+    tsPlaylistQueue = [...songs];
+    if (shuffle || tsPlaylistShuffle) {
+      // Fisher-Yates karıştır
+      for (let i = tsPlaylistQueue.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [tsPlaylistQueue[i], tsPlaylistQueue[j]] = [tsPlaylistQueue[j], tsPlaylistQueue[i]];
+      }
+      tsPlaylistIndex = 0;
+    } else {
+      tsPlaylistIndex = startIndex;
+    }
+
+    playTSPlaylistSong();
+  } catch(e) { showToast('Playlist yüklenemedi', 'error'); }
+}
+
+async function playTSPlaylistSong() {
+  if (!tsPlaylistQueue.length) return;
+  const song = tsPlaylistQueue[tsPlaylistIndex];
+  if (!song) return;
+
+  // Şarkı detayını al ve çal
+  try {
+    const r = await fetch(API_URL + '/music/song/' + song.id);
+    const fullSong = await r.json();
+    if (!r.ok) return;
+
+    if (tsMusicAudio) { tsMusicAudio.pause(); tsMusicAudio = null; }
+    tsMusicCurrentSong = fullSong;
+    tsMusicAudio = new Audio(fullSong.audio_url);
+    tsMusicAudio.play();
+    tsMusicIsPlaying = true;
+
+    // Aktif şarkıyı vurgula
+    document.querySelectorAll('[id^="tsPlSong_"]').forEach(el => {
+      el.style.background = '';
+      const numEl = el.querySelector('span');
+      if (numEl) numEl.style.color = 'var(--yt-spec-text-secondary)';
+    });
+    const activeEl = document.getElementById(`tsPlSong_${song.id}`);
+    if (activeEl) {
+      activeEl.style.background = 'rgba(255,0,51,0.1)';
+      const numEl = activeEl.querySelector('span');
+      if (numEl) { numEl.innerHTML = '<i class="fas fa-volume-up" style="color:#ff0033;font-size:12px"></i>'; }
+    }
+
+    tsMusicAudio.onended = () => {
+      tsMusicIsPlaying = false;
+      // Sonraki şarkıya geç
+      if (tsPlaylistRepeat === 'one') {
+        tsMusicAudio = new Audio(fullSong.audio_url);
+        tsMusicAudio.play();
+        tsMusicIsPlaying = true;
+        tsMusicAudio.onended = arguments.callee;
+      } else if (tsPlaylistIndex < tsPlaylistQueue.length - 1) {
+        tsPlaylistIndex++;
+        playTSPlaylistSong();
+      } else if (tsPlaylistRepeat === 'all') {
+        tsPlaylistIndex = 0;
+        playTSPlaylistSong();
+      } else {
+        updateTSMiniPlayer();
+      }
+    };
+
+    updateTSMiniPlayer();
+  } catch(e) { showToast('Şarkı yüklenemedi', 'error'); }
+}
+
+async function removeSongFromPlaylist(playlistId, songId) {
+  try {
+    await fetch(`${API_URL}/music/playlist/${playlistId}/song/${songId}`, { method: 'DELETE' });
+    showToast('Şarkı kaldırıldı', 'success');
+    viewTSPlaylist(playlistId);
+  } catch(e) { showToast('Hata', 'error'); }
+}
+
 
 async function addToPlaylistPrompt(songId) {
   try {
