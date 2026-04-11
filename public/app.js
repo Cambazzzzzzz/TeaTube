@@ -7105,16 +7105,10 @@ async function uploadGroupPhoto(groupId, input) {
   showToast('Fotoğraf yükleniyor...', 'info');
   try {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', 'teatube_uploads');
-    
-    // Cloudinary'ye yükle
-    const r = await fetch(`${API_URL}/upload-image`, {
-      method: 'POST',
-      body: formData
-    });
-    const data = await r.json();
-    if (!data.url) throw new Error('URL alınamadı');
+    formData.append('photo', file);
+    const res = await fetch(`${API_URL}/upload-chat-photo`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!data.url) throw new Error('Yükleme başarısız');
     
     await window.firebasePush(window.firebaseRef(window.firebaseDB, `group_chats/${groupId}/messages`), {
       senderId: currentUser.id,
@@ -7123,7 +7117,10 @@ async function uploadGroupPhoto(groupId, input) {
     });
     input.value = '';
     showToast('Fotoğraf gönderildi', 'success');
-  } catch(e) { showToast('Fotoğraf gönderilemedi', 'error'); }
+  } catch(e) {
+    showToast('Fotoğraf gönderilemedi: ' + e.message, 'error');
+    input.value = '';
+  }
 }
 
 function showGroupMembersPanel(groupId, canManage = false) {
