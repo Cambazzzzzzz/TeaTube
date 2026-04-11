@@ -3749,7 +3749,14 @@ async function uploadText() {
     formData.append('commentsEnabled', 1);
     formData.append('likesVisible', 1);
 
-    await fetch(`${API_URL}/text`, { method: 'POST', body: formData });
+    const res = await fetch(`${API_URL}/text`, { method: 'POST', body: formData });
+    const resData = await res.json();
+    
+    if (!res.ok) {
+      progressOverlay.classList.remove('show');
+      showToast('Hata: ' + (resData.error || 'Bilinmeyen hata'), 'error');
+      return;
+    }
 
     progressBar.style.width = '100%';
     progressPercentage.textContent = '100%';
@@ -6332,10 +6339,10 @@ function renderTSSongRow(s) {
 }
 
 function renderTSArtistCard(a) {
-  const photo = a.cover_photo || a.profile_photo || '';
+  const photo = a.cover_photo || a.profile_photo || 'logoteatube.png';
   return `
     <div onclick="viewArtistPage(${a.id})" style="flex-shrink:0;width:100px;cursor:pointer;text-align:center">
-      <img src="${photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;margin:0 auto 6px;display:block" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=80 height=80%3E%3Ccircle cx=40 cy=40 r=40 fill=%23333/%3E%3C/svg%3E'" />
+      <img src="${photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;margin:0 auto 6px;display:block" onerror="this.src='logoteatube.png'" />
       <p style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:center;gap:3px">${a.artist_name || ''}<i class="fas fa-check-circle" style="color:#1db954;font-size:10px;flex-shrink:0"></i></p>
       <p style="font-size:11px;color:var(--yt-spec-text-secondary)">${a.song_count || 0} şarkı</p>
     </div>`;
@@ -6473,7 +6480,7 @@ async function viewArtistPage(artistId) {
       <div style="padding-bottom:120px">
         <button onclick="loadTSMusicPage()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;margin-bottom:16px;font-size:13px"><i class="fas fa-arrow-left" style="margin-right:6px"></i>Geri</button>
         <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
-          <img src="${artist.cover_photo||artist.profile_photo||''}" style="width:80px;height:80px;border-radius:50%;object-fit:cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=80 height=80%3E%3Ccircle cx=40 cy=40 r=40 fill=%23333/%3E%3C/svg%3E'" />
+          <img src="${artist.cover_photo||artist.profile_photo||'logoteatube.png'}" style="width:80px;height:80px;border-radius:50%;object-fit:cover" onerror="this.src='logoteatube.png'" />
           <div>
             <h2 style="font-size:20px;font-weight:700">${artist.artist_name||''}</h2>
             ${artist.artist_alias ? `<p style="font-size:13px;color:var(--yt-spec-text-secondary)">${artist.artist_alias}</p>` : ''}

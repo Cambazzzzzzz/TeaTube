@@ -1679,7 +1679,7 @@ router.post('/photo', upload.single('photo'), async (req, res) => {
 });
 
 // Metin paylaşımı (TeaWeet veya Düz Metin)
-router.post('/text', async (req, res) => {
+router.post('/text', upload.none(), async (req, res) => {
   try {
     const { channelId, title, description, textContent, textType, tags } = req.body;
     

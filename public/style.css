@@ -920,7 +920,8 @@ body:not([data-theme]) {
   
   /* Mobil + butonu göster */
   #uploadPlusBtn {
-    display: block !important;
+    display: flex !important;
+    align-items: center;
   }
 }
 
@@ -2385,4 +2386,9 @@ input[type="checkbox"]:checked::after {
     font-size: 11px;
     padding: 4px 10px;
   }
+}
+
+/* + butonu desktop'ta gizle, mobilde göster */
+#uploadPlusBtn {
+  display: none;
 }

@@ -99,7 +99,7 @@
             <span style="font-size:20px; font-weight:700; color:var(--yt-spec-text-primary); letter-spacing:-0.5px;">TeaSocial</span>
           </div>
           <!-- + Yükle butonu -->
-          <button id="uploadPlusBtn" onclick="showMobileUploadMenu()" style="background:none;border:none;color:var(--yt-spec-text-primary);cursor:pointer;font-size:24px;padding:4px 8px;display:none;">
+          <button id="uploadPlusBtn" onclick="showMobileUploadMenu()" style="background:none;border:none;color:var(--yt-spec-text-primary);cursor:pointer;font-size:24px;padding:4px 8px;">
             <i class="fas fa-plus-circle" style="color:var(--yt-spec-brand-background-solid);"></i>
           </button>
         </div>
@@ -116,13 +116,6 @@
         <div id="end">
           <button id="mobileSearchBtn" class="yt-icon-button" style="display:none;" onclick="toggleMobileSearch()">
             <i class="fas fa-search"></i>
-          </button>
-          <button class="yt-icon-button" onclick="showPage('ts-music')" title="TS Music" style="position:relative;">
-            <i class="fas fa-music" style="color:#1db954"></i>
-          </button>
-          <button class="yt-icon-button" onclick="showPage('messages')" style="position:relative;">
-            <i class="fas fa-comment-dots"></i>
-            <span id="msgBadge" class="badge" style="display: none;"></span>
           </button>
           <button class="yt-icon-button" onclick="showPage('groups')" title="Gruplar" style="position:relative;">
             <i class="fas fa-layer-group"></i>
@@ -246,16 +239,17 @@
       <div id="pageContent"></div>
     </div>
 
-    <!-- Mobil Alt Bar (Arama, Gruplar, Reals, Profil) -->
+    <!-- Mobil Alt Bar: Music | Reals | Mesajlar | Profil -->
     <nav id="mobileBottomBar" class="mobile-bottom-bar">
-      <button class="mbb-btn" onclick="toggleMobileSearch()">
-        <i class="fas fa-search"></i>
+      <button class="mbb-btn" onclick="showPage('ts-music')">
+        <i class="fas fa-music"></i>
       </button>
-      <button class="mbb-btn" onclick="showPage('groups'); updateMobileBottomBar('groups')">
-        <i class="fas fa-layer-group"></i>
-      </button>
-      <button class="mbb-btn mbb-reals" onclick="showPage('shorts'); updateMobileBottomBar('shorts')">
+      <button class="mbb-btn mbb-reals" onclick="showPage('reals')">
         <i class="fas fa-film"></i>
+      </button>
+      <button class="mbb-btn" onclick="showPage('messages')" style="position:relative;">
+        <i class="fas fa-comment-dots"></i>
+        <span id="mobileNavMsgBadge" class="badge" style="display:none;position:absolute;top:4px;right:4px;"></span>
       </button>
       <button class="mbb-btn" onclick="showMobileProfileSheet()">
         <img id="mobileProfilePhoto" src="logoteatube.png" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
