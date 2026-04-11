@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Login</title>
+</head>
+<body>
+  <h1>Test Login Page</h1>
+  <button onclick="testAPI()">Test API</button>
+  <div id="result"></div>
+
+  <script>
+    const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:3456/api'
+      : window.location.origin + '/api';
+
+    async function testAPI() {
+      const result = document.getElementById('result');
+      result.innerHTML = 'Testing...';
+      
+      try {
+        // Test 1: Server çalışıyor mu?
+        const response = await fetch(API_URL + '/videos?limit=1');
+        result.innerHTML = `
+          <p>✅ Server çalışıyor!</p>
+          <p>Status: ${response.status}</p>
+          <p>API URL: ${API_URL}</p>
+        `;
+      } catch(e) {
+        result.innerHTML = `
+          <p>❌ Server hatası!</p>
+          <p>Error: ${e.message}</p>
+          <p>API URL: ${API_URL}</p>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>
