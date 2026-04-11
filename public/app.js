@@ -151,6 +151,7 @@ function showMobileProfileSheet() {
         { icon:'fa-star', label:'Favoriler', page:'favorites' },
         { icon:'fa-bookmark', label:'Kaydedilenler', page:'saved' },
         { icon:'fa-history', label:'Geçmiş', page:'history' },
+        { icon:'fa-layer-group', label:'Gruplar', page:'groups' },
         { icon:'fa-music', label:'TS Music', page:'ts-music' },
         { icon:'fa-brain', label:'Algoritmam', page:'algorithm' },
         { icon:'fa-cog', label:'Ayarlar', page:'settings' },
@@ -544,6 +545,9 @@ function showPage(page) {
     case 'messages':
       loadMessagesPage();
       break;
+    case 'groups':
+      loadGroupsPage();
+      break;
     case 'shorts':
       loadShortsPage();
       break;
@@ -573,6 +577,9 @@ function showPage(page) {
       break;
     case 'ts-music':
       loadTSMusicPage();
+      break;
+    case 'groups':
+      loadGroupsPage();
       break;
     case 'settings':
       loadSettingsPage();
@@ -2330,7 +2337,7 @@ async function showPhotoPage(video) {
             <p style="font-size:15px; font-weight:600;">${video.channel_name}</p>
             <p style="font-size:12px; color:var(--yt-spec-text-secondary);">${video.subscriber_count} abone</p>
           </div>
-          <button class="yt-btn" id="subscribeBtn" onclick="toggleSubscribe(${video.channel_id})" style="height:34px; padding:0 16px; font-size:13px;">Abone Ol</button>
+          <button class="yt-btn" id="subscribeBtn" onclick="toggleSubscribe(${video.channel_id})" style="height:34px; padding:0 16px; font-size:13px;">Takip Et</button>
         </div>
 
         <!-- Başlık + Tarih -->
@@ -2469,7 +2476,7 @@ async function playVideo(videoId) {
               <div class="watch-channel-name">${video.channel_name}</div>
               <div class="watch-channel-subs">${video.subscriber_count} abone</div>
             </div>
-            <button class="yt-btn" id="subscribeBtn" onclick="toggleSubscribe(${video.channel_id})">Abone Ol</button>
+            <button class="yt-btn" id="subscribeBtn" onclick="toggleSubscribe(${video.channel_id})">Takip Et</button>
           </div>
 
           <!-- Açıklama -->
@@ -2634,7 +2641,7 @@ async function checkSubscriptionStatus(channelId) {
     if (!subscribeBtn) return;
 
     if (subData.subscribed) {
-      subscribeBtn.textContent = isPrivate ? 'Takip Ediliyor' : 'Abonelikten Çık';
+      subscribeBtn.textContent = isPrivate ? 'Takip Ediliyor' : 'Takipten Çık';
       subscribeBtn.classList.add('btn-secondary');
     } else if (isPrivate) {
       // Bekleyen istek var mı?
@@ -4373,14 +4380,14 @@ async function loadSubscriptionsPage() {
 
     const pageContent = document.getElementById('pageContent');
     pageContent.innerHTML = `
-      <h2 class="section-header">Abonelikler</h2>
+      <h2 class="section-header">Takipler</h2>
       <div id="subscriptionsList" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px;"></div>
     `;
 
     const container = document.getElementById('subscriptionsList');
 
     if (subscriptions.length === 0) {
-      container.innerHTML = '<p style="color: var(--yt-spec-text-secondary);">Henüz abonelik yok</p>';
+      container.innerHTML = '<p style="color: var(--yt-spec-text-secondary);">Henüz takip yok</p>';
       return;
     }
 
@@ -4400,14 +4407,14 @@ async function loadSubscriptionsPage() {
             <img src="${avatar}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; flex-shrink:0; margin-top:-24px; border:2px solid var(--yt-spec-raised-background);" />
             <div style="min-width:0;">
               <p style="font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sub.channel_name}</p>
-              <p style="color:var(--yt-spec-text-secondary); font-size:12px;">${sub.subscriber_count} abone • ${sub.video_count} video</p>
+              <p style="color:var(--yt-spec-text-secondary); font-size:12px;">${sub.subscriber_count} takipçi • ${sub.video_count} içerik</p>
             </div>
           </div>
         </div>
       `;
     }).join('');
   } catch (error) {
-    console.error('Abonelikler yükleme hatası:', error);
+    console.error('Takipler yükleme hatası:', error);
   }
 }
 
@@ -4779,9 +4786,9 @@ async function viewChannel(channelId) {
     const isPrivate = privData.is_private === 1;
     const isOwner = currentChannel && currentChannel.user_id === channel.user_id;
     const isPersonal = accountTypeData.account_type === 'personal';
-    const subscriberLabel = isPersonal ? 'takipçi' : 'abone';
-    const subscribeButtonLabel = isPersonal ? 'Takip Et' : 'Abone Ol';
-    const unsubscribeButtonLabel = isPersonal ? 'Takipten Çık' : 'Abonelikten Çık';
+    const subscriberLabel = 'takipçi';
+    const subscribeButtonLabel = 'Takip Et';
+    const unsubscribeButtonLabel = 'Takipten Çık';
 
     // Gizli hesap: arkadaş değilse içerikleri gizle
     let isFriend = false;
@@ -4828,7 +4835,6 @@ async function viewChannel(channelId) {
       <div style="display:flex; gap:0; border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:24px;">
         <button class="channel-tab active" onclick="switchChannelTab(this,'videos')" style="padding:12px 20px; background:none; border:none; border-bottom:2px solid var(--yt-spec-brand-background-solid); color:var(--yt-spec-text-primary); font-size:14px; font-weight:500; cursor:pointer;">Videolar</button>
         <button class="channel-tab" onclick="switchChannelTab(this,'about')" style="padding:12px 20px; background:none; border:none; border-bottom:2px solid transparent; color:var(--yt-spec-text-secondary); font-size:14px; cursor:pointer;">Hakkında</button>
-        <button class="channel-tab" onclick="switchChannelTab(this,'partners')" style="padding:12px 20px; background:none; border:none; border-bottom:2px solid transparent; color:var(--yt-spec-text-secondary); font-size:14px; cursor:pointer;">Partner Kanallar ${supporters.length > 0 ? `<span style="background:var(--yt-spec-brand-background-solid);color:white;font-size:11px;padding:1px 6px;border-radius:10px;margin-left:4px;">${supporters.length}</span>` : ''}</button>
       </div>
 
       <!-- Videolar -->
@@ -4907,7 +4913,7 @@ function switchChannelTab(btn, tab) {
   btn.style.borderBottomColor = 'var(--yt-spec-brand-background-solid)';
   btn.style.color = 'var(--yt-spec-text-primary)';
   
-  ['videos', 'about', 'partners'].forEach(t => {
+  ['videos', 'about'].forEach(t => {
     const el = document.getElementById(`channelTab${t.charAt(0).toUpperCase() + t.slice(1)}`);
     if (el) el.style.display = t === tab ? 'block' : 'none';
   });
@@ -4929,7 +4935,7 @@ async function checkChannelSubscriptionStatus(channelId) {
     const accountTypeRes = await fetch(`${API_URL}/account-type/${channelId}`).catch(() => null);
     const accountTypeData = accountTypeRes ? await accountTypeRes.json().catch(() => ({ account_type: 'channel' })) : { account_type: 'channel' };
     const isPersonal = accountTypeData.account_type === 'personal';
-    const unsubscribeLabel = isPersonal ? 'Takipten Çık' : 'Abonelikten Çık';
+    const unsubscribeLabel = 'Takipten Çık';
 
     if (subData.subscribed) {
       btn.textContent = unsubscribeLabel;
@@ -6298,4 +6304,311 @@ async function uploadTSSong() {
     showToast('Şarkı yüklendi!', 'success');
     loadTSMusicPage();
   } catch(e) { showToast('Yükleme hatası', 'error'); }
+}
+
+
+// ==================== GRUPLAR ====================
+
+async function loadGroupsPage() {
+  const pageContent = document.getElementById('pageContent');
+  pageContent.innerHTML = '<div class="yt-loading"><div class="yt-spinner"></div></div>';
+
+  try {
+    const groups = await fetch(`${API_URL}/groups/user/${currentUser.id}`).then(r => r.json()).catch(() => []);
+
+    pageContent.innerHTML = `
+      <div style="max-width:700px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <h2 class="section-header" style="margin:0">Gruplar</h2>
+          <button class="yt-btn" onclick="showCreateGroupModal()"><i class="fas fa-plus" style="margin-right:6px"></i>Grup Oluştur</button>
+        </div>
+        <div class="search-bar" style="margin-bottom:16px">
+          <input class="yt-input" id="groupSearchInput" placeholder="Grup ara..." oninput="searchGroups(this.value)" style="flex:1" />
+        </div>
+        <div id="groupSearchResults" style="margin-bottom:16px"></div>
+        <h3 style="font-size:14px;color:var(--yt-spec-text-secondary);margin-bottom:12px">Gruplarım (${groups.length})</h3>
+        <div id="myGroupsList">
+          ${groups.length ? groups.map(g => renderGroupCard(g)).join('') : '<p style="color:var(--yt-spec-text-secondary)">Henüz bir gruba katılmadın</p>'}
+        </div>
+      </div>`;
+  } catch(e) { pageContent.innerHTML = '<p>Hata oluştu</p>'; }
+}
+
+function renderGroupCard(g) {
+  const roleIcon = g.role === 'owner' ? '<i class="fas fa-crown" style="color:#ffc800;font-size:11px;margin-left:4px"></i>' :
+                   g.role === 'moderator' ? '<i class="fas fa-shield-alt" style="color:#3ea6ff;font-size:11px;margin-left:4px"></i>' : '';
+  return `
+    <div onclick="openGroup(${g.id})" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--yt-spec-raised-background);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='var(--yt-spec-raised-background)'">
+      <img src="${g.photo_url || 'data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=48 height=48%3E%3Ccircle cx=24 cy=24 r=24 fill=%23333/%3E%3C/svg%3E'}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:4px">
+          <p style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${g.name}</p>
+          ${roleIcon}
+          ${g.is_private ? '<i class="fas fa-lock" style="font-size:11px;color:var(--yt-spec-text-secondary)"></i>' : ''}
+        </div>
+        <p style="font-size:12px;color:var(--yt-spec-text-secondary)">${g.member_count} üye</p>
+      </div>
+      <i class="fas fa-chevron-right" style="color:var(--yt-spec-text-secondary);font-size:14px"></i>
+    </div>`;
+}
+
+async function searchGroups(q) {
+  const results = document.getElementById('groupSearchResults');
+  if (!results) return;
+  if (!q || q.length < 2) { results.innerHTML = ''; return; }
+  try {
+    const groups = await fetch(`${API_URL}/groups/search?q=${encodeURIComponent(q)}&userId=${currentUser.id}`).then(r => r.json());
+    if (!groups.length) { results.innerHTML = '<p style="font-size:13px;color:var(--yt-spec-text-secondary)">Grup bulunamadı</p>'; return; }
+    results.innerHTML = '<p style="font-size:12px;color:var(--yt-spec-text-secondary);margin-bottom:8px">Arama Sonuçları</p>' +
+      groups.map(g => `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--yt-spec-raised-background);border-radius:10px;margin-bottom:6px">
+          <img src="${g.photo_url || 'data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=40 height=40%3E%3Ccircle cx=20 cy=20 r=20 fill=%23333/%3E%3C/svg%3E'}" style="width:40px;height:40px;border-radius:50%;object-fit:cover" />
+          <div style="flex:1"><p style="font-size:13px;font-weight:500">${g.name}</p><p style="font-size:11px;color:var(--yt-spec-text-secondary)">${g.member_count} üye ${g.is_private ? '• Özel' : '• Açık'}</p></div>
+          ${g.my_role ? '<span style="font-size:12px;color:var(--yt-spec-brand-background-solid)">Üyesin</span>' : `<button class="yt-btn" onclick="joinGroup(${g.id})" style="height:30px;padding:0 12px;font-size:12px">${g.is_private ? 'İstek Gönder' : 'Katıl'}</button>`}
+        </div>`).join('');
+  } catch(e) {}
+}
+
+async function joinGroup(groupId) {
+  try {
+    const r = await fetch(`${API_URL}/groups/${groupId}/join`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: currentUser.id }) });
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error || 'Hata', 'error'); return; }
+    showToast(d.pending ? 'Katılma isteği gönderildi' : 'Gruba katıldın!', 'success');
+    loadGroupsPage();
+  } catch(e) { showToast('Hata', 'error'); }
+}
+
+function showCreateGroupModal() {
+  showModal(`
+    <h3 style="margin-bottom:16px">Grup Oluştur</h3>
+    <div class="yt-form-group"><label class="yt-form-label">Grup Fotoğrafı</label><input type="file" id="groupPhoto" class="yt-input" accept="image/*" /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Grup Adı *</label><input id="groupName" class="yt-input" placeholder="Grup adı" /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Açıklama</label><input id="groupDesc" class="yt-input" placeholder="Grup açıklaması (opsiyonel)" /></div>
+    <div class="yt-form-group">
+      <label class="yt-checkbox-label">
+        <input type="checkbox" id="groupPrivate" class="yt-checkbox" />
+        <span>Özel Grup (istekle katılım)</span>
+      </label>
+    </div>
+    <button class="yt-btn" style="width:100%;margin-top:8px" onclick="createGroup()">Oluştur</button>`);
+}
+
+async function createGroup() {
+  const name = document.getElementById('groupName')?.value.trim();
+  if (!name) { showToast('Grup adı gerekli', 'error'); return; }
+  const photoFile = document.getElementById('groupPhoto')?.files[0];
+  const isPrivate = document.getElementById('groupPrivate')?.checked;
+  const desc = document.getElementById('groupDesc')?.value.trim();
+
+  const formData = new FormData();
+  formData.append('userId', currentUser.id);
+  formData.append('name', name);
+  if (desc) formData.append('description', desc);
+  formData.append('isPrivate', isPrivate ? '1' : '0');
+  if (photoFile) formData.append('photo', photoFile);
+
+  try {
+    const r = await fetch(`${API_URL}/groups`, { method:'POST', body: formData });
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error || 'Hata', 'error'); return; }
+    showToast('Grup oluşturuldu!', 'success');
+    closeModal();
+    openGroup(d.groupId);
+  } catch(e) { showToast('Hata', 'error'); }
+}
+
+async function openGroup(groupId) {
+  const pageContent = document.getElementById('pageContent');
+  pageContent.innerHTML = '<div class="yt-loading"><div class="yt-spinner"></div></div>';
+
+  try {
+    const [groupRes, membersRes] = await Promise.all([
+      fetch(`${API_URL}/groups/${groupId}?userId=${currentUser.id}`),
+      fetch(`${API_URL}/groups/${groupId}/members`)
+    ]);
+    const group = await groupRes.json();
+    const members = await membersRes.json();
+
+    const myMember = members.find(m => m.user_id === currentUser.id);
+    const myRole = myMember?.role || null;
+    const isOwner = myRole === 'owner';
+    const isMod = myRole === 'moderator';
+    const isMember = !!myRole;
+    const isMuted = myMember?.is_muted && (!myMember.muted_until || new Date(myMember.muted_until) > new Date());
+
+    pageContent.innerHTML = `
+      <div style="max-width:700px">
+        <button onclick="loadGroupsPage()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;margin-bottom:16px;font-size:13px"><i class="fas fa-arrow-left" style="margin-right:6px"></i>Gruplar</button>
+        
+        <!-- Grup Başlık -->
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px;background:var(--yt-spec-raised-background);border-radius:14px">
+          <img src="${group.photo_url || 'data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=64 height=64%3E%3Ccircle cx=32 cy=32 r=32 fill=%23333/%3E%3C/svg%3E'}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px">
+              <h2 style="font-size:18px;font-weight:700">${group.name}</h2>
+              ${group.is_private ? '<span style="font-size:11px;background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:10px;color:var(--yt-spec-text-secondary)"><i class="fas fa-lock" style="margin-right:3px"></i>Özel</span>' : ''}
+            </div>
+            ${group.description ? `<p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-top:4px">${group.description}</p>` : ''}
+            <p style="font-size:12px;color:var(--yt-spec-text-secondary);margin-top:4px">${group.member_count} üye</p>
+          </div>
+          <div style="display:flex;gap:6px;flex-direction:column">
+            ${!isMember ? `<button class="yt-btn" onclick="joinGroup(${group.id})" style="height:32px;padding:0 14px;font-size:13px">${group.is_private ? 'İstek Gönder' : 'Katıl'}</button>` : ''}
+            ${isMember && !isOwner ? `<button class="yt-btn" onclick="leaveGroup(${group.id})" style="height:32px;padding:0 14px;font-size:13px;background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)">Ayrıl</button>` : ''}
+            ${isOwner ? `<button class="yt-btn" onclick="showGroupSettings(${group.id})" style="height:32px;padding:0 14px;font-size:13px;background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)"><i class="fas fa-cog"></i></button>` : ''}
+          </div>
+        </div>
+
+        <!-- Üyeler -->
+        <div style="margin-bottom:20px">
+          <h3 style="font-size:14px;font-weight:600;margin-bottom:10px">Üyeler</h3>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            ${members.map(m => {
+              const roleIcon = m.role === 'owner' ? '<i class="fas fa-crown" style="color:#ffc800;font-size:11px;margin-left:4px"></i>' :
+                               m.role === 'moderator' ? '<i class="fas fa-shield-alt" style="color:#3ea6ff;font-size:11px;margin-left:4px"></i>' : '';
+              const canManage = (isOwner || isMod) && m.user_id !== currentUser.id && m.role !== 'owner';
+              return `<div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--yt-spec-raised-background)">
+                <img src="${getProfilePhotoUrl(m.profile_photo)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" />
+                <div style="flex:1"><div style="display:flex;align-items:center;gap:4px"><span style="font-size:13px;font-weight:500">${m.nickname}</span>${roleIcon}</div><span style="font-size:11px;color:var(--yt-spec-text-secondary)">@${m.username}</span></div>
+                ${canManage ? `<button onclick="showMemberActions(${group.id},${m.user_id},'${m.nickname.replace(/'/g,"\\'")}','${m.role}')" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:4px 8px"><i class="fas fa-ellipsis-v"></i></button>` : ''}
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- Katılma İstekleri (owner/mod) -->
+        ${(isOwner || isMod) ? `<div id="joinRequestsSection"><button onclick="loadJoinRequests(${group.id})" style="background:none;border:none;color:var(--yt-spec-brand-background-solid);cursor:pointer;font-size:13px"><i class="fas fa-user-plus" style="margin-right:6px"></i>Katılma İstekleri</button></div>` : ''}
+      </div>`;
+  } catch(e) { pageContent.innerHTML = '<p>Hata oluştu</p>'; }
+}
+
+async function leaveGroup(groupId) {
+  if (!confirm('Gruptan ayrılmak istediğine emin misin?')) return;
+  await fetch(`${API_URL}/groups/${groupId}/leave`, { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: currentUser.id }) });
+  showToast('Gruptan ayrıldın', 'success');
+  loadGroupsPage();
+}
+
+async function loadJoinRequests(groupId) {
+  const section = document.getElementById('joinRequestsSection');
+  if (!section) return;
+  const requests = await fetch(`${API_URL}/groups/${groupId}/requests`).then(r => r.json()).catch(() => []);
+  if (!requests.length) { section.innerHTML = '<p style="font-size:13px;color:var(--yt-spec-text-secondary)">Bekleyen istek yok</p>'; return; }
+  section.innerHTML = `<h3 style="font-size:14px;font-weight:600;margin-bottom:10px">Katılma İstekleri (${requests.length})</h3>` +
+    requests.map(r => `<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--yt-spec-raised-background);border-radius:8px;margin-bottom:6px">
+      <img src="${getProfilePhotoUrl(r.profile_photo)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" />
+      <div style="flex:1"><p style="font-size:13px;font-weight:500">${r.nickname}</p><p style="font-size:11px;color:var(--yt-spec-text-secondary)">@${r.username}</p></div>
+      <button class="yt-btn" onclick="respondGroupRequest(${groupId},${r.id},'accepted')" style="height:28px;padding:0 10px;font-size:12px">Kabul</button>
+      <button class="yt-btn" onclick="respondGroupRequest(${groupId},${r.id},'rejected')" style="height:28px;padding:0 10px;font-size:12px;background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)">Red</button>
+    </div>`).join('');
+}
+
+async function respondGroupRequest(groupId, requestId, action) {
+  await fetch(`${API_URL}/groups/${groupId}/requests/${requestId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action, adminId: currentUser.id }) });
+  showToast(action === 'accepted' ? 'Kabul edildi' : 'Reddedildi', 'success');
+  loadJoinRequests(groupId);
+}
+
+function showMemberActions(groupId, memberId, memberName, memberRole) {
+  const myMember = { role: 'owner' }; // Gerçekte API'den alınmalı
+  showModal(`
+    <h3 style="margin-bottom:16px">${memberName}</h3>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="yt-btn" onclick="setModerator(${groupId},${memberId},'${memberRole}');closeModal()" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3)">
+        ${memberRole === 'moderator' ? '<i class="fas fa-user" style="margin-right:6px"></i>Moderatörlüğü Kaldır' : '<i class="fas fa-shield-alt" style="margin-right:6px"></i>Moderatör Yap'}
+      </button>
+      <button class="yt-btn" onclick="muteGroupMember(${groupId},${memberId});closeModal()" style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3)">
+        <i class="fas fa-microphone-slash" style="margin-right:6px"></i>Sustur
+      </button>
+      <button class="yt-btn" onclick="banGroupMember(${groupId},${memberId});closeModal()" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3)">
+        <i class="fas fa-ban" style="margin-right:6px"></i>Banla
+      </button>
+      <button class="yt-btn" onclick="kickGroupMember(${groupId},${memberId});closeModal()" style="background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)">
+        <i class="fas fa-user-times" style="margin-right:6px"></i>Gruptan At
+      </button>
+      <button class="yt-btn" onclick="transferOwnership(${groupId},${memberId},'${memberName}');closeModal()" style="background:rgba(255,200,0,0.15);color:#ffc800;border:1px solid rgba(255,200,0,0.3)">
+        <i class="fas fa-crown" style="margin-right:6px"></i>Yöneticilik Devret
+      </button>
+    </div>`);
+}
+
+async function setModerator(groupId, memberId, currentRole) {
+  const newRole = currentRole === 'moderator' ? 'member' : 'moderator';
+  let permissions = {};
+  if (newRole === 'moderator') {
+    // Varsayılan moderatör yetkileri
+    permissions = { can_delete_messages: true, can_kick: true, can_mute: true, can_ban: false };
+  }
+  await fetch(`${API_URL}/groups/${groupId}/members/${memberId}/role`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: currentUser.id, role: newRole, permissions }) });
+  showToast(newRole === 'moderator' ? 'Moderatör yapıldı' : 'Moderatörlük kaldırıldı', 'success');
+  openGroup(groupId);
+}
+
+async function muteGroupMember(groupId, memberId) {
+  const duration = prompt('Susturma süresi (dakika, boş bırak = sınırsız):');
+  const mutedUntil = duration ? new Date(Date.now() + parseInt(duration) * 60000).toISOString() : null;
+  await fetch(`${API_URL}/groups/${groupId}/members/${memberId}/mute`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: currentUser.id, mutedUntil }) });
+  showToast('Üye susturuldu', 'success');
+  openGroup(groupId);
+}
+
+async function banGroupMember(groupId, memberId) {
+  const duration = prompt('Ban süresi (dakika, boş bırak = sınırsız):');
+  const bannedUntil = duration ? new Date(Date.now() + parseInt(duration) * 60000).toISOString() : null;
+  await fetch(`${API_URL}/groups/${groupId}/members/${memberId}/ban`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: currentUser.id, bannedUntil }) });
+  showToast('Üye banlandı', 'success');
+  openGroup(groupId);
+}
+
+async function kickGroupMember(groupId, memberId) {
+  if (!confirm('Üyeyi gruptan atmak istediğine emin misin?')) return;
+  await fetch(`${API_URL}/groups/${groupId}/members/${memberId}`, { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: currentUser.id }) });
+  showToast('Üye gruptan atıldı', 'success');
+  openGroup(groupId);
+}
+
+async function transferOwnership(groupId, memberId, memberName) {
+  if (!confirm(`Yöneticilik ${memberName} kişisine devredilsin mi?`)) return;
+  await fetch(`${API_URL}/groups/${groupId}/transfer`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: currentUser.id, newOwnerId: memberId }) });
+  showToast('Yöneticilik devredildi', 'success');
+  openGroup(groupId);
+}
+
+function showGroupSettings(groupId) {
+  showModal(`
+    <h3 style="margin-bottom:16px">Grup Ayarları</h3>
+    <div class="yt-form-group"><label class="yt-form-label">Grup Adı</label><input id="gsName" class="yt-input" placeholder="Grup adı" /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Açıklama</label><input id="gsDesc" class="yt-input" placeholder="Açıklama" /></div>
+    <div class="yt-form-group">
+      <label class="yt-checkbox-label"><input type="checkbox" id="gsPrivate" class="yt-checkbox" /><span>Özel Grup</span></label>
+    </div>
+    <div class="yt-form-group">
+      <label class="yt-checkbox-label"><input type="checkbox" id="gsAllowMsg" class="yt-checkbox" checked /><span>Üyeler mesaj yazabilir</span></label>
+    </div>
+    <div class="yt-form-group">
+      <label class="yt-checkbox-label"><input type="checkbox" id="gsAllowPhoto" class="yt-checkbox" checked /><span>Üyeler fotoğraf gönderebilir</span></label>
+    </div>
+    <button class="yt-btn" style="width:100%;margin-top:8px" onclick="saveGroupSettings(${groupId})">Kaydet</button>
+    <button class="yt-btn" style="width:100%;margin-top:8px;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3)" onclick="deleteGroup(${groupId})">Grubu Sil</button>`);
+}
+
+async function saveGroupSettings(groupId) {
+  const name = document.getElementById('gsName')?.value.trim();
+  const desc = document.getElementById('gsDesc')?.value.trim();
+  const isPrivate = document.getElementById('gsPrivate')?.checked;
+  const allowMsg = document.getElementById('gsAllowMsg')?.checked;
+  const allowPhoto = document.getElementById('gsAllowPhoto')?.checked;
+  if (!name) { showToast('Grup adı gerekli', 'error'); return; }
+  await fetch(`${API_URL}/groups/${groupId}/settings`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: currentUser.id, name, description: desc, isPrivate, allowMemberMessages: allowMsg, allowMemberPhotos: allowPhoto }) });
+  showToast('Ayarlar kaydedildi', 'success');
+  closeModal();
+  openGroup(groupId);
+}
+
+async function deleteGroup(groupId) {
+  if (!confirm('Grubu silmek istediğine emin misin? Bu işlem geri alınamaz!')) return;
+  await fetch(`${API_URL}/groups/${groupId}`, { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: currentUser.id }) });
+  showToast('Grup silindi', 'success');
+  closeModal();
+  loadGroupsPage();
 }

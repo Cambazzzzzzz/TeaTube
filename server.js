@@ -5,6 +5,8 @@ const db = require('./src/database');
 const routes = require('./src/routes');
 const adminRoutes = require('./src/routes-admin');
 const musicRoutes = require('./src/routes-music');
+const groupRoutes = require('./src/routes-groups');
+const groupRoutes = require('./src/routes-groups');
 
 const app = express();
 const PORT = process.env.PORT || 3456;
@@ -24,6 +26,8 @@ app.use((req, res, next) => {
 app.use('/api', routes);
 app.use('/api', adminRoutes);
 app.use('/api', musicRoutes);
+app.use('/api', groupRoutes);
+app.use('/api', groupRoutes);
 
 // Ana sayfa
 app.get('/', (req, res) => {
