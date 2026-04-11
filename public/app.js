@@ -6348,7 +6348,14 @@ async function loadGroupsPage() {
   pageContent.innerHTML = '<div class="yt-loading"><div class="yt-spinner"></div></div>';
 
   try {
-    const groups = await fetch(`${API_URL}/groups/user/${currentUser.id}`).then(r => r.json()).catch(() => []);
+    const [myGroups, allGroups] = await Promise.all([
+      fetch(`${API_URL}/groups/user/${currentUser.id}`).then(r => r.json()).catch(() => []),
+      fetch(`${API_URL}/groups/all?userId=${currentUser.id}`).then(r => r.json()).catch(() => [])
+    ]);
+
+    // Üye olmadığım gruplar
+    const myGroupIds = new Set(myGroups.map(g => g.id));
+    const otherGroups = allGroups.filter(g => !myGroupIds.has(g.id));
 
     pageContent.innerHTML = `
       <div style="max-width:700px">
@@ -6356,23 +6363,33 @@ async function loadGroupsPage() {
           <h2 class="section-header" style="margin:0">Gruplar</h2>
           <button class="yt-btn" onclick="showCreateGroupModal()"><i class="fas fa-plus" style="margin-right:6px"></i>Grup Oluştur</button>
         </div>
-        <div class="search-bar" style="margin-bottom:16px">
+        <div style="display:flex;gap:8px;margin-bottom:16px">
           <input class="yt-input" id="groupSearchInput" placeholder="Grup ara..." oninput="searchGroups(this.value)" style="flex:1" />
         </div>
         <div id="groupSearchResults" style="margin-bottom:16px"></div>
-        <h3 style="font-size:14px;color:var(--yt-spec-text-secondary);margin-bottom:12px">Gruplarım (${groups.length})</h3>
-        <div id="myGroupsList">
-          ${groups.length ? groups.map(g => renderGroupCard(g)).join('') : '<p style="color:var(--yt-spec-text-secondary)">Henüz bir gruba katılmadın</p>'}
-        </div>
+
+        ${myGroups.length > 0 ? `
+          <h3 style="font-size:14px;color:var(--yt-spec-text-secondary);margin-bottom:12px;font-weight:600">Gruplarım (${myGroups.length})</h3>
+          <div style="margin-bottom:24px">
+            ${myGroups.map(g => renderGroupCard(g)).join('')}
+          </div>
+        ` : ''}
+
+        ${otherGroups.length > 0 ? `
+          <h3 style="font-size:14px;color:var(--yt-spec-text-secondary);margin-bottom:12px;font-weight:600">Tüm Gruplar (${otherGroups.length})</h3>
+          <div>
+            ${otherGroups.map(g => renderGroupCard(g, true)).join('')}
+          </div>
+        ` : myGroups.length === 0 ? '<p style="color:var(--yt-spec-text-secondary)">Henüz grup yok</p>' : ''}
       </div>`;
   } catch(e) { pageContent.innerHTML = '<p>Hata oluştu</p>'; }
 }
 
-function renderGroupCard(g) {
+function renderGroupCard(g, showJoin = false) {
   const roleIcon = g.role === 'owner' ? '<i class="fas fa-crown" style="color:#ffc800;font-size:11px;margin-left:4px"></i>' :
                    g.role === 'moderator' ? '<i class="fas fa-shield-alt" style="color:#3ea6ff;font-size:11px;margin-left:4px"></i>' : '';
   return `
-    <div onclick="openGroup(${g.id})" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--yt-spec-raised-background);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='var(--yt-spec-raised-background)'">
+    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--yt-spec-raised-background);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:background 0.2s" onclick="openGroup(${g.id})" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='var(--yt-spec-raised-background)'">
       <img src="${g.photo_url || 'data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=48 height=48%3E%3Ccircle cx=24 cy=24 r=24 fill=%23333/%3E%3C/svg%3E'}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0" />
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:4px">
@@ -6382,7 +6399,11 @@ function renderGroupCard(g) {
         </div>
         <p style="font-size:12px;color:var(--yt-spec-text-secondary)">${g.member_count} üye</p>
       </div>
-      <i class="fas fa-chevron-right" style="color:var(--yt-spec-text-secondary);font-size:14px"></i>
+      ${showJoin ? `
+        <button onclick="event.stopPropagation();joinGroup(${g.id})" class="yt-btn" style="height:30px;padding:0 14px;font-size:12px;flex-shrink:0">
+          ${g.is_private ? 'İstek Gönder' : 'Katıl'}
+        </button>
+      ` : '<i class="fas fa-chevron-right" style="color:var(--yt-spec-text-secondary);font-size:14px"></i>'}
     </div>`;
 }
 

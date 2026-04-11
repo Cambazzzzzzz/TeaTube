@@ -42,6 +42,24 @@ router.post('/groups', upload.single('photo'), async (req, res) => {
   }
 });
 
+// Tüm açık gruplar (keşfet)
+router.get('/groups/all', (req, res) => {
+  try {
+    const { userId } = req.query;
+    const groups = db.prepare(`
+      SELECT g.*,
+             (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as member_count,
+             (SELECT role FROM group_members WHERE group_id = g.id AND user_id = ?) as my_role
+      FROM groups g
+      ORDER BY member_count DESC, g.created_at DESC
+      LIMIT 50
+    `).all(userId || 0);
+    res.json(groups);
+  } catch(e) {
+    res.status(500).json({ error: 'Gruplar alınamadı' });
+  }
+});
+
 // Kullanıcının grupları
 router.get('/groups/user/:userId', (req, res) => {
   try {
