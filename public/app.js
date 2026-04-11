@@ -120,6 +120,7 @@ function showMobileProfileSheet() {
       </div>
       ${[
         { icon:'fa-photo-video', label:'İçeriklerim', page:'my-videos' },
+        { icon:'fa-users', label:'Takip Ettiklerim', page:'subscriptions' },
         { icon:'fa-star', label:'Favoriler', page:'favorites' },
         { icon:'fa-bookmark', label:'Kaydedilenler', page:'saved' },
         { icon:'fa-history', label:'Geçmiş', page:'history' },
@@ -169,24 +170,26 @@ async function searchFriendsInMessages() {
   if (!q) { results.innerHTML = ''; return; }
 
   try {
-    const res = await fetch(`${API_URL}/search-users?q=${encodeURIComponent(q)}&userId=${currentUser.id}`);
-    const users = await res.json();
-    if (!users.length) { results.innerHTML = '<p style="font-size:13px;color:var(--yt-spec-text-secondary);padding:4px 0;">Kullanıcı bulunamadı</p>'; return; }
+    // Sadece mevcut arkadaşları ara
+    const res = await fetch(`${API_URL}/friends/${currentUser.id}`);
+    const friends = await res.json();
+    const filtered = friends.filter(f =>
+      f.nickname?.toLowerCase().includes(q.toLowerCase()) ||
+      f.username?.toLowerCase().includes(q.toLowerCase())
+    );
 
-    const items = await Promise.all(users.map(async u => {
-      const statusRes = await fetch(`${API_URL}/friendship-status/${currentUser.id}/${u.id}`);
-      const status = await statusRes.json();
-      let btn = `<button class="yt-btn" onclick="sendFriendRequest(${u.id})" style="height:30px;padding:0 12px;font-size:12px;">Arkadaş Ekle</button>`;
-      if (status.status === 'accepted') btn = `<button class="yt-btn" onclick="openMobileChat(${u.id},'${u.nickname.replace(/'/g,"\\'")}','${getProfilePhotoUrl(u.profile_photo)}')" style="height:30px;padding:0 12px;font-size:12px;"><i class="fas fa-comment"></i> Mesaj</button>`;
-      else if (status.status === 'pending' && status.isSender) btn = `<span style="font-size:12px;color:var(--yt-spec-text-secondary);">İstek Gönderildi</span>`;
-      else if (status.status === 'pending') btn = `<div style="display:flex;gap:6px;"><button class="yt-btn" onclick="respondFriendRequest(${status.id},'accept')" style="height:30px;padding:0 10px;font-size:12px;">Kabul</button><button class="yt-btn yt-btn-secondary" onclick="respondFriendRequest(${status.id},'reject')" style="height:30px;padding:0 10px;font-size:12px;">Red</button></div>`;
-      return `<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--yt-spec-raised-background);border-radius:10px;margin-bottom:6px;">
-        <img src="${getProfilePhotoUrl(u.profile_photo)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" />
-        <div style="flex:1;min-width:0;"><p style="font-size:14px;font-weight:500;">${u.nickname}</p><p style="font-size:12px;color:var(--yt-spec-text-secondary);">@${u.username}</p></div>
-        ${btn}
-      </div>`;
-    }));
-    results.innerHTML = items.join('');
+    if (!filtered.length) {
+      results.innerHTML = '<p style="font-size:13px;color:var(--yt-spec-text-secondary);padding:4px 0;">Arkadaş bulunamadı</p>';
+      return;
+    }
+
+    results.innerHTML = filtered.map(f => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--yt-spec-raised-background);border-radius:10px;margin-bottom:6px;">
+        <img src="${getProfilePhotoUrl(f.profile_photo)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" />
+        <div style="flex:1;min-width:0;"><p style="font-size:14px;font-weight:500;">${f.nickname}</p><p style="font-size:12px;color:var(--yt-spec-text-secondary);">@${f.username}</p></div>
+        <button class="yt-btn" onclick="openMobileChat(${f.friend_id},'${f.nickname.replace(/'/g,"\\'")}','${getProfilePhotoUrl(f.profile_photo)}')" style="height:30px;padding:0 12px;font-size:12px;flex-shrink:0"><i class="fas fa-comment"></i> Mesaj</button>
+      </div>
+    `).join('');
   } catch(e) {}
 }
 
@@ -610,16 +613,17 @@ async function loadFriendsPage() {
   pageContent.innerHTML = `<div class="yt-loading"><div class="yt-spinner"></div></div>`;
 
   try {
-    const [friends, incoming, sent] = await Promise.all([
+    const [friends, incoming, sent, groupRequests] = await Promise.all([
       fetch(`${API_URL}/friends/${currentUser.id}`).then(r => r.json()),
       fetch(`${API_URL}/friend-requests/incoming/${currentUser.id}`).then(r => r.json()),
-      fetch(`${API_URL}/friend-requests/sent/${currentUser.id}`).then(r => r.json())
+      fetch(`${API_URL}/friend-requests/sent/${currentUser.id}`).then(r => r.json()),
+      fetch(`${API_URL}/groups/my-requests/${currentUser.id}`).then(r => r.json()).catch(() => [])
     ]);
 
     pageContent.innerHTML = `
       <h2 class="section-header">Arkadaşlar</h2>
       <div class="settings-card" style="margin-bottom:16px;">
-        <h3 class="settings-card-title"><i class="fas fa-user-plus" style="margin-right:8px; color:var(--yt-spec-brand-background-solid);"></i>Arkadaş Ekle</h3>
+        <h3 class="settings-card-title"><i class="fas fa-user-plus" style="margin-right:8px; color:var(--yt-spec-brand-background-solid);"></i>Arkadaş Ara</h3>
         <input type="text" id="friendSearchInput" class="yt-input" placeholder="Kullanıcı adı veya takma ad..." style="margin-bottom:0;" oninput="searchFriends()" />
         <div id="friendSearchResults" style="margin-top:8px;"></div>
       </div>
@@ -632,10 +636,10 @@ async function loadFriendsPage() {
           ${incoming.map(r => `
             <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.08);">
               <img src="${getProfilePhotoUrl(r.profile_photo)}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;" />
-              <div style="flex:1;"><p style="font-size:14px; font-weight:500;">${r.nickname}</p><p style="font-size:12px; color:var(--yt-spec-text-secondary);">@${r.username}</p></div>
-              <div style="display:flex; gap:8px;">
-                <button class="yt-btn" onclick="respondFriendRequest(${r.id},'accept')" style="height:32px; padding:0 14px; font-size:12px;">Kabul</button>
-                <button class="yt-btn yt-btn-secondary" onclick="respondFriendRequest(${r.id},'reject')" style="height:32px; padding:0 14px; font-size:12px;">Red</button>
+              <div style="flex:1;min-width:0"><p style="font-size:14px; font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.nickname}</p><p style="font-size:12px; color:var(--yt-spec-text-secondary);">@${r.username}</p></div>
+              <div style="display:flex; gap:6px;flex-shrink:0">
+                <button class="yt-btn" onclick="respondFriendRequest(${r.id},'accept')" style="height:32px; padding:0 12px; font-size:12px;">Kabul</button>
+                <button class="yt-btn yt-btn-secondary" onclick="respondFriendRequest(${r.id},'reject')" style="height:32px; padding:0 12px; font-size:12px;">Red</button>
               </div>
             </div>
           `).join('')}
@@ -643,13 +647,24 @@ async function loadFriendsPage() {
       ` : ''}
       ${sent.length > 0 ? `
         <div class="settings-card" style="margin-bottom:16px;">
-          <h3 class="settings-card-title"><i class="fas fa-paper-plane" style="margin-right:8px;"></i>Gönderilen İstekler</h3>
+          <h3 class="settings-card-title"><i class="fas fa-paper-plane" style="margin-right:8px;"></i>Gönderilen Arkadaş İstekleri</h3>
           ${sent.map(r => `
             <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.08);">
               <img src="${getProfilePhotoUrl(r.profile_photo)}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;" />
-              <div style="flex:1;"><p style="font-size:14px; font-weight:500;">${r.nickname}</p><p style="font-size:12px; color:var(--yt-spec-text-secondary);">@${r.username}</p></div>
-              <span style="font-size:12px; color:var(--yt-spec-text-secondary); background:rgba(255,255,255,0.08); padding:4px 10px; border-radius:10px;">Bekliyor</span>
-              <button class="yt-btn yt-btn-secondary" onclick="cancelFriendRequest(${r.id})" style="height:32px; padding:0 12px; font-size:12px;">İptal</button>
+              <div style="flex:1;min-width:0"><p style="font-size:14px; font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.nickname}</p><p style="font-size:12px; color:var(--yt-spec-text-secondary);">@${r.username}</p></div>
+              <button class="yt-btn yt-btn-secondary" onclick="cancelFriendRequest(${r.id})" style="height:32px; padding:0 12px; font-size:12px;flex-shrink:0">İptal</button>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+      ${groupRequests.length > 0 ? `
+        <div class="settings-card" style="margin-bottom:16px;">
+          <h3 class="settings-card-title"><i class="fas fa-layer-group" style="margin-right:8px;"></i>Bekleyen Grup İstekleri</h3>
+          ${groupRequests.map(r => `
+            <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.08);">
+              <img src="${r.group_photo || 'data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=36 height=36%3E%3Ccircle cx=18 cy=18 r=18 fill=%23333/%3E%3C/svg%3E'}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;" />
+              <div style="flex:1;min-width:0"><p style="font-size:14px; font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.group_name}</p><p style="font-size:12px; color:#ffc800;">Onay bekleniyor</p></div>
+              <button class="yt-btn yt-btn-secondary" onclick="cancelGroupRequest(${r.id})" style="height:32px; padding:0 12px; font-size:12px;flex-shrink:0">İptal</button>
             </div>
           `).join('')}
         </div>
@@ -658,11 +673,12 @@ async function loadFriendsPage() {
         <h3 class="settings-card-title"><i class="fas fa-users" style="margin-right:8px;"></i>Arkadaşlarım (${friends.length})</h3>
         ${friends.length === 0 ? '<p style="color:var(--yt-spec-text-secondary); font-size:14px;">Henüz arkadaşın yok</p>' : friends.map(f => `
           <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.08);">
-            <img src="${getProfilePhotoUrl(f.profile_photo)}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;" />
-            <div style="flex:1;"><p style="font-size:14px; font-weight:500;">${f.nickname}</p><p style="font-size:12px; color:var(--yt-spec-text-secondary);">@${f.username}</p></div>
-            <div style="display:flex; gap:8px;">
-              <button class="yt-btn" onclick="openChat(${f.friend_id},'${f.nickname}','${getProfilePhotoUrl(f.profile_photo)}')" style="height:32px; padding:0 14px; font-size:12px;"><i class="fas fa-comment"></i> Mesaj</button>
-              <button class="yt-btn yt-btn-secondary" onclick="removeFriend(${f.id})" style="height:32px; padding:0 12px; font-size:12px;"><i class="fas fa-user-minus"></i></button>
+            <img src="${getProfilePhotoUrl(f.profile_photo)}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;cursor:pointer" onclick="viewChannel(${f.channel_id || 0})" />
+            <div style="flex:1;min-width:0"><p style="font-size:14px; font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.nickname}</p><p style="font-size:12px; color:var(--yt-spec-text-secondary);">@${f.username}</p></div>
+            <div style="display:flex; gap:6px;flex-shrink:0">
+              <button class="yt-btn" onclick="openChat(${f.friend_id},'${f.nickname}','${getProfilePhotoUrl(f.profile_photo)}')" style="height:32px; padding:0 12px; font-size:12px;"><i class="fas fa-comment"></i></button>
+              <button class="yt-btn yt-btn-secondary" onclick="removeFriend(${f.id})" style="height:32px; padding:0 10px; font-size:12px;" title="Arkadaşlıktan çıkar"><i class="fas fa-user-minus"></i></button>
+              <button onclick="blockUser(${f.friend_id},'${f.nickname}')" style="height:32px;padding:0 10px;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.3);color:#ff4444;border-radius:8px;cursor:pointer;font-size:12px" title="Engelle"><i class="fas fa-ban"></i></button>
             </div>
           </div>
         `).join('')}
@@ -717,7 +733,29 @@ async function respondFriendRequest(id, action) {
 
 async function cancelFriendRequest(id) {
   await fetch(`${API_URL}/friendship/${id}`, { method: 'DELETE' });
+  showToast('İstek iptal edildi', 'success');
   loadFriendsPage();
+}
+
+async function cancelGroupRequest(requestId) {
+  try {
+    await fetch(`${API_URL}/groups/request/${requestId}`, { method: 'DELETE' });
+    showToast('Grup isteği iptal edildi', 'success');
+    loadFriendsPage();
+  } catch(e) { showToast('İptal edilemedi', 'error'); }
+}
+
+async function blockUser(userId, nickname) {
+  if (!confirm(`${nickname} kullanıcısını engellemek istediğine emin misin?\nEngellenince seni göremeyecek, içeriklerine erişemeyecek.`)) return;
+  try {
+    await fetch(`${API_URL}/block`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ blockerId: currentUser.id, blockedId: userId })
+    });
+    showToast(`${nickname} engellendi`, 'success');
+    loadFriendsPage();
+  } catch(e) { showToast('Engellenemedi', 'error'); }
 }
 
 async function removeFriend(id) {
@@ -864,7 +902,8 @@ function openMobileChat(friendId, friendName, friendPhoto) {
       <div id="selectToolbar" class="select-toolbar" style="display:none;">
         <button onclick="exitSelectMode()" style="background:none;border:none;color:inherit;cursor:pointer;padding:4px 8px;font-size:18px;"><i class="fas fa-times"></i></button>
         <span id="selectCount" style="font-size:14px;font-weight:600;flex:1;">0 seçildi</span>
-        <button onclick="deleteSelectedMessages('${chatId}')" style="background:none;border:none;color:#f44336;cursor:pointer;padding:4px 12px;font-size:14px;"><i class="fas fa-trash"></i> Sil</button>
+        <button id="deleteMineBtn" onclick="confirmBulkDelete('${chatId}','sender')" style="display:none;background:rgba(244,67,54,0.15);border:1px solid #f44336;color:#f44336;cursor:pointer;padding:5px 10px;border-radius:8px;font-size:12px;white-space:nowrap"><i class="fas fa-trash"></i> Benden Sil</button>
+        <button id="deleteAllBtn" onclick="confirmBulkDelete('${chatId}','all')" style="display:none;background:rgba(244,67,54,0.25);border:1px solid #f44336;color:#f44336;cursor:pointer;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap"><i class="fas fa-trash-alt"></i> Herkesten Sil</button>
       </div>
       <div class="chat-messages" id="chatMessages"></div>
       <div class="chat-input-wrapper">
@@ -909,7 +948,15 @@ function openMobileChat(friendId, friendName, friendPhoto) {
         <div class="msg-select-check" onclick="toggleMsgSelect(event,'${msgId}',${isMe})"><div class="msg-checkbox" id="chk_${msgId}"></div></div>
         ${!isMe ? `<img src="${friendPhoto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;align-self:flex-end;margin-right:6px;" />` : ''}
         <div class="chat-bubble" oncontextmenu="showMsgMenu(event,'${msgId}',${isMe},'${chatId}')" onclick="handleBubbleClick(event,'${msgId}',${isMe})">
-          ${msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width:200px;max-height:200px;border-radius:10px;display:block;" />` : `<p style="white-space:pre-wrap;">${msg.text}</p>`}
+          ${msg.videoShare ? `
+            <div onclick="event.stopPropagation();openShortFromHome(${msg.videoShare.videoId})" style="cursor:pointer;border-radius:10px;overflow:hidden;max-width:220px;background:rgba(0,0,0,0.3)">
+              <video src="${msg.videoShare.videoUrl}" style="width:100%;max-height:160px;object-fit:cover;display:block;pointer-events:none" muted></video>
+              <div style="padding:8px 10px;display:flex;align-items:center;gap:6px">
+                <i class="fas fa-play-circle" style="color:#ff0033;font-size:16px;flex-shrink:0"></i>
+                <p style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${msg.videoShare.title}</p>
+              </div>
+            </div>
+          ` : msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width:200px;max-height:200px;border-radius:10px;display:block;" />` : `<p style="white-space:pre-wrap;">${msg.text}</p>`}
           <div class="chat-meta">${time} ${readIcon}</div>
         </div>
         ${isMe ? `<img src="${getProfilePhotoUrl(currentUser.profile_photo)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;align-self:flex-end;margin-left:6px;" />` : ''}
@@ -1062,9 +1109,8 @@ function openChat(friendId, friendName, friendPhoto) {
     <div id="selectToolbar" class="select-toolbar" style="display:none;">
       <button onclick="exitSelectMode()" style="background:none;border:none;color:inherit;cursor:pointer;padding:4px 8px;font-size:18px;"><i class="fas fa-times"></i></button>
       <span id="selectCount" style="font-size:14px; font-weight:600; flex:1;">0 seçildi</span>
-      <button id="selectDeleteBtn" onclick="deleteSelectedMessages('${chatId}')" style="background:none;border:none;color:#f44336;cursor:pointer;padding:4px 12px;font-size:14px; display:flex; align-items:center; gap:6px;">
-        <i class="fas fa-trash"></i> Sil
-      </button>
+      <button id="deleteMineBtn" onclick="confirmBulkDelete('${chatId}','sender')" style="display:none;background:rgba(244,67,54,0.15);border:1px solid #f44336;color:#f44336;cursor:pointer;padding:5px 10px;border-radius:8px;font-size:12px;white-space:nowrap"><i class="fas fa-trash"></i> Benden Sil</button>
+      <button id="deleteAllBtn" onclick="confirmBulkDelete('${chatId}','all')" style="display:none;background:rgba(244,67,54,0.25);border:1px solid #f44336;color:#f44336;cursor:pointer;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap"><i class="fas fa-trash-alt"></i> Herkesten Sil</button>
     </div>
 
     <!-- Mesajlar -->
@@ -1412,6 +1458,28 @@ function toggleMsgSelect(event, msgId, isMe, chatId) {
   const count = selectedMessages.size;
   const countEl = document.getElementById('selectCount');
   if (countEl) countEl.textContent = `${count} mesaj seçildi`;
+
+  // Toolbar butonlarını güncelle
+  updateSelectToolbarButtons();
+}
+
+function updateSelectToolbarButtons() {
+  const deleteMineBtn = document.getElementById('deleteMineBtn');
+  const deleteAllBtn = document.getElementById('deleteAllBtn');
+  if (!deleteMineBtn || !deleteAllBtn) return;
+
+  const count = selectedMessages.size;
+  if (count === 0) {
+    deleteMineBtn.style.display = 'none';
+    deleteAllBtn.style.display = 'none';
+    return;
+  }
+
+  const hasOthers = [...selectedMessages.values()].some(m => !m.isMe);
+  // Her zaman "Benden Sil" göster
+  deleteMineBtn.style.display = 'inline-flex';
+  // Sadece kendi mesajları seçiliyse "Herkesten Sil" de göster
+  deleteAllBtn.style.display = hasOthers ? 'none' : 'inline-flex';
 }
 
 function handleBubbleClick(event, msgId, isMe) {
@@ -1795,8 +1863,8 @@ function renderShortsPlayer() {
           </div>
         </div>
 
-        <!-- Navigasyon (sağda, video dışında) -->
-        <div style="display:flex; flex-direction:column; gap:10px; align-items:center; justify-content:center;">
+        <!-- Navigasyon butonları sadece PC'de görünür, mobilde swipe ile geçiş -->
+        <div class="shorts-nav-col">
           <button class="shorts-nav-btn" onclick="prevShort()" ${currentShortIndex === 0 ? 'disabled' : ''}>
             <i class="fas fa-chevron-up"></i>
           </button>
@@ -1809,19 +1877,30 @@ function renderShortsPlayer() {
     </div>
   `;
 
-  // Klavye
+  // Klavye (ok tuşları + scroll)
   document.onkeydown = (e) => {
     if (currentPage !== 'shorts' && currentPage !== 'reals') return;
-    if (e.key === 'ArrowDown') nextShort();
-    if (e.key === 'ArrowUp') prevShort();
+    if (e.key === 'ArrowDown') { e.preventDefault(); nextShort(); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); prevShort(); }
     if (e.key === ' ') { e.preventDefault(); toggleShortPlay(); }
     if (e.key === 'm' || e.key === 'M') toggleShortMute();
   };
 
-  // Touch swipe
-  let touchStartY = 0;
+  // Mouse scroll ile geçiş (PC)
   const container = document.getElementById('shortsContainer');
   if (container) {
+    let scrollCooldown = false;
+    container.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      if (scrollCooldown) return;
+      scrollCooldown = true;
+      setTimeout(() => scrollCooldown = false, 600);
+      if (e.deltaY > 0) nextShort();
+      else prevShort();
+    }, { passive: false });
+
+    // Touch swipe (mobil)
+    let touchStartY = 0;
     container.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
     container.addEventListener('touchend', e => {
       const diff = touchStartY - e.changedTouches[0].clientY;
@@ -1978,7 +2057,9 @@ async function sendShareMessages(videoId, title, videoUrl) {
   const checked = document.querySelectorAll('.share-chk:checked');
   if (!checked.length) { showToast('En az bir kişi/grup seç', 'error'); return; }
 
-  const shareText = `🎬 ${title}\n${window.location.origin}/?v=${videoId}`;
+  // Video önizleme kartı olarak gönder - tıklayınca Reals'ta o videoya gider
+  const shareText = `📹 ${title}`;
+  const shareData = { type: 'video_share', videoId, title, videoUrl };
   const promises = [];
 
   checked.forEach(chk => {
@@ -1992,6 +2073,7 @@ async function sendShareMessages(videoId, title, videoUrl) {
           senderId: currentUser.id,
           receiverId: parseInt(id),
           text: shareText,
+          videoShare: shareData,
           timestamp: Date.now(),
           read: false,
           deletedForSender: false,
@@ -2003,6 +2085,7 @@ async function sendShareMessages(videoId, title, videoUrl) {
         window.firebasePush(window.firebaseRef(window.firebaseDB, `group_chats/${id}/messages`), {
           senderId: currentUser.id,
           text: shareText,
+          videoShare: shareData,
           timestamp: Date.now()
         })
       );
@@ -3037,13 +3120,14 @@ async function toggleSubscribe(channelId) {
     const checkData = await checkResponse.json();
 
     if (checkData.subscribed) {
-      // Abonelikten çık
+      // Takipten çık
       await fetch(`${API_URL}/subscribe`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: currentUser.id, channelId })
       });
-      checkSubscriptionStatus(channelId);
+      showToast('Takipten çıkıldı', 'success');
+      checkChannelSubscriptionStatus(channelId);
     } else {
       // Gizli hesap kontrolü
       const privRes = await fetch(`${API_URL}/channel-privacy/${channelId}`);
@@ -3051,30 +3135,39 @@ async function toggleSubscribe(channelId) {
 
       if (privData.is_private) {
         // Takip isteği gönder
+        const ownerId = await getChannelOwnerId(channelId);
         const reqRes = await fetch(`${API_URL}/follow-request`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ senderId: currentUser.id, receiverId: await getChannelOwnerId(channelId) })
+          body: JSON.stringify({ senderId: currentUser.id, receiverId: ownerId })
         });
         const reqData = await reqRes.json();
         if (reqRes.ok) {
           showToast('Takip isteği gönderildi', 'success');
-          const btn = document.getElementById('subscribeBtn');
-          if (btn) { btn.textContent = 'İstek Gönderildi'; btn.disabled = true; }
+          const btn = document.getElementById('channelSubscribeBtn');
+          if (btn) { btn.textContent = 'İstek Gönderildi'; btn.disabled = true; btn.style.opacity = '0.6'; }
         } else {
           showToast(reqData.error || 'İstek gönderilemedi', 'error');
         }
       } else {
-        await fetch(`${API_URL}/subscribe`, {
+        // Herkese açık hesap - direkt takip et
+        const res = await fetch(`${API_URL}/subscribe`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: currentUser.id, channelId })
         });
-        checkSubscriptionStatus(channelId);
+        if (res.ok) {
+          showToast('Takip edildi', 'success');
+          checkChannelSubscriptionStatus(channelId);
+        } else {
+          const d = await res.json();
+          showToast(d.error || 'Takip edilemedi', 'error');
+        }
       }
     }
   } catch (error) {
-    console.error('Abonelik hatası:', error);
+    console.error('Takip hatası:', error);
+    showToast('Bir hata oluştu', 'error');
   }
 }
 
@@ -4301,6 +4394,14 @@ async function loadSettingsPage() {
             <button class="yt-btn" style="width:auto; padding:0 20px; white-space:nowrap;" onclick="changeNickname()">Değiştir</button>
           </div>
         </div>
+
+        <div class="yt-form-group">
+          <label class="yt-form-label">Hakkımda</label>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <textarea id="settingsAbout" class="yt-textarea" placeholder="Kendiniz hakkında bir şeyler yazın..." style="flex:1;min-height:80px;resize:vertical">${currentChannel?.about || ''}</textarea>
+            <button class="yt-btn" style="width:auto; padding:0 20px; white-space:nowrap;flex-shrink:0" onclick="saveAbout()">Kaydet</button>
+          </div>
+        </div>
         
         <div class="yt-form-group">
           <label class="yt-form-label">Şifre Değiştir</label>
@@ -4483,14 +4584,28 @@ async function changeNickname() {
       body: JSON.stringify({ newNickname })
     });
 
-    alert('Takma ad değiştirildi');
+    showToast('Takma ad değiştirildi', 'success');
     currentUser.nickname = newNickname;
     localStorage.setItem('Tea_user', JSON.stringify(currentUser));
     document.getElementById('userNickname').textContent = newNickname;
   } catch (error) {
     console.error('Takma ad değiştirme hatası:', error);
-    alert('Takma ad değiştirilemedi');
+    showToast('Takma ad değiştirilemedi', 'error');
   }
+}
+
+async function saveAbout() {
+  const about = document.getElementById('settingsAbout')?.value?.trim() || '';
+  if (!currentChannel) { showToast('Kanal bulunamadı', 'error'); return; }
+  try {
+    await fetch(`${API_URL}/channel/${currentChannel.id}/about`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ about })
+    });
+    if (currentChannel) currentChannel.about = about;
+    showToast('Hakkımda güncellendi', 'success');
+  } catch(e) { showToast('Kaydedilemedi', 'error'); }
 }
 
 async function changePassword() {
@@ -4839,42 +4954,59 @@ async function loadSubscriptionsPage() {
 
     const pageContent = document.getElementById('pageContent');
     pageContent.innerHTML = `
-      <h2 class="section-header">Takipler</h2>
-      <div id="subscriptionsList" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px;"></div>
+      <h2 class="section-header">Takip Ettiklerim</h2>
+      <div id="subscriptionsList" style="display:flex;flex-direction:column;gap:8px;max-width:600px"></div>
     `;
 
     const container = document.getElementById('subscriptionsList');
 
     if (subscriptions.length === 0) {
-      container.innerHTML = '<p style="color: var(--yt-spec-text-secondary);">Henüz takip yok</p>';
+      container.innerHTML = '<p style="color: var(--yt-spec-text-secondary);">Henüz kimseyi takip etmiyorsun</p>';
       return;
     }
 
-    container.innerHTML = subscriptions.map(sub => {
-      const banner = sub.channel_banner || '';
+    // Her biri için karşılıklı takip durumunu kontrol et
+    const followBackChecks = await Promise.all(
+      subscriptions.map(sub =>
+        fetch(`${API_URL}/is-subscribed/${sub.channel_id}/${currentChannel?.id || 0}`)
+          .then(r => r.json()).catch(() => ({ subscribed: false }))
+      )
+    );
+
+    container.innerHTML = subscriptions.map((sub, i) => {
+      const followsBack = followBackChecks[i]?.subscribed;
       const avatar = getProfilePhotoUrl(sub.profile_photo);
-      const bannerStyle = banner
-        ? `background-image:url('${banner}'); background-size:cover; background-position:center;`
-        : `background: linear-gradient(135deg,#1a1a2e,#0f3460);`;
       return `
-        <div style="background:var(--yt-spec-raised-background); border-radius:12px; overflow:hidden; cursor:pointer; transition:transform 0.15s;" 
-             onmouseover="this.style.transform='scale(1.02)'" 
-             onmouseout="this.style.transform='scale(1)'"
-             onclick="viewChannel(${sub.channel_id})">
-          <div style="${bannerStyle} height:100px;"></div>
-          <div style="padding:12px; display:flex; align-items:center; gap:10px;">
-            <img src="${avatar}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; flex-shrink:0; margin-top:-24px; border:2px solid var(--yt-spec-raised-background);" />
-            <div style="min-width:0;">
-              <p style="font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sub.channel_name}</p>
-              <p style="color:var(--yt-spec-text-secondary); font-size:12px;">${sub.subscriber_count} takipçi • ${sub.video_count} içerik</p>
-            </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--yt-spec-raised-background);border-radius:12px;cursor:pointer;transition:background 0.15s"
+             onclick="viewChannel(${sub.channel_id})"
+             onmouseover="this.style.background='rgba(255,255,255,0.08)'"
+             onmouseout="this.style.background='var(--yt-spec-raised-background)'">
+          <img src="${avatar}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;" />
+          <div style="flex:1;min-width:0">
+            <p style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sub.channel_name}</p>
+            <p style="font-size:12px;color:var(--yt-spec-text-secondary);margin-top:2px">${sub.subscriber_count} takipçi • ${sub.video_count} içerik</p>
+            ${followsBack ? '<p style="font-size:11px;color:#4caf50;margin-top:2px"><i class="fas fa-check-circle" style="margin-right:3px"></i>Seni takip ediyor</p>' : '<p style="font-size:11px;color:var(--yt-spec-text-secondary);margin-top:2px">Seni takip etmiyor</p>'}
           </div>
-        </div>
-      `;
+          <button onclick="event.stopPropagation();unsubscribeFromList(${sub.channel_id},this)" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--yt-spec-text-secondary);padding:6px 12px;border-radius:20px;cursor:pointer;font-size:12px;flex-shrink:0;white-space:nowrap">
+            Takipten Çık
+          </button>
+        </div>`;
     }).join('');
-  } catch (error) {
-    console.error('Takipler yükleme hatası:', error);
+  } catch(e) {
+    document.getElementById('pageContent').innerHTML = '<p style="color:var(--yt-spec-text-secondary)">Yüklenemedi</p>';
   }
+}
+
+async function unsubscribeFromList(channelId, btn) {
+  try {
+    await fetch(`${API_URL}/subscribe`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id, channelId })
+    });
+    btn.closest('div[style]').remove();
+    showToast('Takipten çıkıldı', 'success');
+  } catch(e) { showToast('Hata', 'error'); }
 }
 
 // Favoriler sayfası
@@ -5389,16 +5521,13 @@ async function checkChannelSubscriptionStatus(channelId) {
     ]);
     const subData = await subRes.json();
     const privData = await privRes.json().catch(() => ({ is_private: 0 }));
-    
-    // Account type'ı al
-    const accountTypeRes = await fetch(`${API_URL}/account-type/${channelId}`).catch(() => null);
-    const accountTypeData = accountTypeRes ? await accountTypeRes.json().catch(() => ({ account_type: 'channel' })) : { account_type: 'channel' };
-    const isPersonal = accountTypeData.account_type === 'personal';
-    const unsubscribeLabel = 'Takipten Çık';
 
     if (subData.subscribed) {
-      btn.textContent = unsubscribeLabel;
-      btn.classList.add('yt-btn-secondary');
+      btn.textContent = 'Takipten Çık';
+      btn.style.background = 'rgba(255,255,255,0.08)';
+      btn.style.color = 'var(--yt-spec-text-primary)';
+      btn.disabled = false;
+      btn.style.opacity = '1';
     } else if (privData.is_private) {
       // Bekleyen takip isteği var mı?
       const channel = await fetch(`${API_URL}/channel/${channelId}`).then(r => r.json()).catch(() => null);
@@ -5410,9 +5539,18 @@ async function checkChannelSubscriptionStatus(channelId) {
           if (pending) {
             btn.textContent = 'İstek Gönderildi';
             btn.disabled = true;
+            btn.style.opacity = '0.6';
+            return;
           }
         }
       }
+      btn.textContent = 'Takip Et';
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    } else {
+      btn.textContent = 'Takip Et';
+      btn.disabled = false;
+      btn.style.opacity = '1';
     }
   } catch(e) {}
 }

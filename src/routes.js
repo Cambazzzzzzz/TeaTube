@@ -2282,6 +2282,69 @@ function assignDemlikBadge(userId) {
   } catch(e) {}
 }
 
+// Hakkımda güncelle
+router.put('/channel/:channelId/about', (req, res) => {
+  try {
+    const { about } = req.body;
+    db.prepare('UPDATE channels SET about = ? WHERE id = ?').run(about || '', req.params.channelId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Güncellenemedi' });
+  }
+});
+
+// ==================== ENGELLEME ====================
+
+// Kullanıcı engelle
+router.post('/block', (req, res) => {
+  try {
+    const { blockerId, blockedId } = req.body;
+    db.prepare('INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)').run(blockerId, blockedId);
+    // Arkadaşlığı da kaldır
+    db.prepare('DELETE FROM friendships WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)').run(blockerId, blockedId, blockedId, blockerId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Engellenemedi' });
+  }
+});
+
+// Engeli kaldır
+router.delete('/block/:blockedId', (req, res) => {
+  try {
+    const blockerId = req.query.blockerId;
+    db.prepare('DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?').run(blockerId, req.params.blockedId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Engel kaldırılamadı' });
+  }
+});
+
+// Engellenen kullanıcılar listesi
+router.get('/blocks/:userId', (req, res) => {
+  try {
+    const blocks = db.prepare(`
+      SELECT ub.*, u.username, u.nickname, u.profile_photo
+      FROM user_blocks ub
+      JOIN users u ON ub.blocked_id = u.id
+      WHERE ub.blocker_id = ?
+      ORDER BY ub.created_at DESC
+    `).all(req.params.userId);
+    res.json(blocks);
+  } catch(e) {
+    res.status(500).json({ error: 'Engellenenler alınamadı' });
+  }
+});
+
+// Engel kontrolü
+router.get('/is-blocked/:blockerId/:blockedId', (req, res) => {
+  try {
+    const block = db.prepare('SELECT id FROM user_blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?)').get(req.params.blockerId, req.params.blockedId, req.params.blockedId, req.params.blockerId);
+    res.json({ blocked: !!block });
+  } catch(e) {
+    res.status(500).json({ error: 'Kontrol yapılamadı' });
+  }
+});
+
 module.exports = router;
 module.exports.VIDEO_TYPES = VIDEO_TYPES;
 module.exports.assignDemlikBadge = assignDemlikBadge;

@@ -756,4 +756,15 @@ db.exec(`
 `);
 console.log('✅ Duyuru tablosu hazır!');
 
+// Engelleme tablosu
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_blocks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    blocker_id INTEGER NOT NULL,
+    blocked_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(blocker_id, blocked_id)
+  )
+`);
+
 module.exports = db;

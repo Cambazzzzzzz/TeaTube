@@ -368,4 +368,14 @@ router.delete('/groups/:groupId', (req, res) => {
   }
 });
 
+// Grup katılma isteğini iptal et
+router.delete('/groups/request/:requestId', (req, res) => {
+  try {
+    db.prepare('DELETE FROM group_join_requests WHERE id = ?').run(req.params.requestId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'İstek iptal edilemedi' });
+  }
+});
+
 module.exports = router;
