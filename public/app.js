@@ -6329,23 +6329,17 @@ function showArtistApplyModal() {
   showModal(`
     <h3 style="margin-bottom:16px">Artist Başvurusu</h3>
     <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:16px">TS Music'te şarkı yükleyebilmek için artist başvurusu yapman gerekiyor.</p>
-    <div class="yt-form-group"><label class="yt-form-label">Ad Soyad *</label><input id="applyRealName" class="yt-input" placeholder="Gerçek adın ve soyadın" /></div>
-    <div class="yt-form-group"><label class="yt-form-label">Artist Adı *</label><input id="applyArtistName" class="yt-input" placeholder="Sahne adın" /></div>
-    <div class="yt-form-group"><label class="yt-form-label">Mahlas (opsiyonel)</label><input id="applyArtistAlias" class="yt-input" placeholder="Diğer adın" /></div>
-    <div class="yt-form-group"><label class="yt-form-label">Telefon</label><input id="applyPhone" class="yt-input" placeholder="+90 5xx xxx xx xx" /></div>
-    <div class="yt-form-group"><label class="yt-form-label">E-posta</label><input id="applyEmail" class="yt-input" placeholder="ornek@mail.com" /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Mahlas (Artist Adı) *</label><input id="applyArtistName" class="yt-input" placeholder="Sahne adın / mahlasın" /></div>
     <button class="yt-btn" style="width:100%;margin-top:8px" onclick="submitArtistApply()">Başvuru Gönder</button>`);
 }
 
 async function submitArtistApply() {
-  const realName = document.getElementById('applyRealName')?.value.trim();
   const artistName = document.getElementById('applyArtistName')?.value.trim();
-  if (!realName) { showToast('Ad Soyad gerekli', 'error'); return; }
-  if (!artistName) { showToast('Artist adı gerekli', 'error'); return; }
+  if (!artistName) { showToast('Mahlas gerekli', 'error'); return; }
   try {
     const r = await fetch(API_URL + '/music/apply', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ userId: currentUser.id, artistName, artistAlias: document.getElementById('applyArtistAlias')?.value.trim(), phone: document.getElementById('applyPhone')?.value.trim(), email: document.getElementById('applyEmail')?.value.trim(), realName })
+      body: JSON.stringify({ userId: currentUser.id, artistName })
     });
     const d = await r.json();
     if (!r.ok) { showToast(d.error || 'Hata', 'error'); return; }
