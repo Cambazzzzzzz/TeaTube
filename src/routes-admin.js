@@ -358,29 +358,32 @@ router.put('/admin/music/application/:id', (req, res) => {
   try {
     const { action, note } = req.body;
     const app = db.prepare('SELECT * FROM music_artist_applications WHERE id = ?').get(req.params.id);
-    if (!app) return res.status(404).json({ error: 'Başvuru bulunamadı' });
+    if (!app) return res.status(404).json({ error: 'Başvuru bulunamadı: id=' + req.params.id });
 
     db.prepare('UPDATE music_artist_applications SET status = ?, admin_note = ?, reviewed_at = datetime("now") WHERE id = ?')
       .run(action, note || null, req.params.id);
 
     if (action === 'accepted') {
-      // Artist kaydı oluştur
       const existing = db.prepare('SELECT id FROM music_artists WHERE user_id = ?').get(app.user_id);
       if (!existing) {
         db.prepare('INSERT INTO music_artists (user_id, artist_name, artist_alias) VALUES (?, ?, ?)')
-          .run(app.user_id, app.artist_name, app.artist_alias);
+          .run(app.user_id, app.artist_name, app.artist_alias || null);
       }
-      // Bildirim gönder
-      db.prepare('INSERT INTO notifications (user_id, type, content) VALUES (?, ?, ?)')
-        .run(app.user_id, 'music_accepted', 'TS Music başvurunuz kabul edildi! Artık şarkı yükleyebilirsiniz.');
+      try {
+        db.prepare('INSERT INTO notifications (user_id, type, content) VALUES (?, ?, ?)')
+          .run(app.user_id, 'music_accepted', 'TS Music başvurunuz kabul edildi! Artık şarkı yükleyebilirsiniz.');
+      } catch(ne) {}
     } else if (action === 'rejected') {
-      db.prepare('INSERT INTO notifications (user_id, type, content) VALUES (?, ?, ?)')
-        .run(app.user_id, 'music_rejected', `TS Music başvurunuz reddedildi.${note ? ' Not: ' + note : ''}`);
+      try {
+        db.prepare('INSERT INTO notifications (user_id, type, content) VALUES (?, ?, ?)')
+          .run(app.user_id, 'music_rejected', `TS Music başvurunuz reddedildi.${note ? ' Not: ' + note : ''}`);
+      } catch(ne) {}
     }
 
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'İşlem başarısız' });
+    console.error('Music application error:', e);
+    res.status(500).json({ error: 'İşlem başarısız: ' + e.message });
   }
 });
 

@@ -6491,50 +6491,129 @@ async function openGroup(groupId) {
     const isMod = myRole === 'moderator';
     const isMember = !!myRole;
     const isMuted = myMember?.is_muted && (!myMember.muted_until || new Date(myMember.muted_until) > new Date());
+    const canWrite = isMember && !isMuted && (group.allow_member_messages !== 0 || isOwner || isMod);
 
     pageContent.innerHTML = `
-      <div style="max-width:700px">
-        <button onclick="loadGroupsPage()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;margin-bottom:16px;font-size:13px"><i class="fas fa-arrow-left" style="margin-right:6px"></i>Gruplar</button>
-        
-        <!-- Grup Başlık -->
-        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px;background:var(--yt-spec-raised-background);border-radius:14px">
-          <img src="${group.photo_url || 'data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=64 height=64%3E%3Ccircle cx=32 cy=32 r=32 fill=%23333/%3E%3C/svg%3E'}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0" />
-          <div style="flex:1">
-            <div style="display:flex;align-items:center;gap:8px">
-              <h2 style="font-size:18px;font-weight:700">${group.name}</h2>
-              ${group.is_private ? '<span style="font-size:11px;background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:10px;color:var(--yt-spec-text-secondary)"><i class="fas fa-lock" style="margin-right:3px"></i>Özel</span>' : ''}
+      <div style="display:flex;flex-direction:column;height:calc(100vh - 120px);max-width:700px">
+        <!-- Başlık -->
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:0;flex-shrink:0">
+          <button onclick="loadGroupsPage()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:16px;padding:4px 8px"><i class="fas fa-arrow-left"></i></button>
+          <img src="${group.photo_url || 'data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=40 height=40%3E%3Ccircle cx=20 cy=20 r=20 fill=%23333/%3E%3C/svg%3E'}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px">
+              <p style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${group.name}</p>
+              ${group.is_private ? '<i class="fas fa-lock" style="font-size:11px;color:var(--yt-spec-text-secondary)"></i>' : ''}
             </div>
-            ${group.description ? `<p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-top:4px">${group.description}</p>` : ''}
-            <p style="font-size:12px;color:var(--yt-spec-text-secondary);margin-top:4px">${group.member_count} üye</p>
+            <p style="font-size:12px;color:var(--yt-spec-text-secondary)">${group.member_count} üye</p>
           </div>
-          <div style="display:flex;gap:6px;flex-direction:column">
-            ${!isMember ? `<button class="yt-btn" onclick="joinGroup(${group.id})" style="height:32px;padding:0 14px;font-size:13px">${group.is_private ? 'İstek Gönder' : 'Katıl'}</button>` : ''}
-            ${isMember && !isOwner ? `<button class="yt-btn" onclick="leaveGroup(${group.id})" style="height:32px;padding:0 14px;font-size:13px;background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)">Ayrıl</button>` : ''}
-            ${isOwner ? `<button class="yt-btn" onclick="showGroupSettings(${group.id})" style="height:32px;padding:0 14px;font-size:13px;background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)"><i class="fas fa-cog"></i></button>` : ''}
-          </div>
-        </div>
-
-        <!-- Üyeler -->
-        <div style="margin-bottom:20px">
-          <h3 style="font-size:14px;font-weight:600;margin-bottom:10px">Üyeler</h3>
-          <div style="display:flex;flex-direction:column;gap:6px">
-            ${members.map(m => {
-              const roleIcon = m.role === 'owner' ? '<i class="fas fa-crown" style="color:#ffc800;font-size:11px;margin-left:4px"></i>' :
-                               m.role === 'moderator' ? '<i class="fas fa-shield-alt" style="color:#3ea6ff;font-size:11px;margin-left:4px"></i>' : '';
-              const canManage = (isOwner || isMod) && m.user_id !== currentUser.id && m.role !== 'owner';
-              return `<div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--yt-spec-raised-background)">
-                <img src="${getProfilePhotoUrl(m.profile_photo)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" />
-                <div style="flex:1"><div style="display:flex;align-items:center;gap:4px"><span style="font-size:13px;font-weight:500">${m.nickname}</span>${roleIcon}</div><span style="font-size:11px;color:var(--yt-spec-text-secondary)">@${m.username}</span></div>
-                ${canManage ? `<button onclick="showMemberActions(${group.id},${m.user_id},'${m.nickname.replace(/'/g,"\\'")}','${m.role}')" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:4px 8px"><i class="fas fa-ellipsis-v"></i></button>` : ''}
-              </div>`;
-            }).join('')}
+          <div style="display:flex;gap:6px">
+            <button onclick="showGroupMembersPanel(${group.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:16px;padding:4px 8px"><i class="fas fa-users"></i></button>
+            ${isOwner ? `<button onclick="showGroupSettings(${group.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:16px;padding:4px 8px"><i class="fas fa-cog"></i></button>` : ''}
+            ${isMember && !isOwner ? `<button onclick="leaveGroup(${group.id})" style="background:none;border:none;color:#ff4444;cursor:pointer;font-size:14px;padding:4px 8px"><i class="fas fa-sign-out-alt"></i></button>` : ''}
+            ${!isMember ? `<button class="yt-btn" onclick="joinGroup(${group.id})" style="height:30px;padding:0 12px;font-size:12px">${group.is_private ? 'İstek Gönder' : 'Katıl'}</button>` : ''}
           </div>
         </div>
 
-        <!-- Katılma İstekleri (owner/mod) -->
-        ${(isOwner || isMod) ? `<div id="joinRequestsSection"><button onclick="loadJoinRequests(${group.id})" style="background:none;border:none;color:var(--yt-spec-brand-background-solid);cursor:pointer;font-size:13px"><i class="fas fa-user-plus" style="margin-right:6px"></i>Katılma İstekleri</button></div>` : ''}
+        <!-- Mesajlar -->
+        <div id="groupMessages" style="flex:1;overflow-y:auto;padding:12px 0;display:flex;flex-direction:column;gap:8px">
+          <div class="yt-loading"><div class="yt-spinner"></div></div>
+        </div>
+
+        <!-- Mesaj Gönder -->
+        ${isMember ? `
+          <div style="padding:10px 0;border-top:1px solid rgba(255,255,255,0.08);display:flex;gap:8px;align-items:flex-end;flex-shrink:0">
+            <img src="${getProfilePhotoUrl(currentUser?.profile_photo)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+            ${canWrite ? `
+              <textarea id="groupMsgInput" class="yt-input" placeholder="Mesaj yaz..." style="flex:1;min-height:36px;max-height:100px;resize:none;padding:8px 12px;line-height:1.4" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendGroupMessage(${group.id})}"></textarea>
+              <button onclick="sendGroupMessage(${group.id})" style="background:none;border:none;color:var(--yt-spec-brand-background-solid);cursor:pointer;font-size:18px;padding:4px 8px;flex-shrink:0"><i class="fas fa-paper-plane"></i></button>
+            ` : `<p style="flex:1;font-size:13px;color:var(--yt-spec-text-secondary);padding:8px 0">${isMuted ? 'Susturuldunuz' : 'Mesaj gönderme kapalı'}</p>`}
+          </div>
+        ` : ''}
       </div>`;
+
+    // Mesajları yükle
+    loadGroupMessages(groupId, members);
   } catch(e) { pageContent.innerHTML = '<p>Hata oluştu</p>'; }
+}
+
+function loadGroupMessages(groupId, members) {
+  const container = document.getElementById('groupMessages');
+  if (!container || !window.firebaseDB) {
+    if (container) container.innerHTML = '<p style="text-align:center;color:var(--yt-spec-text-secondary);padding:20px">Mesajlar yüklenemedi</p>';
+    return;
+  }
+
+  const memberMap = {};
+  members.forEach(m => { memberMap[m.user_id] = m; });
+
+  const msgsRef = window.firebaseRef(window.firebaseDB, `group_chats/${groupId}/messages`);
+  window.firebaseOnValue(msgsRef, snap => {
+    const msgs = [];
+    snap.forEach(child => { msgs.push({ id: child.key, ...child.val() }); });
+    
+    if (!msgs.length) {
+      container.innerHTML = '<p style="text-align:center;color:var(--yt-spec-text-secondary);padding:40px 0;font-size:13px">Henüz mesaj yok</p>';
+      return;
+    }
+
+    container.innerHTML = msgs.map(msg => {
+      const isMe = msg.senderId == currentUser.id;
+      const sender = memberMap[msg.senderId];
+      const senderName = sender?.nickname || 'Kullanıcı';
+      const senderPhoto = getProfilePhotoUrl(sender?.profile_photo);
+      const senderRole = sender?.role;
+      const roleIcon = senderRole === 'owner' ? '<i class="fas fa-crown" style="color:#ffc800;font-size:10px;margin-left:3px"></i>' :
+                       senderRole === 'moderator' ? '<i class="fas fa-shield-alt" style="color:#3ea6ff;font-size:10px;margin-left:3px"></i>' : '';
+      const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}) : '';
+
+      return `
+        <div style="display:flex;gap:8px;align-items:flex-start;${isMe ? 'flex-direction:row-reverse' : ''}">
+          ${!isMe ? `<img src="${senderPhoto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;margin-top:2px" />` : ''}
+          <div style="max-width:70%;${isMe ? 'align-items:flex-end' : 'align-items:flex-start'};display:flex;flex-direction:column;gap:2px">
+            ${!isMe ? `<div style="display:flex;align-items:center;gap:3px;margin-bottom:2px"><span style="font-size:11px;font-weight:600;color:var(--yt-spec-text-secondary)">${senderName}</span>${roleIcon}</div>` : ''}
+            ${msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width:200px;border-radius:10px;cursor:pointer" onclick="window.open('${msg.imageUrl}')" />` : ''}
+            ${msg.text ? `<div style="background:${isMe ? 'var(--yt-spec-brand-background-solid)' : 'var(--yt-spec-raised-background)'};padding:8px 12px;border-radius:${isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};font-size:14px;line-height:1.4;word-break:break-word">${msg.text}</div>` : ''}
+            <span style="font-size:10px;color:var(--yt-spec-text-secondary)">${time}</span>
+          </div>
+        </div>`;
+    }).join('');
+
+    // En alta scroll
+    container.scrollTop = container.scrollHeight;
+  });
+}
+
+async function sendGroupMessage(groupId) {
+  const input = document.getElementById('groupMsgInput');
+  const text = input?.value.trim();
+  if (!text || !window.firebaseDB) return;
+
+  try {
+    await window.firebasePush(window.firebaseRef(window.firebaseDB, `group_chats/${groupId}/messages`), {
+      senderId: currentUser.id,
+      text,
+      timestamp: Date.now()
+    });
+    input.value = '';
+    input.style.height = 'auto';
+  } catch(e) { showToast('Mesaj gönderilemedi', 'error'); }
+}
+
+function showGroupMembersPanel(groupId) {
+  fetch(`${API_URL}/groups/${groupId}/members`).then(r => r.json()).then(members => {
+    showModal(`
+      <h3 style="margin-bottom:16px">Üyeler (${members.length})</h3>
+      <div style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto">
+        ${members.map(m => {
+          const roleIcon = m.role === 'owner' ? '<i class="fas fa-crown" style="color:#ffc800;font-size:11px;margin-left:4px"></i>' :
+                           m.role === 'moderator' ? '<i class="fas fa-shield-alt" style="color:#3ea6ff;font-size:11px;margin-left:4px"></i>' : '';
+          return `<div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--yt-spec-raised-background)">
+            <img src="${getProfilePhotoUrl(m.profile_photo)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" />
+            <div style="flex:1"><div style="display:flex;align-items:center;gap:4px"><span style="font-size:13px;font-weight:500">${m.nickname}</span>${roleIcon}</div><span style="font-size:11px;color:var(--yt-spec-text-secondary)">@${m.username}</span></div>
+          </div>`;
+        }).join('')}
+      </div>`);
+  });
 }
 
 async function leaveGroup(groupId) {
