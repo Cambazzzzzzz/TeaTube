@@ -604,8 +604,7 @@ function showPage(page) {
     case 'ts-music':
       loadTSMusicPage();
       break;
-    case 'song-writings':
-      // Şarkı yazıları sayfası - HTML div'i göster
+    case 'song-writings': {
       pageContent.innerHTML = '';
       ['song-writings-page','my-writings-page','writing-detail-page'].forEach(eid => {
         const el = document.getElementById(eid); if (el) el.style.display = 'none';
@@ -618,7 +617,8 @@ function showPage(page) {
         loadSongWritingsPage();
       }
       break;
-    case 'my-writings':
+    }
+    case 'my-writings': {
       pageContent.innerHTML = '';
       ['song-writings-page','my-writings-page','writing-detail-page'].forEach(eid => {
         const el = document.getElementById(eid); if (el) el.style.display = 'none';
@@ -626,7 +626,8 @@ function showPage(page) {
       const mwPage = document.getElementById('my-writings-page');
       if (mwPage) { mwPage.style.display = 'block'; showMyWritings(); }
       break;
-    case 'writing-detail':
+    }
+    case 'writing-detail': {
       pageContent.innerHTML = '';
       ['song-writings-page','my-writings-page','writing-detail-page'].forEach(eid => {
         const el = document.getElementById(eid); if (el) el.style.display = 'none';
@@ -634,6 +635,7 @@ function showPage(page) {
       const wdPage = document.getElementById('writing-detail-page');
       if (wdPage) wdPage.style.display = 'block';
       break;
+    }
     case 'groups':
       loadGroupsPage();
       break;
