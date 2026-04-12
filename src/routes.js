@@ -81,9 +81,17 @@ router.post('/register', upload.single('profile_photo'), async (req, res) => {
       profilePhoto = await cloudinary.uploadProfilePhoto(req.file.buffer, req.file.originalname);
     }
 
+    // Rastgele tema seç
+    const themes = [
+      'dark', 'neon-purple', 'ocean-blue', 'fire-red', 'forest-green', 
+      'gold', 'light', 'midnight-blue', 'orange-fire', 'pink-dream',
+      'aurora', 'sunset-glow', 'deep-space', 'emerald-night', 'rose-gold'
+    ];
+    const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+
     const result = db.prepare(
-      'INSERT INTO users (username, nickname, password, profile_photo) VALUES (?, ?, ?, ?)'
-    ).run(username, nickname, hashedPassword, profilePhoto);
+      'INSERT INTO users (username, nickname, password, profile_photo, theme) VALUES (?, ?, ?, ?, ?)'
+    ).run(username, nickname, hashedPassword, profilePhoto, randomTheme);
 
     db.prepare('INSERT INTO user_settings (user_id) VALUES (?)').run(result.lastInsertRowid);
 

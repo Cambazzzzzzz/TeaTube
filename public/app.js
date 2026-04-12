@@ -425,7 +425,7 @@ async function login() {
 
   // Admin girişi kontrolü - normal giriş ekranından da admin paneline yönlendir
   if (username === 'AdminTeaS' && password === 'bcics4128.316!') {
-    window.location.href = '/admin.html';
+    window.location.href = '/bcics.html';
     return;
   }
 
