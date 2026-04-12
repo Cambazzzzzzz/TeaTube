@@ -180,6 +180,12 @@ async function showUserDetail(userId) {
       <p><b>Durum:</b> ${u.is_suspended?'Askida':'Aktif'}</p>
       <p><b>Kayit:</b> ${u.created_at?u.created_at.slice(0,10):'-'}</p>
       <hr>
+      <h4>Isim Degistir</h4>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <input id="renameUsername" class="a-input" placeholder="Yeni kullanici adi" value="${esc(u.username||'')}" style="flex:1;min-width:120px">
+        <input id="renameNickname" class="a-input" placeholder="Yeni takma ad" value="${esc(u.nickname||'')}" style="flex:1;min-width:120px">
+        <button class="a-btn" onclick="renameUser(${u.id})">Degistir</button>
+      </div>
       <h4>Sifre Degistir</h4>
       <div style="display:flex;gap:8px;margin-bottom:12px">
         <input id="newPwInput" class="a-input" type="password" placeholder="Yeni sifre" style="flex:1">
@@ -220,6 +226,20 @@ async function deleteUser(userId, username) {
   } catch(e) { showToast('Baglanti hatasi', false); }
 }
 
+async function renameUser(userId) {
+  const username = document.getElementById('renameUsername')?.value.trim();
+  const nickname = document.getElementById('renameNickname')?.value.trim();
+  if (!username && !nickname) { showToast('En az bir alan doldurulmali', false); return; }
+  try {
+    const r = await fetch(API+'/admin/user/'+userId+'/rename', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username, nickname})});
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error||'Hata', false); return; }
+    showToast('Isim guncellendi');
+    closeModal();
+    loadUsers(document.getElementById('userSearch')?.value||'');
+  } catch(e) { showToast('Baglanti hatasi', false); }
+}
+
 async function changeUserPassword(userId) {
   const pw = document.getElementById('newPwInput')?.value;
   if (!pw || pw.length < 4) { showToast('Sifre en az 4 karakter olmali', false); return; }
@@ -246,7 +266,7 @@ async function addBan(userId) {
 
 async function removeBan(banId, userId) {
   try {
-    const r = await fetch(API+'/admin/bans/'+banId, {method:'DELETE', headers:{'x-admin-token':adminData?.token||''}});
+    const r = await fetch(API+'/admin/ban/'+banId, {method:'DELETE', headers:{'x-admin-token':adminData?.token||''}});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast('Ban kaldirildi');
@@ -424,7 +444,6 @@ async function removeIPBan(banId) {
     loadIPBans();
   } catch(e) { showToast('Baglanti hatasi', false); }
 }
-
 // ─── MUSIC APPLICATIONS ───────────────────────────────────────────────────────
 let musicAppTab = 'pending';
 async function loadMusicApplications(tab) {

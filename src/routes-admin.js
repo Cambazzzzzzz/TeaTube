@@ -181,6 +181,24 @@ router.put('/admin/user/:userId/password', async (req, res) => {
   }
 });
 
+// Kullanıcı isim/nickname değiştir (admin)
+router.put('/admin/user/:userId/rename', (req, res) => {
+  try {
+    const { username, nickname } = req.body;
+    if (username) {
+      const existing = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(username, req.params.userId);
+      if (existing) return res.status(400).json({ error: 'Bu kullanıcı adı zaten kullanılıyor' });
+      db.prepare('UPDATE users SET username = ? WHERE id = ?').run(username, req.params.userId);
+    }
+    if (nickname) {
+      db.prepare('UPDATE users SET nickname = ? WHERE id = ?').run(nickname, req.params.userId);
+    }
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'İsim değiştirilemedi' });
+  }
+});
+
 // Kullanıcı sil
 router.delete('/admin/user/:userId', (req, res) => {
   try {
@@ -245,13 +263,34 @@ router.delete('/admin/ip-ban/:ip', (req, res) => {
   }
 });
 
-// Tüm IP banları
+// Tüm IP banları + POST ile yeni ban ekle
 router.get('/admin/ip-bans', (req, res) => {
   try {
-    const bans = db.prepare("SELECT * FROM ip_blocks WHERE blocked_until > datetime('now') ORDER BY created_at DESC").all();
+    const bans = db.prepare("SELECT * FROM ip_blocks ORDER BY created_at DESC").all();
     res.json(bans);
   } catch(e) {
     res.status(500).json({ error: 'Banlar alınamadı' });
+  }
+});
+
+router.post('/admin/ip-bans', (req, res) => {
+  try {
+    const { ip, reason, hours } = req.body;
+    if (!ip) return res.status(400).json({ error: 'IP gerekli' });
+    const until = new Date(Date.now() + (hours || 24 * 365) * 3600000).toISOString();
+    db.prepare('INSERT OR REPLACE INTO ip_blocks (ip_address, blocked_until) VALUES (?, ?)').run(ip, until);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'IP banlanamadı' });
+  }
+});
+
+router.delete('/admin/ip-bans/:id', (req, res) => {
+  try {
+    db.prepare('DELETE FROM ip_blocks WHERE id = ?').run(req.params.id);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Ban kaldırılamadı' });
   }
 });
 
