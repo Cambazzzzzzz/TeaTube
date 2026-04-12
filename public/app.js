@@ -2775,7 +2775,10 @@ function openShortFromHome(videoId) {
   // Önce mevcut listede ara
   const idx = shortsVideos.findIndex(v => v.id === videoId || v.id === parseInt(videoId));
   if (idx !== -1) {
-    currentShortIndex = idx;
+    // Tıklanan videoyu başa al
+    const target = shortsVideos.splice(idx, 1)[0];
+    shortsVideos = [target, ...shortsVideos];
+    currentShortIndex = 0;
     showPage('reals');
   } else {
     // Listeyi yükle, o videoyu başa koy

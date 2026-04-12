@@ -1000,7 +1000,7 @@ router.get('/videos/recommended/:userId', (req, res) => {
     `).all(req.params.userId);
 
     if (algorithmData.length === 0) {
-      // Algoritma verisi yoksa popüler videoları göster
+      // Algoritma verisi yoksa popüler videoları rastgele sırayla göster
       return res.json(db.prepare(`
         SELECT v.*, c.channel_name, c.user_id, u.profile_photo, u.nickname,
                (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as subscriber_count
@@ -1009,7 +1009,7 @@ router.get('/videos/recommended/:userId', (req, res) => {
         JOIN users u ON c.user_id = u.id
         LEFT JOIN user_settings us ON us.user_id = c.user_id
         WHERE COALESCE(us.is_private, 0) = 0
-        ORDER BY v.views DESC
+        ORDER BY RANDOM()
         LIMIT ? OFFSET ?
       `).all(limit, offset));
     }
@@ -1043,7 +1043,7 @@ router.get('/videos/recommended/:userId', (req, res) => {
     }
 
     query += conditions.join(' OR ');
-    query += `) ORDER BY not_watched DESC, v.created_at DESC LIMIT ? OFFSET ?`;
+    query += `) ORDER BY not_watched DESC, RANDOM() LIMIT ? OFFSET ?`;
 
     const params = [...types, ...tags.map(t => `%${t}%`), limit, offset];
     const videos = db.prepare(query).all(...params);
@@ -1673,7 +1673,7 @@ router.get('/shorts', (req, res) => {
       WHERE v.is_short = 1
         AND COALESCE(us.is_private, 0) = 0
         AND COALESCE(u.is_suspended, 0) = 0
-      ORDER BY v.created_at DESC
+      ORDER BY RANDOM()
       LIMIT 100
     `).all();
 
