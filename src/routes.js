@@ -1660,7 +1660,7 @@ router.get('/shorts', (req, res) => {
       LEFT JOIN user_settings us ON us.user_id = c.user_id
       WHERE v.is_short = 1
         AND COALESCE(us.is_private, 0) = 0
-        AND v.is_suspended = 0
+        AND COALESCE(u.is_suspended, 0) = 0
       ORDER BY v.created_at DESC
       LIMIT 100
     `).all();
