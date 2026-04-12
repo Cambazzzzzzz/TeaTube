@@ -2118,6 +2118,18 @@ function renderShortsPlayer() {
       const diff = touchStartY - e.changedTouches[0].clientY;
       if (Math.abs(diff) > 60) { if (diff > 0) nextShort(); else prevShort(); }
     }, { passive: true });
+
+    // Giriş animasyonu
+    container.style.opacity = '0';
+    container.style.transform = 'translateY(30px)';
+    container.style.transition = 'none';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        container.style.transition = 'transform 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.25s';
+        container.style.transform = 'translateY(0)';
+        container.style.opacity = '1';
+      });
+    });
   }
 
   checkShortLikeStatus(v.id);
@@ -2315,10 +2327,30 @@ async function sendShareMessages(videoId, title, videoUrl) {
 
 
 function nextShort() {
-  if (currentShortIndex < shortsVideos.length - 1) { currentShortIndex++; renderShortsPlayer(); }
+  if (currentShortIndex < shortsVideos.length - 1) {
+    const container = document.getElementById('shortsContainer');
+    if (container) {
+      container.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.2s';
+      container.style.transform = 'translateY(-60px)';
+      container.style.opacity = '0';
+      setTimeout(() => { currentShortIndex++; renderShortsPlayer(); }, 200);
+    } else {
+      currentShortIndex++; renderShortsPlayer();
+    }
+  }
 }
 function prevShort() {
-  if (currentShortIndex > 0) { currentShortIndex--; renderShortsPlayer(); }
+  if (currentShortIndex > 0) {
+    const container = document.getElementById('shortsContainer');
+    if (container) {
+      container.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.2s';
+      container.style.transform = 'translateY(60px)';
+      container.style.opacity = '0';
+      setTimeout(() => { currentShortIndex--; renderShortsPlayer(); }, 200);
+    } else {
+      currentShortIndex--; renderShortsPlayer();
+    }
+  }
 }
 
 async function likeShort(videoId, likeType) {

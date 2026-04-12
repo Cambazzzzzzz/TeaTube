@@ -21,7 +21,8 @@ const uploadDisk = multer({ storage: diskStorage });
 
 // Başvuru gönder
 // Başvuru gönder (örnek şarkı ile)
-router.post('/music/apply', upload.single('sampleAudio'), async (req, res) => {
+router.post('/music/apply', uploadDisk.single('sampleAudio'), async (req, res) => {
+  const audioPath = req.file?.path;
   try {
     const { userId, artistName, artistAlias, phone, email, realName } = req.body;
     if (!userId || !artistName) return res.status(400).json({ error: 'Eksik bilgi' });
@@ -38,11 +39,12 @@ router.post('/music/apply', upload.single('sampleAudio'), async (req, res) => {
     let sampleAudioUrl = null;
     if (req.file) {
       sampleAudioUrl = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { resource_type: 'video', folder: 'tsmusic/samples', public_id: `sample_${userId}_${Date.now()}` },
-          (err, result) => err ? reject(err) : resolve(result.secure_url)
-        );
-        stream.end(req.file.buffer);
+        cloudinary.uploader.upload(audioPath, {
+          resource_type: 'video',
+          folder: 'tsmusic/samples',
+          public_id: `sample_${userId}_${Date.now()}`,
+          timeout: 300000
+        }, (err, result) => err ? reject(err) : resolve(result.secure_url));
       });
     }
 
@@ -52,7 +54,9 @@ router.post('/music/apply', upload.single('sampleAudio'), async (req, res) => {
     res.json({ success: true });
   } catch(e) {
     console.error('Başvuru hatası:', e);
-    res.status(500).json({ error: 'Başvuru gönderilemedi' });
+    res.status(500).json({ error: 'Başvuru gönderilemedi: ' + e.message });
+  } finally {
+    try { if (audioPath && fs.existsSync(audioPath)) fs.unlinkSync(audioPath); } catch(e) {}
   }
 });
 
