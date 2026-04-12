@@ -7549,23 +7549,37 @@ function showArtistApplyModal() {
     <h3 style="margin-bottom:16px">Artist Başvurusu</h3>
     <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:16px">TS Music'te şarkı yükleyebilmek için artist başvurusu yapman gerekiyor.</p>
     <div class="yt-form-group"><label class="yt-form-label">Mahlas (Artist Adı) *</label><input id="applyArtistName" class="yt-input" placeholder="Sahne adın / mahlasın" /></div>
+    <div class="yt-form-group">
+      <label class="yt-form-label">Örnek Şarkı (MP3/WAV) *</label>
+      <p style="font-size:12px;color:var(--yt-spec-text-secondary);margin-bottom:8px">Seni değerlendirmemiz için herhangi bir şarkını yükle. Adminler dinleyip başvurunu değerlendirecek.</p>
+      <input type="file" id="applySampleAudio" class="yt-input" accept="audio/*" />
+    </div>
     <button class="yt-btn" style="width:100%;margin-top:8px" onclick="submitArtistApply()">Başvuru Gönder</button>`);
 }
 
 async function submitArtistApply() {
   const artistName = document.getElementById('applyArtistName')?.value.trim();
+  const audioFile = document.getElementById('applySampleAudio')?.files[0];
   if (!artistName) { showToast('Mahlas gerekli', 'error'); return; }
+  if (!audioFile) { showToast('Örnek şarkı gerekli', 'error'); return; }
+
+  const btn = document.querySelector('#modalBody .yt-btn:last-child');
+  if (btn) { btn.disabled = true; btn.textContent = 'Yükleniyor...'; }
+
   try {
-    const r = await fetch(API_URL + '/music/apply', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ userId: currentUser.id, artistName })
-    });
+    const fd = new FormData();
+    fd.append('userId', currentUser.id);
+    fd.append('artistName', artistName);
+    fd.append('sampleAudio', audioFile);
+
+    const r = await fetch(API_URL + '/music/apply', { method: 'POST', body: fd });
     const d = await r.json();
     if (!r.ok) { showToast(d.error || 'Hata', 'error'); return; }
     showToast('Başvurunuz gönderildi!', 'success');
     closeModal();
     loadTSMusicPage();
   } catch(e) { showToast('Hata oluştu', 'error'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Başvuru Gönder'; } }
 }
 
 function showUploadSongModal() {

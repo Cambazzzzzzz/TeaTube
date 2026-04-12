@@ -444,7 +444,7 @@ async function loadMusicApplications(tab) {
         <td>${a.id}</td>
         <td>${esc(a.artist_name||a.username||'-')}</td>
         <td>${esc(a.email||'-')}</td>
-        <td>${esc(a.genre||'-')}</td>
+        <td>${a.sample_audio_url ? `<audio controls src="${a.sample_audio_url}" style="height:32px;max-width:180px;"></audio>` : '<span style="color:#888">Yok</span>'}</td>
         <td>${a.created_at?a.created_at.slice(0,10):'-'}</td>
         <td>${musicAppTab==='pending'?`
           <button class="a-btn a-btn-sm" style="background:#1db954" onclick="reviewMusicApp(${a.id},'accept')">Kabul Et</button>
@@ -455,7 +455,7 @@ async function loadMusicApplications(tab) {
       <h2>Muzik Basvurulari</h2>
       <div style="margin-bottom:16px">${tabBtns}</div>
       <table class="a-table">
-        <thead><tr><th>ID</th><th>Sanatci</th><th>Email</th><th>Tur</th><th>Tarih</th><th>Islem</th></tr></thead>
+        <thead><tr><th>ID</th><th>Sanatci</th><th>Email</th><th>Ornek Sarki</th><th>Tarih</th><th>Islem</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
   } catch(e) { c.innerHTML='<h2>Muzik Basvurulari</h2><p>Baglanti hatasi</p>'; }

@@ -20,7 +20,8 @@ const uploadDisk = multer({ storage: diskStorage });
 // ==================== ARTIST BAŞVURU ====================
 
 // Başvuru gönder
-router.post('/music/apply', (req, res) => {
+// Başvuru gönder (örnek şarkı ile)
+router.post('/music/apply', upload.single('sampleAudio'), async (req, res) => {
   try {
     const { userId, artistName, artistAlias, phone, email, realName } = req.body;
     if (!userId || !artistName) return res.status(400).json({ error: 'Eksik bilgi' });
@@ -33,11 +34,24 @@ router.post('/music/apply', (req, res) => {
     const pending = db.prepare("SELECT id FROM music_artist_applications WHERE user_id = ? AND status = 'pending'").get(userId);
     if (pending) return res.status(400).json({ error: 'Bekleyen başvurunuz var' });
 
-    db.prepare('INSERT INTO music_artist_applications (user_id, artist_name, artist_alias, phone, email, real_name) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(userId, artistName, artistAlias || null, phone || null, email || null, realName || null);
+    // Örnek şarkı yükle
+    let sampleAudioUrl = null;
+    if (req.file) {
+      sampleAudioUrl = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { resource_type: 'video', folder: 'tsmusic/samples', public_id: `sample_${userId}_${Date.now()}` },
+          (err, result) => err ? reject(err) : resolve(result.secure_url)
+        );
+        stream.end(req.file.buffer);
+      });
+    }
+
+    db.prepare('INSERT INTO music_artist_applications (user_id, artist_name, artist_alias, phone, email, real_name, sample_audio_url) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(userId, artistName, artistAlias || null, phone || null, email || null, realName || null, sampleAudioUrl);
 
     res.json({ success: true });
   } catch(e) {
+    console.error('Başvuru hatası:', e);
     res.status(500).json({ error: 'Başvuru gönderilemedi' });
   }
 });
