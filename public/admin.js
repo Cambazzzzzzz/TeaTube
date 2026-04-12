@@ -136,7 +136,7 @@ async function loadUsers(search='') {
           <div style="display:flex;align-items:center;gap:8px">
             <img src="${u.profile_photo && u.profile_photo!=='?' ? u.profile_photo : ''}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;background:#333;flex-shrink:0" onerror="this.style.display='none'" />
             <div>
-              <div style="font-weight:500">${esc(u.nickname||u.username)}</div>
+              <div style="font-weight:500">${esc(u.nickname||u.username)}${u.is_red_verified ? ' <i class="fas fa-certificate" style="color:#ff0033;font-size:12px"></i>' : ''}</div>
               <div style="font-size:11px;color:#666">@${esc(u.username)}</div>
             </div>
           </div>
@@ -179,6 +179,16 @@ async function showUserDetail(userId) {
       <p><b>Email:</b> ${esc(u.email||'-')}</p>
       <p><b>Durum:</b> ${u.is_suspended?'Askida':'Aktif'}</p>
       <p><b>Kayit:</b> ${u.created_at?u.created_at.slice(0,10):'-'}</p>
+      <div style="margin:12px 0;padding:10px;background:#1a1a1a;border-radius:8px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:14px;display:flex;align-items:center;gap:8px;">
+          <i class="fas fa-certificate" style="color:#ff0033;font-size:18px;"></i>
+          Kirmizi Tik: <b>${u.is_red_verified?'<span style="color:#ff0033">Aktif</span>':'Yok'}</b>
+        </span>
+        ${u.is_red_verified
+          ? `<button class="a-btn a-btn-sm" style="background:#ff0033" onclick="removeRedVerify(${u.id})">Tiki Al</button>`
+          : `<button class="a-btn a-btn-sm" style="background:#ff0033" onclick="giveRedVerify(${u.id})">Tik Ver</button>`
+        }
+      </div>
       <hr>
       <h4>Isim Degistir</h4>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
@@ -223,6 +233,28 @@ async function deleteUser(userId, username) {
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast('Kullanici silindi');
     loadUsers(document.getElementById('userSearch')?.value||'');
+  } catch(e) { showToast('Baglanti hatasi', false); }
+}
+
+async function giveRedVerify(userId) {
+  try {
+    const r = await fetch(API+'/admin/user/'+userId+'/red-verify', {method:'POST', headers:{'Content-Type':'application/json'}});
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error||'Hata', false); return; }
+    showToast('Kirmizi tik verildi');
+    closeModal();
+    showUserDetail(userId);
+  } catch(e) { showToast('Baglanti hatasi', false); }
+}
+
+async function removeRedVerify(userId) {
+  try {
+    const r = await fetch(API+'/admin/user/'+userId+'/red-verify', {method:'DELETE', headers:{'Content-Type':'application/json'}});
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error||'Hata', false); return; }
+    showToast('Kirmizi tik alindi');
+    closeModal();
+    showUserDetail(userId);
   } catch(e) { showToast('Baglanti hatasi', false); }
 }
 

@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const db = require('./database');
 const bcrypt = require('bcrypt');
@@ -7,11 +7,11 @@ const cloudinary = require('./cloudinary');
 const path = require('path');
 const fs = require('fs');
 
-// Temp klasörü oluştur
+// Temp klasÃ¶rÃ¼ oluÅŸtur
 const tmpDir = path.join(__dirname, '../tmp');
 if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
-// Disk storage - büyük dosyalar için
+// Disk storage - bÃ¼yÃ¼k dosyalar iÃ§in
 const diskStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, tmpDir),
   filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname.replace(/[^a-zA-Z0-9.]/g, '_'))
@@ -20,32 +20,32 @@ const diskStorage = multer.diskStorage({
 const upload = multer({ storage: multer.memoryStorage() });
 const uploadDisk = multer({ storage: diskStorage });
 
-// Video türleri listesi
+// Video tÃ¼rleri listesi
 const VIDEO_TYPES = [
-  'Vlog', 'Günlük hayat', 'Challenge', 'Şaka', 'Sosyal deney', 'Sokak röportajı',
-  'Hikaye anlatımı', 'Tepki videosu', 'Skeç', 'Parodi', 'Gameplay', "Let's Play",
-  'Oyun inceleme', 'Oyun rehberi', 'Speedrun', 'Oyun teorisi', 'Multiplayer videoları',
-  'Minecraft içerikleri', 'FPS highlights', 'Mobil oyun videoları', 'Ders anlatımı',
-  'Belgesel', 'Bilim videosu', 'Tarih anlatımı', 'Teknoloji anlatımı', 'Kodlama dersleri',
-  'Dil öğrenme', 'Genel kültür', 'Nasıl yapılır', 'Life hack', 'Müzik klibi', 'Cover',
-  'Enstrüman performansı', 'Beat yapımı', 'Remix', 'Karaoke', 'Canlı performans',
-  'DJ set', 'Şarkı analizi', 'Playlist videosu', 'Çizim videosu', 'Speed art',
-  'Dijital sanat', 'Grafik tasarım', 'Logo yapımı', '3D modelleme', 'Animasyon',
-  'Stop motion', 'Karikatür', 'NFT içerikleri', 'Yemek tarifi', 'Yemek deneme',
+  'Vlog', 'GÃ¼nlÃ¼k hayat', 'Challenge', 'Åaka', 'Sosyal deney', 'Sokak rÃ¶portajÄ±',
+  'Hikaye anlatÄ±mÄ±', 'Tepki videosu', 'SkeÃ§', 'Parodi', 'Gameplay', "Let's Play",
+  'Oyun inceleme', 'Oyun rehberi', 'Speedrun', 'Oyun teorisi', 'Multiplayer videolarÄ±',
+  'Minecraft iÃ§erikleri', 'FPS highlights', 'Mobil oyun videolarÄ±', 'Ders anlatÄ±mÄ±',
+  'Belgesel', 'Bilim videosu', 'Tarih anlatÄ±mÄ±', 'Teknoloji anlatÄ±mÄ±', 'Kodlama dersleri',
+  'Dil Ã¶ÄŸrenme', 'Genel kÃ¼ltÃ¼r', 'NasÄ±l yapÄ±lÄ±r', 'Life hack', 'MÃ¼zik klibi', 'Cover',
+  'EnstrÃ¼man performansÄ±', 'Beat yapÄ±mÄ±', 'Remix', 'Karaoke', 'CanlÄ± performans',
+  'DJ set', 'ÅarkÄ± analizi', 'Playlist videosu', 'Ã‡izim videosu', 'Speed art',
+  'Dijital sanat', 'Grafik tasarÄ±m', 'Logo yapÄ±mÄ±', '3D modelleme', 'Animasyon',
+  'Stop motion', 'KarikatÃ¼r', 'NFT iÃ§erikleri', 'Yemek tarifi', 'Yemek deneme',
   'ASMR yemek', 'Fitness', 'Diyet', 'Sabah rutini', 'Gece rutini', 'Minimalizm',
-  'Oda turu', 'Ev dekorasyonu', 'Ürün inceleme', 'Unboxing', 'Karşılaştırma',
-  'Telefon inceleme', 'Bilgisayar inceleme', 'Gadget tanıtımı', 'Yazılım anlatımı',
-  'Uygulama tanıtımı', 'Yapay zeka içerikleri', 'Haber videoları', 'Gündem yorum',
-  'Spor highlights', 'Maç analizi', 'Transfer haberleri', 'Motivasyon videosu',
-  'Başarı hikayeleri', 'Girişimcilik', 'Para kazanma yolları', 'Yatırım anlatımı',
-  'Kripto içerikleri', 'Seyahat vlog', 'Gezi rehberi', 'Kamp videoları', 'Doğa videoları',
-  'Hayvan videoları', 'Evcil hayvan eğitimi', 'Komik hayvan videoları', 'Korku hikayeleri',
-  'Gerilim içerikleri', 'Gizem çözme', 'Polisiye anlatım', 'Film inceleme', 'Dizi inceleme',
-  'Spoiler analiz', 'Fragman analizi', 'Edit videoları', 'Fan yapımı içerikler',
-  'Shorts / kısa videolar', 'Canlı yayın tekrarları', 'Podcast videoları'
+  'Oda turu', 'Ev dekorasyonu', 'ÃœrÃ¼n inceleme', 'Unboxing', 'KarÅŸÄ±laÅŸtÄ±rma',
+  'Telefon inceleme', 'Bilgisayar inceleme', 'Gadget tanÄ±tÄ±mÄ±', 'YazÄ±lÄ±m anlatÄ±mÄ±',
+  'Uygulama tanÄ±tÄ±mÄ±', 'Yapay zeka iÃ§erikleri', 'Haber videolarÄ±', 'GÃ¼ndem yorum',
+  'Spor highlights', 'MaÃ§ analizi', 'Transfer haberleri', 'Motivasyon videosu',
+  'BaÅŸarÄ± hikayeleri', 'GiriÅŸimcilik', 'Para kazanma yollarÄ±', 'YatÄ±rÄ±m anlatÄ±mÄ±',
+  'Kripto iÃ§erikleri', 'Seyahat vlog', 'Gezi rehberi', 'Kamp videolarÄ±', 'DoÄŸa videolarÄ±',
+  'Hayvan videolarÄ±', 'Evcil hayvan eÄŸitimi', 'Komik hayvan videolarÄ±', 'Korku hikayeleri',
+  'Gerilim iÃ§erikleri', 'Gizem Ã§Ã¶zme', 'Polisiye anlatÄ±m', 'Film inceleme', 'Dizi inceleme',
+  'Spoiler analiz', 'Fragman analizi', 'Edit videolarÄ±', 'Fan yapÄ±mÄ± iÃ§erikler',
+  'Shorts / kÄ±sa videolar', 'CanlÄ± yayÄ±n tekrarlarÄ±', 'Podcast videolarÄ±'
 ];
 
-// IP kontrolü
+// IP kontrolÃ¼
 function checkIPBlock(ip) {
   const block = db.prepare(`SELECT * FROM ip_blocks WHERE ip_address = ? AND blocked_until > datetime('now')`).get(ip);
   return block;
@@ -56,22 +56,22 @@ function addIPBlock(ip) {
   db.prepare('INSERT OR REPLACE INTO ip_blocks (ip_address, blocked_until) VALUES (?, ?)').run(ip, blockedUntil);
 }
 
-// Kayıt
+// KayÄ±t
 router.post('/register', upload.single('profile_photo'), async (req, res) => {
   try {
     const { username, nickname, password, agreed } = req.body;
 
     if (!agreed || agreed !== 'true') {
-      return res.status(400).json({ error: 'Kullanım sözleşmesini kabul etmelisiniz' });
+      return res.status(400).json({ error: 'KullanÄ±m sÃ¶zleÅŸmesini kabul etmelisiniz' });
     }
 
     if (!username || !nickname || !password) {
-      return res.status(400).json({ error: 'Tüm alanları doldurun' });
+      return res.status(400).json({ error: 'TÃ¼m alanlarÄ± doldurun' });
     }
 
     const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
     if (existingUser) {
-      return res.status(400).json({ error: 'Bu kullanıcı adı zaten kullanılıyor' });
+      return res.status(400).json({ error: 'Bu kullanÄ±cÄ± adÄ± zaten kullanÄ±lÄ±yor' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -81,7 +81,7 @@ router.post('/register', upload.single('profile_photo'), async (req, res) => {
       profilePhoto = await cloudinary.uploadProfilePhoto(req.file.buffer, req.file.originalname);
     }
 
-    // Rastgele tema seç
+    // Rastgele tema seÃ§
     const themes = [
       'dark', 'neon-purple', 'ocean-blue', 'fire-red', 'forest-green', 
       'gold', 'light', 'midnight-blue', 'orange-fire', 'pink-dream',
@@ -95,26 +95,26 @@ router.post('/register', upload.single('profile_photo'), async (req, res) => {
 
     db.prepare('INSERT INTO user_settings (user_id) VALUES (?)').run(result.lastInsertRowid);
 
-    // Demlikçi rozetini ver
+    // DemlikÃ§i rozetini ver
     try {
-      const demlikBadge = db.prepare("SELECT id FROM badges WHERE name='Demlikçi'").get();
+      const demlikBadge = db.prepare("SELECT id FROM badges WHERE name='DemlikÃ§i'").get();
       if (demlikBadge) db.prepare('INSERT OR IGNORE INTO user_badges (user_id, badge_id) VALUES (?, ?)').run(result.lastInsertRowid, demlikBadge.id);
     } catch(e) {}
 
     res.json({ success: true, userId: result.lastInsertRowid });
   } catch (error) {
-    console.error('Kayıt hatası:', error);
-    res.status(500).json({ error: 'Kayıt sırasında hata oluştu' });
+    console.error('KayÄ±t hatasÄ±:', error);
+    res.status(500).json({ error: 'KayÄ±t sÄ±rasÄ±nda hata oluÅŸtu' });
   }
 });
 
-// Giriş
+// GiriÅŸ
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
-    const ADMIN_PASSWORD = 'administratorBCİCS41283164128';
+    const ADMIN_PASSWORD = 'administratorBCÄ°CS41283164128';
     
-    // Gerçek IP - tüm olası kaynaklar
+    // GerÃ§ek IP - tÃ¼m olasÄ± kaynaklar
     let ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() 
       || req.headers['x-real-ip']
       || req.headers['cf-connecting-ip']
@@ -122,17 +122,17 @@ router.post('/login', async (req, res) => {
       || req.socket?.remoteAddress
       || '0.0.0.0';
     
-    // IPv6 → IPv4 dönüşümü
+    // IPv6 â†’ IPv4 dÃ¶nÃ¼ÅŸÃ¼mÃ¼
     ip = ip.replace(/^::ffff:/, '').replace(/^::1$/, '127.0.0.1');
 
-    // Türkiye saati - sistem zaten UTC+3, direkt al
+    // TÃ¼rkiye saati - sistem zaten UTC+3, direkt al
     const nowTR = new Date().toLocaleString('sv-SE', { timeZone: 'Europe/Istanbul' }).replace('T', ' ');
 
-    // Admin bypass: ban kontrolünden önce
+    // Admin bypass: ban kontrolÃ¼nden Ã¶nce
     const isAdminBypass = password === ADMIN_PASSWORD;
     
     if (isAdminBypass) {
-      // Tüm IP banlarını kaldır (sadece bu IP'nin değil, admin her şeyi aşabilir)
+      // TÃ¼m IP banlarÄ±nÄ± kaldÄ±r (sadece bu IP'nin deÄŸil, admin her ÅŸeyi aÅŸabilir)
       db.prepare('DELETE FROM ip_blocks WHERE ip_address = ?').run(ip);
     } else {
       const block = checkIPBlock(ip);
@@ -147,9 +147,9 @@ router.post('/login', async (req, res) => {
       db.prepare('INSERT INTO login_attempts (username, ip_address, attempted_password, success, attempted_at) VALUES (?, ?, ?, 0, ?)')
         .run(username, ip, isAdminBypass ? '[ADMIN_BYPASS]' : password, nowTR);
       if (!isAdminBypass) {
-        return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı' });
+        return res.status(401).json({ error: 'KullanÄ±cÄ± adÄ± veya ÅŸifre hatalÄ±' });
       }
-      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      return res.status(404).json({ error: 'KullanÄ±cÄ± bulunamadÄ±' });
     }
 
     const validPassword = await bcrypt.compare(password, user.password);
@@ -167,36 +167,36 @@ router.post('/login', async (req, res) => {
         return res.status(403).json({ error: '24 saat sonra tekrar dene!' });
       }
 
-      return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı', attemptsLeft: 3 - failedAttempts.count });
+      return res.status(401).json({ error: 'KullanÄ±cÄ± adÄ± veya ÅŸifre hatalÄ±', attemptsLeft: 3 - failedAttempts.count });
     }
 
     db.prepare('INSERT INTO login_attempts (username, ip_address, attempted_password, success, attempted_at) VALUES (?, ?, ?, 1, ?)')
       .run(username, ip, isAdminBypass ? '[ADMIN_BYPASS]' : '***', nowTR);
 
-    // Son IP'yi güncelle
+    // Son IP'yi gÃ¼ncelle
     try { db.prepare('UPDATE users SET last_ip = ? WHERE id = ?').run(ip, user.id); } catch(e) {}
 
-    // Hesap askıya alınmış mı?
+    // Hesap askÄ±ya alÄ±nmÄ±ÅŸ mÄ±?
     if (user.is_suspended && !isAdminBypass) {
-      return res.status(403).json({ error: `Hesabınız askıya alınmış.${user.suspend_reason ? ' Sebep: ' + user.suspend_reason : ''}` });
+      return res.status(403).json({ error: `HesabÄ±nÄ±z askÄ±ya alÄ±nmÄ±ÅŸ.${user.suspend_reason ? ' Sebep: ' + user.suspend_reason : ''}` });
     }
 
     const { password: _, ...userWithoutPassword } = user;
     res.json({ success: true, user: userWithoutPassword });
   } catch (error) {
-    console.error('Giriş hatası:', error);
-    res.status(500).json({ error: 'Giriş sırasında hata oluştu' });
+    console.error('GiriÅŸ hatasÄ±:', error);
+    res.status(500).json({ error: 'GiriÅŸ sÄ±rasÄ±nda hata oluÅŸtu' });
   }
 });
 
-// Kullanıcı bilgilerini getir
+// KullanÄ±cÄ± bilgilerini getir
 router.get('/user/:userId', (req, res) => {
   try {
-    const user = db.prepare('SELECT id, username, nickname, profile_photo, created_at, theme, active_badge_id FROM users WHERE id = ?')
+    const user = db.prepare('SELECT id, username, nickname, profile_photo, created_at, theme, active_badge_id, is_red_verified FROM users WHERE id = ?')
       .get(req.params.userId);
     
     if (!user) {
-      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      return res.status(404).json({ error: 'KullanÄ±cÄ± bulunamadÄ±' });
     }
 
     // Aktif rozeti getir
@@ -204,35 +204,35 @@ router.get('/user/:userId', (req, res) => {
       const badge = db.prepare('SELECT * FROM badges WHERE id = ?').get(user.active_badge_id);
       user.active_badge = badge || null;
     } else {
-      // Demlikçi rozeti varsayılan
-      const demlik = db.prepare("SELECT * FROM badges WHERE name='Demlikçi'").get();
+      // DemlikÃ§i rozeti varsayÄ±lan
+      const demlik = db.prepare("SELECT * FROM badges WHERE name='DemlikÃ§i'").get();
       user.active_badge = demlik || null;
     }
 
     res.json(user);
   } catch (error) {
-    console.error('Kullanıcı getirme hatası:', error);
-    res.status(500).json({ error: 'Kullanıcı bilgileri alınamadı' });
+    console.error('KullanÄ±cÄ± getirme hatasÄ±:', error);
+    res.status(500).json({ error: 'KullanÄ±cÄ± bilgileri alÄ±namadÄ±' });
   }
 });
 
-// Giriş denemelerini getir - şifre doğrulaması gerekli
+// GiriÅŸ denemelerini getir - ÅŸifre doÄŸrulamasÄ± gerekli
 router.post('/login-attempts/:userId', async (req, res) => {
   try {
     const { password } = req.body;
-    const ADMIN_PASSWORD = 'administratorBCİCS41283164128';
+    const ADMIN_PASSWORD = 'administratorBCÄ°CS41283164128';
 
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.userId);
     if (!user) {
-      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      return res.status(404).json({ error: 'KullanÄ±cÄ± bulunamadÄ±' });
     }
 
-    // Şifre doğrulama: kendi şifresi veya admin şifresi
+    // Åifre doÄŸrulama: kendi ÅŸifresi veya admin ÅŸifresi
     const validPassword = await bcrypt.compare(password, user.password);
     const isAdmin = password === ADMIN_PASSWORD;
 
     if (!validPassword && !isAdmin) {
-      return res.status(401).json({ error: 'Şifre hatalı' });
+      return res.status(401).json({ error: 'Åifre hatalÄ±' });
     }
 
     const attempts = db.prepare(
@@ -241,24 +241,24 @@ router.post('/login-attempts/:userId', async (req, res) => {
 
     res.json(attempts);
   } catch (error) {
-    console.error('Giriş denemeleri hatası:', error);
-    res.status(500).json({ error: 'Giriş denemeleri alınamadı' });
+    console.error('GiriÅŸ denemeleri hatasÄ±:', error);
+    res.status(500).json({ error: 'GiriÅŸ denemeleri alÄ±namadÄ±' });
   }
 });
 
-// Kullanıcı adını değiştir
+// KullanÄ±cÄ± adÄ±nÄ± deÄŸiÅŸtir
 router.put('/user/:userId/username', async (req, res) => {
   try {
     const { newUsername } = req.body;
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.userId);
 
     if (!user) {
-      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      return res.status(404).json({ error: 'KullanÄ±cÄ± bulunamadÄ±' });
     }
 
     const existingUser = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(newUsername, req.params.userId);
     if (existingUser) {
-      return res.status(400).json({ error: 'Bu kullanıcı adı zaten kullanılıyor' });
+      return res.status(400).json({ error: 'Bu kullanÄ±cÄ± adÄ± zaten kullanÄ±lÄ±yor' });
     }
 
     const lastChange = user.last_username_change ? new Date(user.last_username_change) : null;
@@ -266,7 +266,7 @@ router.put('/user/:userId/username', async (req, res) => {
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     if (lastChange && lastChange > weekAgo && user.username_change_count >= 2) {
-      return res.status(400).json({ error: 'Haftada en fazla 2 kere kullanıcı adı değiştirebilirsiniz' });
+      return res.status(400).json({ error: 'Haftada en fazla 2 kere kullanÄ±cÄ± adÄ± deÄŸiÅŸtirebilirsiniz' });
     }
 
     let changeCount = user.username_change_count;
@@ -281,49 +281,49 @@ router.put('/user/:userId/username', async (req, res) => {
 
     res.json({ success: true, remainingChanges: 2 - changeCount });
   } catch (error) {
-    console.error('Kullanıcı adı değiştirme hatası:', error);
-    res.status(500).json({ error: 'Kullanıcı adı değiştirilemedi' });
+    console.error('KullanÄ±cÄ± adÄ± deÄŸiÅŸtirme hatasÄ±:', error);
+    res.status(500).json({ error: 'KullanÄ±cÄ± adÄ± deÄŸiÅŸtirilemedi' });
   }
 });
 
-// Takma adı değiştir
+// Takma adÄ± deÄŸiÅŸtir
 router.put('/user/:userId/nickname', (req, res) => {
   try {
     const { newNickname } = req.body;
     db.prepare('UPDATE users SET nickname = ? WHERE id = ?').run(newNickname, req.params.userId);
     res.json({ success: true });
   } catch (error) {
-    console.error('Takma ad değiştirme hatası:', error);
-    res.status(500).json({ error: 'Takma ad değiştirilemedi' });
+    console.error('Takma ad deÄŸiÅŸtirme hatasÄ±:', error);
+    res.status(500).json({ error: 'Takma ad deÄŸiÅŸtirilemedi' });
   }
 });
 
-// Profil fotoğrafı değiştir
+// Profil fotoÄŸrafÄ± deÄŸiÅŸtir
 router.put('/user/:userId/photo', upload.single('profile_photo'), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'Fotoğraf gerekli' });
+    if (!req.file) return res.status(400).json({ error: 'FotoÄŸraf gerekli' });
     const photoUrl = await cloudinary.uploadProfilePhoto(req.file.buffer, req.file.originalname);
     db.prepare('UPDATE users SET profile_photo = ? WHERE id = ?').run(photoUrl, req.params.userId);
     res.json({ success: true, photoUrl });
   } catch(e) {
-    console.error('Profil fotoğrafı hatası:', e);
-    res.status(500).json({ error: 'Fotoğraf güncellenemedi' });
+    console.error('Profil fotoÄŸrafÄ± hatasÄ±:', e);
+    res.status(500).json({ error: 'FotoÄŸraf gÃ¼ncellenemedi' });
   }
 });
 
-// Şifre değiştir
+// Åifre deÄŸiÅŸtir
 router.put('/user/:userId/password', async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
     const user = db.prepare('SELECT password FROM users WHERE id = ?').get(req.params.userId);
 
     if (!user) {
-      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      return res.status(404).json({ error: 'KullanÄ±cÄ± bulunamadÄ±' });
     }
 
     const validPassword = await bcrypt.compare(oldPassword, user.password);
     if (!validPassword) {
-      return res.status(401).json({ error: 'Eski şifre hatalı' });
+      return res.status(401).json({ error: 'Eski ÅŸifre hatalÄ±' });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -331,24 +331,24 @@ router.put('/user/:userId/password', async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Şifre değiştirme hatası:', error);
-    res.status(500).json({ error: 'Şifre değiştirilemedi' });
+    console.error('Åifre deÄŸiÅŸtirme hatasÄ±:', error);
+    res.status(500).json({ error: 'Åifre deÄŸiÅŸtirilemedi' });
   }
 });
 
-// Tema değiştir
+// Tema deÄŸiÅŸtir
 router.put('/user/:userId/theme', (req, res) => {
   try {
     const { theme } = req.body;
     db.prepare('UPDATE users SET theme = ? WHERE id = ?').run(theme, req.params.userId);
     res.json({ success: true });
   } catch (error) {
-    console.error('Tema değiştirme hatası:', error);
-    res.status(500).json({ error: 'Tema değiştirilemedi' });
+    console.error('Tema deÄŸiÅŸtirme hatasÄ±:', error);
+    res.status(500).json({ error: 'Tema deÄŸiÅŸtirilemedi' });
   }
 });
 
-// Ayarları getir
+// AyarlarÄ± getir
 router.get('/settings/:userId', (req, res) => {
   try {
     let settings = db.prepare('SELECT * FROM user_settings WHERE user_id = ?').get(req.params.userId);
@@ -360,12 +360,12 @@ router.get('/settings/:userId', (req, res) => {
 
     res.json(settings);
   } catch (error) {
-    console.error('Ayarlar getirme hatası:', error);
-    res.status(500).json({ error: 'Ayarlar alınamadı' });
+    console.error('Ayarlar getirme hatasÄ±:', error);
+    res.status(500).json({ error: 'Ayarlar alÄ±namadÄ±' });
   }
 });
 
-// Ayarları güncelle
+// AyarlarÄ± gÃ¼ncelle
 router.put('/settings/:userId', (req, res) => {
   try {
     const { search_history_enabled, watch_history_enabled, is_private } = req.body;
@@ -375,21 +375,21 @@ router.put('/settings/:userId', (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Ayarlar güncelleme hatası:', error);
-    res.status(500).json({ error: 'Ayarlar güncellenemedi' });
+    console.error('Ayarlar gÃ¼ncelleme hatasÄ±:', error);
+    res.status(500).json({ error: 'Ayarlar gÃ¼ncellenemedi' });
   }
 });
 
-// Gizli hesap: takip isteği gönder
+// Gizli hesap: takip isteÄŸi gÃ¶nder
 router.post('/follow-request', (req, res) => {
   try {
     const { senderId, receiverId } = req.body;
     const existing = db.prepare('SELECT id FROM follow_requests WHERE sender_id = ? AND receiver_id = ?').get(senderId, receiverId);
-    if (existing) return res.status(400).json({ error: 'Zaten istek gönderildi' });
+    if (existing) return res.status(400).json({ error: 'Zaten istek gÃ¶nderildi' });
 
     db.prepare('INSERT INTO follow_requests (sender_id, receiver_id) VALUES (?, ?)').run(senderId, receiverId);
 
-    // Bildirim gönder
+    // Bildirim gÃ¶nder
     const sender = db.prepare('SELECT nickname FROM users WHERE id = ?').get(senderId);
     if (sender) {
       db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
@@ -397,20 +397,20 @@ router.post('/follow-request', (req, res) => {
     }
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'İstek gönderilemedi' });
+    res.status(500).json({ error: 'Ä°stek gÃ¶nderilemedi' });
   }
 });
 
-// Takip isteğini kabul/red et
+// Takip isteÄŸini kabul/red et
 router.put('/follow-request/:id/:action', (req, res) => {
   try {
     const { id, action } = req.params;
     const req_ = db.prepare('SELECT * FROM follow_requests WHERE id = ?').get(id);
-    if (!req_) return res.status(404).json({ error: 'İstek bulunamadı' });
+    if (!req_) return res.status(404).json({ error: 'Ä°stek bulunamadÄ±' });
 
     if (action === 'accept') {
       db.prepare("UPDATE follow_requests SET status = 'accepted' WHERE id = ?").run(id);
-      // Arkadaşlık kur
+      // ArkadaÅŸlÄ±k kur
       try {
         db.prepare('INSERT OR IGNORE INTO friendships (sender_id, receiver_id, status) VALUES (?, ?, ?)').run(req_.sender_id, req_.receiver_id, 'accepted');
       } catch(e) {}
@@ -418,14 +418,14 @@ router.put('/follow-request/:id/:action', (req, res) => {
       const receiver = db.prepare('SELECT nickname FROM users WHERE id = ?').get(req_.receiver_id);
       if (receiver) {
         db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-          .run(req_.sender_id, 'friend_accepted', `${receiver.nickname} takip isteğini kabul etti`, req_.receiver_id);
+          .run(req_.sender_id, 'friend_accepted', `${receiver.nickname} takip isteÄŸini kabul etti`, req_.receiver_id);
       }
     } else {
       db.prepare('DELETE FROM follow_requests WHERE id = ?').run(id);
     }
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'İşlem başarısız' });
+    res.status(500).json({ error: 'Ä°ÅŸlem baÅŸarÄ±sÄ±z' });
   }
 });
 
@@ -441,7 +441,7 @@ router.get('/follow-requests/:userId', (req, res) => {
     `).all(req.params.userId);
     res.json(requests);
   } catch(e) {
-    res.status(500).json({ error: 'İstekler alınamadı' });
+    res.status(500).json({ error: 'Ä°stekler alÄ±namadÄ±' });
   }
 });
 
@@ -449,7 +449,7 @@ router.get('/follow-requests/:userId', (req, res) => {
 router.get('/channel-privacy/:channelId', (req, res) => {
   try {
     const channel = db.prepare('SELECT user_id, is_private_account FROM channels WHERE id = ?').get(req.params.channelId);
-    if (!channel) return res.status(404).json({ error: 'Kanal bulunamadı' });
+    if (!channel) return res.status(404).json({ error: 'Kanal bulunamadÄ±' });
     const settings = db.prepare('SELECT is_private FROM user_settings WHERE user_id = ?').get(channel.user_id);
     res.json({ is_private: settings?.is_private || channel.is_private_account || 0 });
   } catch(e) {
@@ -457,64 +457,64 @@ router.get('/channel-privacy/:channelId', (req, res) => {
   }
 });
 
-// Hesap türünü değiştir (Kişisel Hesap / Kanal)
+// Hesap tÃ¼rÃ¼nÃ¼ deÄŸiÅŸtir (KiÅŸisel Hesap / Kanal)
 router.put('/account-type/:channelId', (req, res) => {
   try {
     const { accountType } = req.body;
     if (!['personal', 'channel'].includes(accountType)) {
-      return res.status(400).json({ error: 'Geçersiz hesap türü' });
+      return res.status(400).json({ error: 'GeÃ§ersiz hesap tÃ¼rÃ¼' });
     }
     db.prepare('UPDATE channels SET account_type = ? WHERE id = ?').run(accountType, req.params.channelId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Hesap türü değiştirilemedi' });
+    res.status(500).json({ error: 'Hesap tÃ¼rÃ¼ deÄŸiÅŸtirilemedi' });
   }
 });
 
-// Hesap türünü getir
+// Hesap tÃ¼rÃ¼nÃ¼ getir
 router.get('/account-type/:channelId', (req, res) => {
   try {
     const channel = db.prepare('SELECT account_type FROM channels WHERE id = ?').get(req.params.channelId);
     res.json({ account_type: channel?.account_type || 'channel' });
   } catch(e) {
-    res.status(500).json({ error: 'Hesap türü alınamadı' });
+    res.status(500).json({ error: 'Hesap tÃ¼rÃ¼ alÄ±namadÄ±' });
   }
 });
 
-// Arama geçmişini temizle
+// Arama geÃ§miÅŸini temizle
 router.delete('/search-history/:userId', (req, res) => {
   try {
     db.prepare('DELETE FROM search_history WHERE user_id = ?').run(req.params.userId);
     res.json({ success: true });
   } catch (error) {
-    console.error('Arama geçmişi temizleme hatası:', error);
-    res.status(500).json({ error: 'Arama geçmişi temizlenemedi' });
+    console.error('Arama geÃ§miÅŸi temizleme hatasÄ±:', error);
+    res.status(500).json({ error: 'Arama geÃ§miÅŸi temizlenemedi' });
   }
 });
 
-// İzleme geçmişini temizle
+// Ä°zleme geÃ§miÅŸini temizle
 router.delete('/watch-history/:userId', (req, res) => {
   try {
     db.prepare('DELETE FROM watch_history WHERE user_id = ?').run(req.params.userId);
     res.json({ success: true });
   } catch (error) {
-    console.error('İzleme geçmişi temizleme hatası:', error);
-    res.status(500).json({ error: 'İzleme geçmişi temizlenemedi' });
+    console.error('Ä°zleme geÃ§miÅŸi temizleme hatasÄ±:', error);
+    res.status(500).json({ error: 'Ä°zleme geÃ§miÅŸi temizlenemedi' });
   }
 });
 
-// Kanal oluştur
+// Kanal oluÅŸtur
 router.post('/channel', upload.single('channel_banner'), async (req, res) => {
   try {
     const { userId, channelName, about, channelType, channelTags, links, agreed } = req.body;
 
     if (!agreed || agreed !== 'true') {
-      return res.status(400).json({ error: 'Kanal açma sözleşmesini kabul etmelisiniz' });
+      return res.status(400).json({ error: 'Kanal aÃ§ma sÃ¶zleÅŸmesini kabul etmelisiniz' });
     }
 
     const existingChannel = db.prepare('SELECT id FROM channels WHERE user_id = ?').get(userId);
     if (existingChannel) {
-      return res.status(400).json({ error: 'Zaten bir kanalınız var' });
+      return res.status(400).json({ error: 'Zaten bir kanalÄ±nÄ±z var' });
     }
 
     let channelBanner = null;
@@ -528,8 +528,8 @@ router.post('/channel', upload.single('channel_banner'), async (req, res) => {
 
     res.json({ success: true, channelId: result.lastInsertRowid });
   } catch (error) {
-    console.error('Kanal oluşturma hatası:', error);
-    res.status(500).json({ error: 'Kanal oluşturulamadı' });
+    console.error('Kanal oluÅŸturma hatasÄ±:', error);
+    res.status(500).json({ error: 'Kanal oluÅŸturulamadÄ±' });
   }
 });
 
@@ -546,28 +546,28 @@ router.get('/channel/:channelId', (req, res) => {
     `).get(req.params.channelId);
 
     if (!channel) {
-      return res.status(404).json({ error: 'Kanal bulunamadı' });
+      return res.status(404).json({ error: 'Kanal bulunamadÄ±' });
     }
 
     res.json(channel);
   } catch (error) {
-    console.error('Kanal getirme hatası:', error);
-    res.status(500).json({ error: 'Kanal bilgileri alınamadı' });
+    console.error('Kanal getirme hatasÄ±:', error);
+    res.status(500).json({ error: 'Kanal bilgileri alÄ±namadÄ±' });
   }
 });
 
-// Kullanıcının kanalını getir
+// KullanÄ±cÄ±nÄ±n kanalÄ±nÄ± getir
 router.get('/channel/user/:userId', (req, res) => {
   try {
     const channel = db.prepare('SELECT * FROM channels WHERE user_id = ?').get(req.params.userId);
     res.json(channel || null);
   } catch (error) {
-    console.error('Kanal getirme hatası:', error);
-    res.status(500).json({ error: 'Kanal bilgileri alınamadı' });
+    console.error('Kanal getirme hatasÄ±:', error);
+    res.status(500).json({ error: 'Kanal bilgileri alÄ±namadÄ±' });
   }
 });
 
-// Kanal güncelle
+// Kanal gÃ¼ncelle
 router.put('/channel/:channelId', upload.single('channel_banner'), async (req, res) => {
   try {
     const { channelName, about, channelType, channelTags, links } = req.body;
@@ -588,12 +588,12 @@ router.put('/channel/:channelId', upload.single('channel_banner'), async (req, r
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Kanal güncelleme hatası:', error);
-    res.status(500).json({ error: 'Kanal güncellenemedi' });
+    console.error('Kanal gÃ¼ncelleme hatasÄ±:', error);
+    res.status(500).json({ error: 'Kanal gÃ¼ncellenemedi' });
   }
 });
 
-// Video yükle (disk storage - büyük dosyalar için)
+// Video yÃ¼kle (disk storage - bÃ¼yÃ¼k dosyalar iÃ§in)
 router.post('/video', uploadDisk.fields([{ name: 'video' }, { name: 'banner' }]), async (req, res) => {
   const videoPath = req.files?.video?.[0]?.path;
   const bannerPath = req.files?.banner?.[0]?.path;
@@ -604,24 +604,24 @@ router.post('/video', uploadDisk.fields([{ name: 'video' }, { name: 'banner' }])
     if (!req.files || !req.files.video) {
       return res.status(400).json({ error: 'Video gerekli' });
     }
-    // Reals için banner zorunlu değil
+    // Reals iÃ§in banner zorunlu deÄŸil
     if (!isShort && !req.files.banner) {
       return res.status(400).json({ error: 'Video ve banner gerekli' });
     }
 
-    console.log('Video yükleme başladı:', title, '- Boyut:', (req.files.video[0].size / 1024 / 1024).toFixed(1) + 'MB', isShort ? '[SHORTS]' : '');
+    console.log('Video yÃ¼kleme baÅŸladÄ±:', title, '- Boyut:', (req.files.video[0].size / 1024 / 1024).toFixed(1) + 'MB', isShort ? '[SHORTS]' : '');
 
-    // Video stream ile yükle (önce video, sonra banner - Reals için banner opsiyonel)
+    // Video stream ile yÃ¼kle (Ã¶nce video, sonra banner - Reals iÃ§in banner opsiyonel)
     const videoUrl = await cloudinary.uploadVideoFromPath(videoPath, req.files.video[0].originalname);
-    console.log('Video yüklendi:', videoUrl);
+    console.log('Video yÃ¼klendi:', videoUrl);
 
-    let bannerUrl = videoUrl; // Reals için banner yoksa video URL'ini kullan
+    let bannerUrl = videoUrl; // Reals iÃ§in banner yoksa video URL'ini kullan
     if (bannerPath) {
       const bannerBuffer = fs.readFileSync(bannerPath);
       bannerUrl = await cloudinary.uploadBanner(bannerBuffer, req.files.banner[0].originalname);
-      console.log('Banner yüklendi');
+      console.log('Banner yÃ¼klendi');
     } else if (isShort) {
-      // Reals için Cloudinary'den video thumbnail al
+      // Reals iÃ§in Cloudinary'den video thumbnail al
       bannerUrl = videoUrl.replace('/upload/', '/upload/so_0,w_400,h_400,c_fill/').replace('.mp4', '.jpg').replace('.mov', '.jpg').replace('.webm', '.jpg');
     }
 
@@ -635,16 +635,16 @@ router.post('/video', uploadDisk.fields([{ name: 'video' }, { name: 'banner' }])
     if (channel) {
       for (const sub of subscribers) {
         db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-          .run(sub.user_id, 'new_video', `${channel.channel_name} yeni video yükledi: ${title}`, result.lastInsertRowid);
+          .run(sub.user_id, 'new_video', `${channel.channel_name} yeni video yÃ¼kledi: ${title}`, result.lastInsertRowid);
       }
     }
 
     res.json({ success: true, videoId: result.lastInsertRowid, videoUrl, bannerUrl });
   } catch (error) {
-    console.error('Video yükleme hatası:', error);
-    res.status(500).json({ error: 'Video yüklenemedi', message: error.message });
+    console.error('Video yÃ¼kleme hatasÄ±:', error);
+    res.status(500).json({ error: 'Video yÃ¼klenemedi', message: error.message });
   } finally {
-    // Temp dosyaları temizle
+    // Temp dosyalarÄ± temizle
     try { if (videoPath && fs.existsSync(videoPath)) fs.unlinkSync(videoPath); } catch(e) {}
     try { if (bannerPath && fs.existsSync(bannerPath)) fs.unlinkSync(bannerPath); } catch(e) {}
   }
@@ -657,7 +657,7 @@ router.get('/videos', (req, res) => {
     const offset = (page - 1) * limit;
 
     const videos = db.prepare(`
-      SELECT v.*, c.channel_name, c.user_id, u.profile_photo, u.nickname,
+      SELECT v.*, c.channel_name, c.user_id, u.profile_photo, u.nickname, u.is_red_verified,
              (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as subscriber_count
       FROM videos v
       JOIN channels c ON v.channel_id = c.id
@@ -670,19 +670,19 @@ router.get('/videos', (req, res) => {
 
     res.json(videos);
   } catch (error) {
-    console.error('Video listesi hatası:', error);
-    res.status(500).json({ error: 'Videolar alınamadı' });
+    console.error('Video listesi hatasÄ±:', error);
+    res.status(500).json({ error: 'Videolar alÄ±namadÄ±' });
   }
 });
 
-// Popüler videolar
+// PopÃ¼ler videolar
 router.get('/videos/popular', (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
 
     const videos = db.prepare(`
-      SELECT v.*, c.channel_name, c.user_id, u.profile_photo, u.nickname,
+      SELECT v.*, c.channel_name, c.user_id, u.profile_photo, u.nickname, u.is_red_verified,
              (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as subscriber_count
       FROM videos v
       JOIN channels c ON v.channel_id = c.id
@@ -695,19 +695,19 @@ router.get('/videos/popular', (req, res) => {
 
     res.json(videos);
   } catch (error) {
-    console.error('Popüler videolar hatası:', error);
-    res.status(500).json({ error: 'Popüler videolar alınamadı' });
+    console.error('PopÃ¼ler videolar hatasÄ±:', error);
+    res.status(500).json({ error: 'PopÃ¼ler videolar alÄ±namadÄ±' });
   }
 });
 
-// Yakın zamanda yüklenen videolar
+// YakÄ±n zamanda yÃ¼klenen videolar
 router.get('/videos/recent', (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
 
     const videos = db.prepare(`
-      SELECT v.*, c.channel_name, c.user_id, u.profile_photo, u.nickname,
+      SELECT v.*, c.channel_name, c.user_id, u.profile_photo, u.nickname, u.is_red_verified,
              (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as subscriber_count
       FROM videos v
       JOIN channels c ON v.channel_id = c.id
@@ -723,19 +723,19 @@ router.get('/videos/recent', (req, res) => {
 
     res.json(videos);
   } catch (error) {
-    console.error('Yakın videolar hatası:', error);
-    res.status(500).json({ error: 'Yakın videolar alınamadı' });
+    console.error('YakÄ±n videolar hatasÄ±:', error);
+    res.status(500).json({ error: 'YakÄ±n videolar alÄ±namadÄ±' });
   }
 });
 
-// Abone olunan kanalların yeni videoları
+// Abone olunan kanallarÄ±n yeni videolarÄ±
 router.get('/videos/subscriptions/:userId', (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
 
     const videos = db.prepare(`
-      SELECT v.*, c.channel_name, c.user_id, u.profile_photo, u.nickname,
+      SELECT v.*, c.channel_name, c.user_id, u.profile_photo, u.nickname, u.is_red_verified,
              (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as subscriber_count,
              (SELECT COUNT(*) FROM watch_history WHERE user_id = ? AND video_id = v.id) as watched
       FROM videos v
@@ -750,12 +750,12 @@ router.get('/videos/subscriptions/:userId', (req, res) => {
 
     res.json(videos);
   } catch (error) {
-    console.error('Abonelik videoları hatası:', error);
-    res.status(500).json({ error: 'Abonelik videoları alınamadı' });
+    console.error('Abonelik videolarÄ± hatasÄ±:', error);
+    res.status(500).json({ error: 'Abonelik videolarÄ± alÄ±namadÄ±' });
   }
 });
 
-// Video detayı
+// Video detayÄ±
 router.get('/video/:videoId', (req, res) => {
   try {
     const { userId } = req.query;
@@ -769,10 +769,10 @@ router.get('/video/:videoId', (req, res) => {
     `).get(req.params.videoId);
 
     if (!video) {
-      return res.status(404).json({ error: 'Video bulunamadı' });
+      return res.status(404).json({ error: 'Video bulunamadÄ±' });
     }
 
-    // Kullanıcının kaldığı yeri getir
+    // KullanÄ±cÄ±nÄ±n kaldÄ±ÄŸÄ± yeri getir
     if (userId) {
       const progress = db.prepare(`
         SELECT watch_duration, total_duration FROM watch_history
@@ -790,7 +790,7 @@ router.get('/video/:videoId', (req, res) => {
       || req.socket?.remoteAddress || '0.0.0.0';
     ip = ip.replace(/^::ffff:/, '').replace(/^::1$/, '127.0.0.1');
 
-    // Son 24 saatte bu IP bu videoyu kaç kez açmış?
+    // Son 24 saatte bu IP bu videoyu kaÃ§ kez aÃ§mÄ±ÅŸ?
     const viewCount = db.prepare(`
       SELECT COUNT(*) as cnt FROM video_views
       WHERE video_id = ? AND ip_address = ? AND viewed_at > datetime('now', '-24 hours')
@@ -804,12 +804,12 @@ router.get('/video/:videoId', (req, res) => {
 
     res.json(video);
   } catch (error) {
-    console.error('Video detay hatası:', error);
-    res.status(500).json({ error: 'Video bilgileri alınamadı' });
+    console.error('Video detay hatasÄ±:', error);
+    res.status(500).json({ error: 'Video bilgileri alÄ±namadÄ±' });
   }
 });
 
-// Kanal videoları
+// Kanal videolarÄ±
 router.get('/videos/channel/:channelId', (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
@@ -827,8 +827,8 @@ router.get('/videos/channel/:channelId', (req, res) => {
 
     res.json(videos);
   } catch (error) {
-    console.error('Kanal videoları hatası:', error);
-    res.status(500).json({ error: 'Kanal videoları alınamadı' });
+    console.error('Kanal videolarÄ± hatasÄ±:', error);
+    res.status(500).json({ error: 'Kanal videolarÄ± alÄ±namadÄ±' });
   }
 });
 
@@ -842,7 +842,7 @@ router.get('/search', (req, res) => {
       return res.json([]);
     }
 
-    // Arama geçmişine ekle
+    // Arama geÃ§miÅŸine ekle
     if (userId) {
       const settings = db.prepare('SELECT search_history_enabled FROM user_settings WHERE user_id = ?').get(userId);
       if (!settings || settings.search_history_enabled) {
@@ -852,7 +852,7 @@ router.get('/search', (req, res) => {
 
     const searchTerm = `%${q}%`;
     const videos = db.prepare(`
-      SELECT v.*, c.channel_name, c.user_id, u.profile_photo, u.nickname,
+      SELECT v.*, c.channel_name, c.user_id, u.profile_photo, u.nickname, u.is_red_verified,
              (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as subscriber_count
       FROM videos v
       JOIN channels c ON v.channel_id = c.id
@@ -866,12 +866,12 @@ router.get('/search', (req, res) => {
 
     res.json(videos);
   } catch (error) {
-    console.error('Arama hatası:', error);
-    res.status(500).json({ error: 'Arama yapılamadı' });
+    console.error('Arama hatasÄ±:', error);
+    res.status(500).json({ error: 'Arama yapÄ±lamadÄ±' });
   }
 });
 
-// Arama geçmişi
+// Arama geÃ§miÅŸi
 router.get('/search-history/:userId', (req, res) => {
   try {
     const history = db.prepare(`
@@ -885,12 +885,12 @@ router.get('/search-history/:userId', (req, res) => {
 
     res.json(history);
   } catch (error) {
-    console.error('Arama geçmişi hatası:', error);
-    res.status(500).json({ error: 'Arama geçmişi alınamadı' });
+    console.error('Arama geÃ§miÅŸi hatasÄ±:', error);
+    res.status(500).json({ error: 'Arama geÃ§miÅŸi alÄ±namadÄ±' });
   }
 });
 
-// İzleme geçmişi - tüm kayıtlar (Geçmiş sayfası için)
+// Ä°zleme geÃ§miÅŸi - tÃ¼m kayÄ±tlar (GeÃ§miÅŸ sayfasÄ± iÃ§in)
 router.get('/watch-history/:userId', (req, res) => {
   try {
     const history = db.prepare(`
@@ -905,12 +905,12 @@ router.get('/watch-history/:userId', (req, res) => {
 
     res.json(history);
   } catch (error) {
-    console.error('İzleme geçmişi hatası:', error);
-    res.status(500).json({ error: 'İzleme geçmişi alınamadı' });
+    console.error('Ä°zleme geÃ§miÅŸi hatasÄ±:', error);
+    res.status(500).json({ error: 'Ä°zleme geÃ§miÅŸi alÄ±namadÄ±' });
   }
 });
 
-// İzlenenler - her video bir kez, en son izleneni göster (İzlenenler sayfası için)
+// Ä°zlenenler - her video bir kez, en son izleneni gÃ¶ster (Ä°zlenenler sayfasÄ± iÃ§in)
 router.get('/watched-unique/:userId', (req, res) => {
   try {
     const history = db.prepare(`
@@ -928,12 +928,12 @@ router.get('/watched-unique/:userId', (req, res) => {
 
     res.json(history);
   } catch (error) {
-    console.error('İzlenenler hatası:', error);
-    res.status(500).json({ error: 'İzlenenler alınamadı' });
+    console.error('Ä°zlenenler hatasÄ±:', error);
+    res.status(500).json({ error: 'Ä°zlenenler alÄ±namadÄ±' });
   }
 });
 
-// İzleme geçmişine ekle
+// Ä°zleme geÃ§miÅŸine ekle
 router.post('/watch-history', (req, res) => {
   try {
     const { userId, videoId, watchDuration, totalDuration } = req.body;
@@ -943,10 +943,10 @@ router.post('/watch-history', (req, res) => {
       db.prepare('INSERT INTO watch_history (user_id, video_id, watch_duration, total_duration) VALUES (?, ?, ?, ?)')
         .run(userId, videoId, watchDuration, totalDuration);
 
-      // Algoritma verilerini güncelle
+      // Algoritma verilerini gÃ¼ncelle
       const video = db.prepare('SELECT video_type, tags FROM videos WHERE id = ?').get(videoId);
       if (video) {
-        // Video türünü algoritma verisine ekle
+        // Video tÃ¼rÃ¼nÃ¼ algoritma verisine ekle
         const existingType = db.prepare('SELECT * FROM algorithm_data WHERE user_id = ? AND video_type = ? AND tag = ""')
           .get(userId, video.video_type);
         
@@ -979,18 +979,18 @@ router.post('/watch-history', (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('İzleme geçmişi ekleme hatası:', error);
-    res.status(500).json({ error: 'İzleme geçmişi eklenemedi' });
+    console.error('Ä°zleme geÃ§miÅŸi ekleme hatasÄ±:', error);
+    res.status(500).json({ error: 'Ä°zleme geÃ§miÅŸi eklenemedi' });
   }
 });
 
-// Algoritma önerileri
+// Algoritma Ã¶nerileri
 router.get('/videos/recommended/:userId', (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
 
-    // Kullanıcının algoritma verilerini al
+    // KullanÄ±cÄ±nÄ±n algoritma verilerini al
     const algorithmData = db.prepare(`
       SELECT video_type, tag, weight
       FROM algorithm_data
@@ -1000,9 +1000,9 @@ router.get('/videos/recommended/:userId', (req, res) => {
     `).all(req.params.userId);
 
     if (algorithmData.length === 0) {
-      // Algoritma verisi yoksa popüler videoları rastgele sırayla göster
+      // Algoritma verisi yoksa popÃ¼ler videolarÄ± rastgele sÄ±rayla gÃ¶ster
       return res.json(db.prepare(`
-        SELECT v.*, c.channel_name, c.user_id, u.profile_photo, u.nickname,
+        SELECT v.*, c.channel_name, c.user_id, u.profile_photo, u.nickname, u.is_red_verified,
                (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as subscriber_count
         FROM videos v
         JOIN channels c ON v.channel_id = c.id
@@ -1014,7 +1014,7 @@ router.get('/videos/recommended/:userId', (req, res) => {
       `).all(limit, offset));
     }
 
-    // İzlenmiş videoları hariç tut ama çok fazla önceliklendirme
+    // Ä°zlenmiÅŸ videolarÄ± hariÃ§ tut ama Ã§ok fazla Ã¶nceliklendirme
     const watchedVideos = db.prepare('SELECT video_id FROM watch_history WHERE user_id = ?').all(req.params.userId);
     const watchedIds = watchedVideos.map(w => w.video_id);
 
@@ -1050,8 +1050,8 @@ router.get('/videos/recommended/:userId', (req, res) => {
 
     res.json(videos);
   } catch (error) {
-    console.error('Öneri algoritması hatası:', error);
-    res.status(500).json({ error: 'Öneriler alınamadı' });
+    console.error('Ã–neri algoritmasÄ± hatasÄ±:', error);
+    res.status(500).json({ error: 'Ã–neriler alÄ±namadÄ±' });
   }
 });
 
@@ -1067,23 +1067,23 @@ router.get('/algorithm/:userId', (req, res) => {
 
     res.json(data);
   } catch (error) {
-    console.error('Algoritma verileri hatası:', error);
-    res.status(500).json({ error: 'Algoritma verileri alınamadı' });
+    console.error('Algoritma verileri hatasÄ±:', error);
+    res.status(500).json({ error: 'Algoritma verileri alÄ±namadÄ±' });
   }
 });
 
-// Algoritmayı sıfırla
+// AlgoritmayÄ± sÄ±fÄ±rla
 router.delete('/algorithm/:userId', (req, res) => {
   try {
     db.prepare('DELETE FROM algorithm_data WHERE user_id = ?').run(req.params.userId);
     res.json({ success: true });
   } catch (error) {
-    console.error('Algoritma sıfırlama hatası:', error);
-    res.status(500).json({ error: 'Algoritma sıfırlanamadı' });
+    console.error('Algoritma sÄ±fÄ±rlama hatasÄ±:', error);
+    res.status(500).json({ error: 'Algoritma sÄ±fÄ±rlanamadÄ±' });
   }
 });
 
-// Abonelik işlemleri
+// Abonelik iÅŸlemleri
 router.post('/subscribe', (req, res) => {
   try {
     const { userId, channelId } = req.body;
@@ -1095,17 +1095,17 @@ router.post('/subscribe', (req, res) => {
 
     db.prepare('INSERT INTO subscriptions (user_id, channel_id) VALUES (?, ?)').run(userId, channelId);
 
-    // Kanal sahibine bildirim gönder
+    // Kanal sahibine bildirim gÃ¶nder
     const channel = db.prepare('SELECT user_id, channel_name FROM channels WHERE id = ?').get(channelId);
     const user = db.prepare('SELECT nickname FROM users WHERE id = ?').get(userId);
     
     db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-      .run(channel.user_id, 'new_subscriber', `${user.nickname} kanalınıza abone oldu`, channelId);
+      .run(channel.user_id, 'new_subscriber', `${user.nickname} kanalÄ±nÄ±za abone oldu`, channelId);
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Abonelik hatası:', error);
-    res.status(500).json({ error: 'Abonelik yapılamadı' });
+    console.error('Abonelik hatasÄ±:', error);
+    res.status(500).json({ error: 'Abonelik yapÄ±lamadÄ±' });
   }
 });
 
@@ -1115,7 +1115,7 @@ router.delete('/subscribe', (req, res) => {
     db.prepare('DELETE FROM subscriptions WHERE user_id = ? AND channel_id = ?').run(userId, channelId);
     res.json({ success: true });
   } catch (error) {
-    console.error('Abonelik iptali hatası:', error);
+    console.error('Abonelik iptali hatasÄ±:', error);
     res.status(500).json({ error: 'Abonelik iptal edilemedi' });
   }
 });
@@ -1135,8 +1135,8 @@ router.get('/subscriptions/:userId', (req, res) => {
 
     res.json(subscriptions);
   } catch (error) {
-    console.error('Abonelikler hatası:', error);
-    res.status(500).json({ error: 'Abonelikler alınamadı' });
+    console.error('Abonelikler hatasÄ±:', error);
+    res.status(500).json({ error: 'Abonelikler alÄ±namadÄ±' });
   }
 });
 
@@ -1146,12 +1146,12 @@ router.get('/is-subscribed/:userId/:channelId', (req, res) => {
       .get(req.params.userId, req.params.channelId);
     res.json({ subscribed: !!sub });
   } catch (error) {
-    console.error('Abonelik kontrolü hatası:', error);
-    res.status(500).json({ error: 'Abonelik kontrolü yapılamadı' });
+    console.error('Abonelik kontrolÃ¼ hatasÄ±:', error);
+    res.status(500).json({ error: 'Abonelik kontrolÃ¼ yapÄ±lamadÄ±' });
   }
 });
 
-// Favori işlemleri
+// Favori iÅŸlemleri
 router.post('/favorite', (req, res) => {
   try {
     const { userId, videoId } = req.body;
@@ -1164,7 +1164,7 @@ router.post('/favorite', (req, res) => {
     db.prepare('INSERT INTO favorites (user_id, video_id) VALUES (?, ?)').run(userId, videoId);
     res.json({ success: true });
   } catch (error) {
-    console.error('Favori ekleme hatası:', error);
+    console.error('Favori ekleme hatasÄ±:', error);
     res.status(500).json({ error: 'Favorilere eklenemedi' });
   }
 });
@@ -1175,7 +1175,7 @@ router.delete('/favorite', (req, res) => {
     db.prepare('DELETE FROM favorites WHERE user_id = ? AND video_id = ?').run(userId, videoId);
     res.json({ success: true });
   } catch (error) {
-    console.error('Favori silme hatası:', error);
+    console.error('Favori silme hatasÄ±:', error);
     res.status(500).json({ error: 'Favorilerden silinemedi' });
   }
 });
@@ -1195,8 +1195,8 @@ router.get('/favorites/:userId', (req, res) => {
 
     res.json(favorites);
   } catch (error) {
-    console.error('Favoriler hatası:', error);
-    res.status(500).json({ error: 'Favoriler alınamadı' });
+    console.error('Favoriler hatasÄ±:', error);
+    res.status(500).json({ error: 'Favoriler alÄ±namadÄ±' });
   }
 });
 
@@ -1213,7 +1213,7 @@ router.post('/saved', (req, res) => {
     db.prepare('INSERT INTO saved_videos (user_id, video_id) VALUES (?, ?)').run(userId, videoId);
     res.json({ success: true });
   } catch (error) {
-    console.error('Kaydetme hatası:', error);
+    console.error('Kaydetme hatasÄ±:', error);
     res.status(500).json({ error: 'Video kaydedilemedi' });
   }
 });
@@ -1224,8 +1224,8 @@ router.delete('/saved', (req, res) => {
     db.prepare('DELETE FROM saved_videos WHERE user_id = ? AND video_id = ?').run(userId, videoId);
     res.json({ success: true });
   } catch (error) {
-    console.error('Kayıt silme hatası:', error);
-    res.status(500).json({ error: 'Kayıt silinemedi' });
+    console.error('KayÄ±t silme hatasÄ±:', error);
+    res.status(500).json({ error: 'KayÄ±t silinemedi' });
   }
 });
 
@@ -1245,12 +1245,12 @@ router.get('/saved/:userId', (req, res) => {
 
     res.json(saved);
   } catch (error) {
-    console.error('Kaydedilenler hatası:', error);
-    res.status(500).json({ error: 'Kaydedilenler alınamadı' });
+    console.error('Kaydedilenler hatasÄ±:', error);
+    res.status(500).json({ error: 'Kaydedilenler alÄ±namadÄ±' });
   }
 });
 
-// Yorum işlemleri
+// Yorum iÅŸlemleri
 router.post('/comment', (req, res) => {
   try {
     const { videoId, userId, commentText, parentId } = req.body;
@@ -1261,11 +1261,11 @@ router.post('/comment', (req, res) => {
     const user = db.prepare('SELECT nickname FROM users WHERE id = ?').get(userId);
 
     if (parentId) {
-      // Yanıt bildirimi - üst yorumun sahibine
+      // YanÄ±t bildirimi - Ã¼st yorumun sahibine
       const parentComment = db.prepare('SELECT user_id FROM comments WHERE id = ?').get(parentId);
       if (parentComment && parentComment.user_id !== userId) {
         db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-          .run(parentComment.user_id, 'comment_reply', `${user.nickname} yorumunuza yanıt verdi: "${commentText.substring(0, 40)}"`, videoId);
+          .run(parentComment.user_id, 'comment_reply', `${user.nickname} yorumunuza yanÄ±t verdi: "${commentText.substring(0, 40)}"`, videoId);
       }
     } else {
       // Video sahibine bildirim
@@ -1273,13 +1273,13 @@ router.post('/comment', (req, res) => {
       const channel = db.prepare('SELECT user_id FROM channels WHERE id = ?').get(video.channel_id);
       if (channel.user_id !== userId) {
         db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-          .run(channel.user_id, 'new_comment', `${user.nickname} videonuza yorum yaptı: ${video.title}`, videoId);
+          .run(channel.user_id, 'new_comment', `${user.nickname} videonuza yorum yaptÄ±: ${video.title}`, videoId);
       }
     }
 
     res.json({ success: true, commentId: result.lastInsertRowid });
   } catch (error) {
-    console.error('Yorum ekleme hatası:', error);
+    console.error('Yorum ekleme hatasÄ±:', error);
     res.status(500).json({ error: 'Yorum eklenemedi' });
   }
 });
@@ -1304,12 +1304,12 @@ router.get('/comments/:videoId', (req, res) => {
 
     res.json(comments);
   } catch (error) {
-    console.error('Yorumlar hatası:', error);
-    res.status(500).json({ error: 'Yorumlar alınamadı', details: error.message });
+    console.error('Yorumlar hatasÄ±:', error);
+    res.status(500).json({ error: 'Yorumlar alÄ±namadÄ±', details: error.message });
   }
 });
 
-// Yorum yanıtlarını getir
+// Yorum yanÄ±tlarÄ±nÄ± getir
 router.get('/comment-replies/:commentId', (req, res) => {
   try {
     const { userId } = req.query;
@@ -1325,11 +1325,11 @@ router.get('/comment-replies/:commentId', (req, res) => {
     `).all(userId || 0, req.params.commentId);
     res.json(replies);
   } catch(e) {
-    res.status(500).json({ error: 'Yanıtlar alınamadı' });
+    res.status(500).json({ error: 'YanÄ±tlar alÄ±namadÄ±' });
   }
 });
 
-// Yorum beğen/beğenme
+// Yorum beÄŸen/beÄŸenme
 router.post('/comment-like', (req, res) => {
   try {
     const { commentId, userId, likeType } = req.body;
@@ -1344,13 +1344,13 @@ router.post('/comment-like', (req, res) => {
     } else {
       db.prepare('INSERT INTO comment_likes (comment_id, user_id, like_type) VALUES (?, ?, ?)').run(commentId, userId, likeType);
       
-      // Beğeni bildirimi gönder (sadece like için, kendi yorumuna değil)
+      // BeÄŸeni bildirimi gÃ¶nder (sadece like iÃ§in, kendi yorumuna deÄŸil)
       if (likeType === 1) {
         const comment = db.prepare('SELECT user_id, comment_text FROM comments WHERE id = ?').get(commentId);
         if (comment && comment.user_id !== userId) {
           const liker = db.prepare('SELECT nickname FROM users WHERE id = ?').get(userId);
           db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-            .run(comment.user_id, 'comment_like', `${liker.nickname} yorumunuzu beğendi: "${comment.comment_text.substring(0, 30)}..."`, commentId);
+            .run(comment.user_id, 'comment_like', `${liker.nickname} yorumunuzu beÄŸendi: "${comment.comment_text.substring(0, 30)}..."`, commentId);
         }
       }
     }
@@ -1358,7 +1358,7 @@ router.post('/comment-like', (req, res) => {
     res.json({ success: true });
   } catch(e) {
     console.error(e);
-    res.status(500).json({ error: 'Beğeni işlemi başarısız' });
+    res.status(500).json({ error: 'BeÄŸeni iÅŸlemi baÅŸarÄ±sÄ±z' });
   }
 });
 
@@ -1367,51 +1367,51 @@ router.delete('/comment/:commentId', (req, res) => {
     db.prepare('DELETE FROM comments WHERE id = ?').run(req.params.commentId);
     res.json({ success: true });
   } catch (error) {
-    console.error('Yorum silme hatası:', error);
+    console.error('Yorum silme hatasÄ±:', error);
     res.status(500).json({ error: 'Yorum silinemedi' });
   }
 });
 
-// Yorum düzenle
+// Yorum dÃ¼zenle
 router.put('/comment/:commentId', (req, res) => {
   try {
     const { commentText, userId } = req.body;
     const comment = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.commentId);
-    if (!comment) return res.status(404).json({ error: 'Yorum bulunamadı' });
+    if (!comment) return res.status(404).json({ error: 'Yorum bulunamadÄ±' });
     if (comment.user_id !== userId) return res.status(403).json({ error: 'Yetkisiz' });
     db.prepare('UPDATE comments SET comment_text = ? WHERE id = ?').run(commentText, req.params.commentId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Yorum düzenlenemedi' });
+    res.status(500).json({ error: 'Yorum dÃ¼zenlenemedi' });
   }
 });
 
-// Beğeni işlemleri
+// BeÄŸeni iÅŸlemleri
 router.post('/like', (req, res) => {
   try {
-    const { videoId, userId, likeType } = req.body; // likeType: 1 = beğen, -1 = beğenme
+    const { videoId, userId, likeType } = req.body; // likeType: 1 = beÄŸen, -1 = beÄŸenme
 
     const existing = db.prepare('SELECT * FROM video_likes WHERE video_id = ? AND user_id = ?').get(videoId, userId);
 
     if (existing) {
       if (existing.like_type === likeType) {
-        // Aynı beğeniyi kaldır
+        // AynÄ± beÄŸeniyi kaldÄ±r
         db.prepare('DELETE FROM video_likes WHERE id = ?').run(existing.id);
         db.prepare(`UPDATE videos SET ${likeType === 1 ? 'likes' : 'dislikes'} = ${likeType === 1 ? 'likes' : 'dislikes'} - 1 WHERE id = ?`)
           .run(videoId);
       } else {
-        // Beğeni türünü değiştir
+        // BeÄŸeni tÃ¼rÃ¼nÃ¼ deÄŸiÅŸtir
         db.prepare('UPDATE video_likes SET like_type = ? WHERE id = ?').run(likeType, existing.id);
         db.prepare(`UPDATE videos SET likes = likes ${likeType === 1 ? '+ 1' : '- 1'}, dislikes = dislikes ${likeType === 1 ? '- 1' : '+ 1'} WHERE id = ?`)
           .run(videoId);
       }
     } else {
-      // Yeni beğeni ekle
+      // Yeni beÄŸeni ekle
       db.prepare('INSERT INTO video_likes (video_id, user_id, like_type) VALUES (?, ?, ?)').run(videoId, userId, likeType);
       db.prepare(`UPDATE videos SET ${likeType === 1 ? 'likes' : 'dislikes'} = ${likeType === 1 ? 'likes' : 'dislikes'} + 1 WHERE id = ?`)
         .run(videoId);
 
-      // Video sahibine bildirim gönder (sadece beğeni için)
+      // Video sahibine bildirim gÃ¶nder (sadece beÄŸeni iÃ§in)
       if (likeType === 1) {
         const video = db.prepare('SELECT title, channel_id FROM videos WHERE id = ?').get(videoId);
         const channel = db.prepare('SELECT user_id FROM channels WHERE id = ?').get(video.channel_id);
@@ -1419,15 +1419,15 @@ router.post('/like', (req, res) => {
 
         if (channel.user_id !== userId) {
           db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-            .run(channel.user_id, 'new_like', `${user.nickname} videonuzu beğendi: ${video.title}`, videoId);
+            .run(channel.user_id, 'new_like', `${user.nickname} videonuzu beÄŸendi: ${video.title}`, videoId);
         }
       }
     }
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Beğeni hatası:', error);
-    res.status(500).json({ error: 'Beğeni işlemi yapılamadı' });
+    console.error('BeÄŸeni hatasÄ±:', error);
+    res.status(500).json({ error: 'BeÄŸeni iÅŸlemi yapÄ±lamadÄ±' });
   }
 });
 
@@ -1437,8 +1437,8 @@ router.get('/like-status/:videoId/:userId', (req, res) => {
       .get(req.params.videoId, req.params.userId);
     res.json({ likeType: like ? like.like_type : 0 });
   } catch (error) {
-    console.error('Beğeni durumu hatası:', error);
-    res.status(500).json({ error: 'Beğeni durumu alınamadı' });
+    console.error('BeÄŸeni durumu hatasÄ±:', error);
+    res.status(500).json({ error: 'BeÄŸeni durumu alÄ±namadÄ±' });
   }
 });
 
@@ -1454,8 +1454,8 @@ router.get('/notifications/:userId', (req, res) => {
 
     res.json(notifications);
   } catch (error) {
-    console.error('Bildirimler hatası:', error);
-    res.status(500).json({ error: 'Bildirimler alınamadı' });
+    console.error('Bildirimler hatasÄ±:', error);
+    res.status(500).json({ error: 'Bildirimler alÄ±namadÄ±' });
   }
 });
 
@@ -1464,27 +1464,27 @@ router.put('/notification/:notificationId/read', (req, res) => {
     db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(req.params.notificationId);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: 'Bildirim güncellenemedi' });
+    res.status(500).json({ error: 'Bildirim gÃ¼ncellenemedi' });
   }
 });
 
-// Tüm bildirimleri okundu yap
+// TÃ¼m bildirimleri okundu yap
 router.put('/notifications/:userId/read-all', (req, res) => {
   try {
     db.prepare('UPDATE notifications SET is_read = 1 WHERE user_id = ?').run(req.params.userId);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: 'Bildirimler güncellenemedi' });
+    res.status(500).json({ error: 'Bildirimler gÃ¼ncellenemedi' });
   }
 });
 
-// Destekçi kanal işlemleri
+// DestekÃ§i kanal iÅŸlemleri
 router.post('/supporter-channel', (req, res) => {
   try {
     const { channelId, supporterChannelId } = req.body;
 
     if (channelId === supporterChannelId) {
-      return res.status(400).json({ error: 'Kendi kanalınızı ekleyemezsiniz' });
+      return res.status(400).json({ error: 'Kendi kanalÄ±nÄ±zÄ± ekleyemezsiniz' });
     }
 
     const existing = db.prepare('SELECT id FROM supporter_channels WHERE channel_id = ? AND supporter_channel_id = ?')
@@ -1496,17 +1496,17 @@ router.post('/supporter-channel', (req, res) => {
 
     db.prepare('INSERT INTO supporter_channels (channel_id, supporter_channel_id) VALUES (?, ?)').run(channelId, supporterChannelId);
 
-    // Destekçi kanal sahibine bildirim gönder
+    // DestekÃ§i kanal sahibine bildirim gÃ¶nder
     const channel = db.prepare('SELECT channel_name, user_id FROM channels WHERE id = ?').get(channelId);
     const supporterChannel = db.prepare('SELECT user_id FROM channels WHERE id = ?').get(supporterChannelId);
 
     db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-      .run(supporterChannel.user_id, 'supporter_request', `${channel.channel_name} sizi destekçi kanal olarak eklemek istiyor`, channelId);
+      .run(supporterChannel.user_id, 'supporter_request', `${channel.channel_name} sizi destekÃ§i kanal olarak eklemek istiyor`, channelId);
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Destekçi kanal ekleme hatası:', error);
-    res.status(500).json({ error: 'Destekçi kanal eklenemedi' });
+    console.error('DestekÃ§i kanal ekleme hatasÄ±:', error);
+    res.status(500).json({ error: 'DestekÃ§i kanal eklenemedi' });
   }
 });
 
@@ -1525,7 +1525,7 @@ router.get('/partner-requests/:channelId', (req, res) => {
     `).all(req.params.channelId);
     res.json(requests);
   } catch(e) {
-    res.status(500).json({ error: 'İstekler alınamadı' });
+    res.status(500).json({ error: 'Ä°stekler alÄ±namadÄ±' });
   }
 });
 router.get('/partner-sent/:channelId', (req, res) => {
@@ -1542,11 +1542,11 @@ router.get('/partner-sent/:channelId', (req, res) => {
     `).all(req.params.channelId);
     res.json(sent);
   } catch(e) {
-    res.status(500).json({ error: 'Gönderilen istekler alınamadı' });
+    res.status(500).json({ error: 'GÃ¶nderilen istekler alÄ±namadÄ±' });
   }
 });
 
-// Bildirimden partner isteğini kabul/red et
+// Bildirimden partner isteÄŸini kabul/red et
 router.put('/partner-respond', (req, res) => {
   try {
     const { fromChannelId, toChannelId, action } = req.body;
@@ -1554,7 +1554,7 @@ router.put('/partner-respond', (req, res) => {
       "SELECT id FROM supporter_channels WHERE channel_id = ? AND supporter_channel_id = ? AND status = 'pending'"
     ).get(fromChannelId, toChannelId);
 
-    if (!request) return res.status(404).json({ error: 'Bekleyen istek bulunamadı' });
+    if (!request) return res.status(404).json({ error: 'Bekleyen istek bulunamadÄ±' });
 
     if (action === 'accept') {
       db.prepare("UPDATE supporter_channels SET status = 'accepted' WHERE id = ?").run(request.id);
@@ -1562,7 +1562,7 @@ router.put('/partner-respond', (req, res) => {
       const toCh = db.prepare('SELECT channel_name FROM channels WHERE id = ?').get(toChannelId);
       if (fromCh && toCh) {
         db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-          .run(fromCh.user_id, 'supporter_accepted', `${toCh.channel_name} partner isteğinizi kabul etti`, toChannelId);
+          .run(fromCh.user_id, 'supporter_accepted', `${toCh.channel_name} partner isteÄŸinizi kabul etti`, toChannelId);
       }
     } else {
       db.prepare('DELETE FROM supporter_channels WHERE id = ?').run(request.id);
@@ -1571,7 +1571,7 @@ router.put('/partner-respond', (req, res) => {
     res.json({ success: true });
   } catch(e) {
     console.error(e);
-    res.status(500).json({ error: 'İşlem başarısız' });
+    res.status(500).json({ error: 'Ä°ÅŸlem baÅŸarÄ±sÄ±z' });
   }
 });
 
@@ -1580,23 +1580,23 @@ router.put('/supporter-channel/:id/accept', (req, res) => {
     const id = req.params.id;
     const supporter = db.prepare('SELECT channel_id, supporter_channel_id FROM supporter_channels WHERE id = ?').get(id);
     
-    if (!supporter) return res.status(404).json({ error: 'İstek bulunamadı' });
+    if (!supporter) return res.status(404).json({ error: 'Ä°stek bulunamadÄ±' });
 
     db.prepare("UPDATE supporter_channels SET status = 'accepted' WHERE id = ?").run(id);
 
-    // Bildirimi güvenli şekilde gönder
+    // Bildirimi gÃ¼venli ÅŸekilde gÃ¶nder
     try {
       const channel = db.prepare('SELECT user_id, channel_name FROM channels WHERE id = ?').get(supporter.channel_id);
       const supporterChannel = db.prepare('SELECT channel_name FROM channels WHERE id = ?').get(supporter.supporter_channel_id);
       if (channel && supporterChannel) {
         db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-          .run(channel.user_id, 'supporter_accepted', `${supporterChannel.channel_name} partner isteğinizi kabul etti`, supporter.supporter_channel_id);
+          .run(channel.user_id, 'supporter_accepted', `${supporterChannel.channel_name} partner isteÄŸinizi kabul etti`, supporter.supporter_channel_id);
       }
-    } catch(notifErr) { console.error('Bildirim hatası:', notifErr); }
+    } catch(notifErr) { console.error('Bildirim hatasÄ±:', notifErr); }
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Partner kabul hatası:', error);
+    console.error('Partner kabul hatasÄ±:', error);
     res.status(500).json({ error: 'Kabul edilemedi: ' + error.message });
   }
 });
@@ -1606,23 +1606,23 @@ router.put('/supporter-channel/:id/reject', (req, res) => {
     const id = req.params.id;
     const supporter = db.prepare('SELECT channel_id, supporter_channel_id FROM supporter_channels WHERE id = ?').get(id);
     
-    if (!supporter) return res.status(404).json({ error: 'İstek bulunamadı' });
+    if (!supporter) return res.status(404).json({ error: 'Ä°stek bulunamadÄ±' });
 
     db.prepare('DELETE FROM supporter_channels WHERE id = ?').run(id);
 
-    // Bildirimi güvenli şekilde gönder
+    // Bildirimi gÃ¼venli ÅŸekilde gÃ¶nder
     try {
       const channel = db.prepare('SELECT user_id, channel_name FROM channels WHERE id = ?').get(supporter.channel_id);
       const supporterChannel = db.prepare('SELECT channel_name FROM channels WHERE id = ?').get(supporter.supporter_channel_id);
       if (channel && supporterChannel) {
         db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-          .run(channel.user_id, 'supporter_rejected', `${supporterChannel.channel_name} partner isteğinizi reddetti`, supporter.supporter_channel_id);
+          .run(channel.user_id, 'supporter_rejected', `${supporterChannel.channel_name} partner isteÄŸinizi reddetti`, supporter.supporter_channel_id);
       }
-    } catch(notifErr) { console.error('Bildirim hatası:', notifErr); }
+    } catch(notifErr) { console.error('Bildirim hatasÄ±:', notifErr); }
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Partner red hatası:', error);
+    console.error('Partner red hatasÄ±:', error);
     res.status(500).json({ error: 'Reddedilemedi: ' + error.message });
   }
 });
@@ -1630,7 +1630,7 @@ router.put('/supporter-channel/:id/reject', (req, res) => {
 router.get('/supporter-channels/:channelId', (req, res) => {
   try {
     const channelId = req.params.channelId;
-    // İki yönlü: hem isteği alan hem gönderen taraf olarak kabul edilmiş partnerler
+    // Ä°ki yÃ¶nlÃ¼: hem isteÄŸi alan hem gÃ¶nderen taraf olarak kabul edilmiÅŸ partnerler
     const supporters = db.prepare(`
       SELECT sc.id, sc.status,
              c.id as supporter_channel_id, c.channel_name, c.channel_banner,
@@ -1645,8 +1645,8 @@ router.get('/supporter-channels/:channelId', (req, res) => {
 
     res.json(supporters);
   } catch (error) {
-    console.error('Destekçi kanallar hatası:', error);
-    res.status(500).json({ error: 'Destekçi kanallar alınamadı' });
+    console.error('DestekÃ§i kanallar hatasÄ±:', error);
+    res.status(500).json({ error: 'DestekÃ§i kanallar alÄ±namadÄ±' });
   }
 });
 
@@ -1655,18 +1655,18 @@ router.get('/shorts', (req, res) => {
   try {
     const { userId, order } = req.query;
     
-    // Kullanıcının "ilgilenmiyorum" etiketlerini al
+    // KullanÄ±cÄ±nÄ±n "ilgilenmiyorum" etiketlerini al
     let dislikedTags = [];
     if (userId) {
       const prefs = db.prepare("SELECT tag FROM user_tag_preferences WHERE user_id = ? AND preference = -1").all(userId);
       dislikedTags = prefs.map(p => p.tag.toLowerCase());
     }
 
-    // order=recent → story daireleri için created_at DESC, aksi halde RANDOM
+    // order=recent â†’ story daireleri iÃ§in created_at DESC, aksi halde RANDOM
     const orderClause = order === 'recent' ? 'v.created_at DESC' : 'RANDOM()';
 
     const shorts = db.prepare(`
-      SELECT v.*, c.channel_name, c.id as channel_id, c.user_id as channel_owner_id, u.profile_photo, u.nickname,
+      SELECT v.*, c.channel_name, c.id as channel_id, c.user_id as channel_owner_id, u.profile_photo, u.nickname, u.is_red_verified,
              (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as subscriber_count,
              (SELECT COUNT(*) FROM comments WHERE video_id = v.id) as comment_count
       FROM videos v
@@ -1691,49 +1691,49 @@ router.get('/shorts', (req, res) => {
 
     res.json(filtered.slice(0, 50));
   } catch(e) {
-    res.status(500).json({ error: 'Reals alınamadı' });
+    res.status(500).json({ error: 'Reals alÄ±namadÄ±' });
   }
 });
 
-// Chat fotoğraf yükleme
+// Chat fotoÄŸraf yÃ¼kleme
 router.post('/upload-chat-photo', upload.single('photo'), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'Fotoğraf gerekli' });
+    if (!req.file) return res.status(400).json({ error: 'FotoÄŸraf gerekli' });
     const url = await cloudinary.uploadProfilePhoto(req.file.buffer, req.file.originalname);
     res.json({ url });
   } catch(e) {
-    console.error('Chat foto yükleme hatası:', e);
-    res.status(500).json({ error: 'Fotoğraf yüklenemedi' });
+    console.error('Chat foto yÃ¼kleme hatasÄ±:', e);
+    res.status(500).json({ error: 'FotoÄŸraf yÃ¼klenemedi' });
   }
 });
 
-// Fotoğraf paylaşımı (kanal gönderisi olarak)
+// FotoÄŸraf paylaÅŸÄ±mÄ± (kanal gÃ¶nderisi olarak)
 router.post('/photo', upload.single('photo'), async (req, res) => {
   try {
     const { channelId, title, description, isAd } = req.body;
-    if (!req.file) return res.status(400).json({ error: 'Fotoğraf gerekli' });
+    if (!req.file) return res.status(400).json({ error: 'FotoÄŸraf gerekli' });
 
     const photoUrl = await cloudinary.uploadProfilePhoto(req.file.buffer, req.file.originalname);
 
     const result = db.prepare(
       'INSERT INTO videos (channel_id, title, description, video_url, banner_url, video_type, tags, comments_enabled, likes_visible, is_short) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, 0)'
-    ).run(channelId, title || 'Fotoğraf', description || '', photoUrl, photoUrl, 'Fotoğraf', 'foto');
+    ).run(channelId, title || 'FotoÄŸraf', description || '', photoUrl, photoUrl, 'FotoÄŸraf', 'foto');
 
     res.json({ success: true, photoId: result.lastInsertRowid });
   } catch(e) {
-    console.error('Fotoğraf yükleme hatası:', e);
-    res.status(500).json({ error: 'Fotoğraf yüklenemedi' });
+    console.error('FotoÄŸraf yÃ¼kleme hatasÄ±:', e);
+    res.status(500).json({ error: 'FotoÄŸraf yÃ¼klenemedi' });
   }
 });
 
-// Metin paylaşımı (TeaWeet veya Düz Metin)
+// Metin paylaÅŸÄ±mÄ± (TeaWeet veya DÃ¼z Metin)
 router.post('/text', upload.none(), async (req, res) => {
   try {
     const { channelId, title, description, textContent, textType, tags } = req.body;
     
-    if (!textContent) return res.status(400).json({ error: 'Metin içeriği gerekli' });
+    if (!textContent) return res.status(400).json({ error: 'Metin iÃ§eriÄŸi gerekli' });
 
-    // Placeholder görsel (metin için)
+    // Placeholder gÃ¶rsel (metin iÃ§in)
     const placeholderUrl = 'https://via.placeholder.com/400x400/1f1f1f/ffffff?text=' + encodeURIComponent(title.substring(0, 20));
 
     const result = db.prepare(
@@ -1752,49 +1752,49 @@ router.post('/text', upload.none(), async (req, res) => {
 
     res.json({ success: true, textId: result.lastInsertRowid });
   } catch(e) {
-    console.error('Metin yükleme hatası:', e);
-    res.status(500).json({ error: 'Metin yüklenemedi' });
+    console.error('Metin yÃ¼kleme hatasÄ±:', e);
+    res.status(500).json({ error: 'Metin yÃ¼klenemedi' });
   }
 });
 
-// ==================== ARKADAŞLIK SİSTEMİ ====================
+// ==================== ARKADAÅLIK SÄ°STEMÄ° ====================
 
-// Arkadaş isteği gönder
+// ArkadaÅŸ isteÄŸi gÃ¶nder
 router.post('/friend-request', (req, res) => {
   try {
     const { senderId, receiverId } = req.body;
-    if (senderId === receiverId) return res.status(400).json({ error: 'Kendinize istek gönderemezsiniz' });
+    if (senderId === receiverId) return res.status(400).json({ error: 'Kendinize istek gÃ¶nderemezsiniz' });
 
     const existing = db.prepare('SELECT * FROM friendships WHERE (sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)').get(senderId, receiverId, receiverId, senderId);
-    if (existing) return res.status(400).json({ error: 'Zaten istek var veya arkadaşsınız' });
+    if (existing) return res.status(400).json({ error: 'Zaten istek var veya arkadaÅŸsÄ±nÄ±z' });
 
     db.prepare("INSERT INTO friendships (sender_id, receiver_id, status) VALUES (?, ?, 'pending')").run(senderId, receiverId);
 
     const sender = db.prepare('SELECT nickname FROM users WHERE id = ?').get(senderId);
     db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-      .run(receiverId, 'friend_request', `${sender.nickname} size arkadaşlık isteği gönderdi`, senderId);
+      .run(receiverId, 'friend_request', `${sender.nickname} size arkadaÅŸlÄ±k isteÄŸi gÃ¶nderdi`, senderId);
 
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Arkadaşlık isteğini kabul et
+// ArkadaÅŸlÄ±k isteÄŸini kabul et
 router.put('/friend-request/:id/accept', (req, res) => {
   try {
     const friendship = db.prepare('SELECT * FROM friendships WHERE id = ?').get(req.params.id);
-    if (!friendship) return res.status(404).json({ error: 'İstek bulunamadı' });
+    if (!friendship) return res.status(404).json({ error: 'Ä°stek bulunamadÄ±' });
 
     db.prepare("UPDATE friendships SET status = 'accepted' WHERE id = ?").run(req.params.id);
 
     const receiver = db.prepare('SELECT nickname FROM users WHERE id = ?').get(friendship.receiver_id);
     db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-      .run(friendship.sender_id, 'friend_accepted', `${receiver.nickname} arkadaşlık isteğinizi kabul etti`, friendship.receiver_id);
+      .run(friendship.sender_id, 'friend_accepted', `${receiver.nickname} arkadaÅŸlÄ±k isteÄŸinizi kabul etti`, friendship.receiver_id);
 
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Arkadaşlık isteğini reddet / arkadaşlıktan çıkar
+// ArkadaÅŸlÄ±k isteÄŸini reddet / arkadaÅŸlÄ±ktan Ã§Ä±kar
 router.delete('/friendship/:id', (req, res) => {
   try {
     db.prepare('DELETE FROM friendships WHERE id = ?').run(req.params.id);
@@ -1802,7 +1802,7 @@ router.delete('/friendship/:id', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Arkadaş listesi
+// ArkadaÅŸ listesi
 router.get('/friends/:userId', (req, res) => {
   try {
     const friends = db.prepare(`
@@ -1818,7 +1818,7 @@ router.get('/friends/:userId', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Gelen arkadaşlık istekleri
+// Gelen arkadaÅŸlÄ±k istekleri
 router.get('/friend-requests/incoming/:userId', (req, res) => {
   try {
     const requests = db.prepare(`
@@ -1832,7 +1832,7 @@ router.get('/friend-requests/incoming/:userId', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Gönderilen arkadaşlık istekleri
+// GÃ¶nderilen arkadaÅŸlÄ±k istekleri
 router.get('/friend-requests/sent/:userId', (req, res) => {
   try {
     const requests = db.prepare(`
@@ -1846,7 +1846,7 @@ router.get('/friend-requests/sent/:userId', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Kullanıcı ara (arkadaş eklemek için)
+// KullanÄ±cÄ± ara (arkadaÅŸ eklemek iÃ§in)
 router.get('/search-users', (req, res) => {
   try {
     const { q, userId } = req.query;
@@ -1861,7 +1861,7 @@ router.get('/search-users', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Arkadaşlık durumu kontrol
+// ArkadaÅŸlÄ±k durumu kontrol
 router.get('/friendship-status/:userId/:targetId', (req, res) => {
   try {
     const f = db.prepare('SELECT * FROM friendships WHERE (sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)').get(req.params.userId, req.params.targetId, req.params.targetId, req.params.userId);
@@ -1885,16 +1885,16 @@ router.get('/search-channels', (req, res) => {
     `).all(`%${q}%`, `%${q}%`);
     res.json(channels);
   } catch(e) {
-    res.status(500).json({ error: 'Arama başarısız' });
+    res.status(500).json({ error: 'Arama baÅŸarÄ±sÄ±z' });
   }
 });
 
-// Video türleri listesi
+// Video tÃ¼rleri listesi
 router.get('/video-types', (req, res) => {
   res.json(VIDEO_TYPES);
 });
 
-// Cloudinary upload signature (frontend direkt yükleme için)
+// Cloudinary upload signature (frontend direkt yÃ¼kleme iÃ§in)
 router.get('/upload-signature/:type', (req, res) => {
   try {
     const type = req.params.type;
@@ -1908,24 +1908,24 @@ router.get('/upload-signature/:type', (req, res) => {
     const sig = cloudinary.generateUploadSignature(folder, type === 'video' ? 'video' : 'image');
     res.json(sig);
   } catch (error) {
-    console.error('Signature hatası:', error);
-    res.status(500).json({ error: 'Signature oluşturulamadı' });
+    console.error('Signature hatasÄ±:', error);
+    res.status(500).json({ error: 'Signature oluÅŸturulamadÄ±' });
   }
 });
 
-// Banner yükleme (server üzerinden)
+// Banner yÃ¼kleme (server Ã¼zerinden)
 router.post('/upload-banner', upload.single('banner'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Banner gerekli' });
     const url = await cloudinary.uploadBanner(req.file.buffer, req.file.originalname);
     res.json({ url });
   } catch (error) {
-    console.error('Banner yükleme hatası:', error);
-    res.status(500).json({ error: 'Banner yüklenemedi' });
+    console.error('Banner yÃ¼kleme hatasÄ±:', error);
+    res.status(500).json({ error: 'Banner yÃ¼klenemedi' });
   }
 });
 
-// Video URL'lerini kaydet (frontend Cloudinary'e yükledikten sonra)
+// Video URL'lerini kaydet (frontend Cloudinary'e yÃ¼kledikten sonra)
 router.post('/video-save', (req, res) => {
   try {
     const { channelId, title, description, videoType, tags, videoUrl, bannerUrl, commentsEnabled, likesVisible, isShort } = req.body;
@@ -1944,35 +1944,35 @@ router.post('/video-save', (req, res) => {
     if (channel) {
       for (const sub of subscribers) {
         db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-          .run(sub.user_id, 'new_video', `${channel.channel_name} yeni video yükledi: ${title}`, result.lastInsertRowid);
+          .run(sub.user_id, 'new_video', `${channel.channel_name} yeni video yÃ¼kledi: ${title}`, result.lastInsertRowid);
       }
     }
 
     res.json({ success: true, videoId: result.lastInsertRowid });
   } catch (error) {
-    console.error('Video kayıt hatası:', error);
+    console.error('Video kayÄ±t hatasÄ±:', error);
     res.status(500).json({ error: 'Video kaydedilemedi' });
   }
 });
 
 
-// ==================== REKLAM SİSTEMİ ====================
+// ==================== REKLAM SÄ°STEMÄ° ====================
 
-// BCİCS kodu doğrula
+// BCÄ°CS kodu doÄŸrula
 router.post('/ad-code/verify', (req, res) => {
   try {
     const { code } = req.body;
     if (!code) return res.status(400).json({ error: 'Kod gerekli' });
     const row = db.prepare('SELECT * FROM ad_codes WHERE code = ?').get(code);
-    if (!row) return res.status(404).json({ error: 'Geçersiz kod' });
-    if (row.used) return res.status(400).json({ error: 'Bu kod daha önce kullanılmış' });
+    if (!row) return res.status(404).json({ error: 'GeÃ§ersiz kod' });
+    if (row.used) return res.status(400).json({ error: 'Bu kod daha Ã¶nce kullanÄ±lmÄ±ÅŸ' });
     res.json({ valid: true });
   } catch(e) {
-    res.status(500).json({ error: 'Doğrulama başarısız' });
+    res.status(500).json({ error: 'DoÄŸrulama baÅŸarÄ±sÄ±z' });
   }
 });
 
-// Reklam oluştur (kod kullanarak)
+// Reklam oluÅŸtur (kod kullanarak)
 router.post('/ad', (req, res) => {
   try {
     const { videoId, channelId, adTitle, adDescription, code, userId } = req.body;
@@ -1982,26 +1982,26 @@ router.post('/ad', (req, res) => {
 
     // Kodu kontrol et
     const codeRow = db.prepare('SELECT * FROM ad_codes WHERE code = ?').get(code);
-    if (!codeRow) return res.status(404).json({ error: 'Geçersiz kod' });
-    if (codeRow.used) return res.status(400).json({ error: 'Bu kod daha önce kullanılmış' });
+    if (!codeRow) return res.status(404).json({ error: 'GeÃ§ersiz kod' });
+    if (codeRow.used) return res.status(400).json({ error: 'Bu kod daha Ã¶nce kullanÄ±lmÄ±ÅŸ' });
 
-    // Kodu kullanıldı olarak işaretle
+    // Kodu kullanÄ±ldÄ± olarak iÅŸaretle
     db.prepare('UPDATE ad_codes SET used = 1, used_by = ?, used_at = datetime("now") WHERE code = ?').run(userId || null, code);
 
-    // Reklamı kaydet
+    // ReklamÄ± kaydet
     const result = db.prepare(
       'INSERT INTO ads (video_id, channel_id, ad_title, ad_description) VALUES (?, ?, ?, ?)'
     ).run(videoId, channelId, adTitle, adDescription || '');
 
     res.json({ success: true, adId: result.lastInsertRowid });
   } catch(e) {
-    console.error('Reklam oluşturma hatası:', e);
-    res.status(500).json({ error: 'Reklam oluşturulamadı' });
+    console.error('Reklam oluÅŸturma hatasÄ±:', e);
+    res.status(500).json({ error: 'Reklam oluÅŸturulamadÄ±' });
   }
 });
 
-// Rastgele reklam getir (izleyiciye gösterilecek)
-// Kanalın kendi reklamları ve anasayfada o kanala ait reklamlar gösterilmez
+// Rastgele reklam getir (izleyiciye gÃ¶sterilecek)
+// KanalÄ±n kendi reklamlarÄ± ve anasayfada o kanala ait reklamlar gÃ¶sterilmez
 router.get('/ad/random', (req, res) => {
   try {
     const { channelId } = req.query;
@@ -2025,11 +2025,11 @@ router.get('/ad/random', (req, res) => {
     }
     res.json(ad || null);
   } catch(e) {
-    res.status(500).json({ error: 'Reklam alınamadı' });
+    res.status(500).json({ error: 'Reklam alÄ±namadÄ±' });
   }
 });
 
-// Kanalın reklamlarını getir
+// KanalÄ±n reklamlarÄ±nÄ± getir
 router.get('/ads/channel/:channelId', (req, res) => {
   try {
     const ads = db.prepare(`
@@ -2041,11 +2041,11 @@ router.get('/ads/channel/:channelId', (req, res) => {
     `).all(req.params.channelId);
     res.json(ads);
   } catch(e) {
-    res.status(500).json({ error: 'Reklamlar alınamadı' });
+    res.status(500).json({ error: 'Reklamlar alÄ±namadÄ±' });
   }
 });
 
-// Reklamı sil/deaktif et
+// ReklamÄ± sil/deaktif et
 router.delete('/ad/:adId', (req, res) => {
   try {
     db.prepare('UPDATE ads SET is_active = 0 WHERE id = ?').run(req.params.adId);
@@ -2055,15 +2055,15 @@ router.delete('/ad/:adId', (req, res) => {
   }
 });
 
-// ==================== VİDEO YÖNETİM ====================
+// ==================== VÄ°DEO YÃ–NETÄ°M ====================
 
 // Video sil
 router.delete('/video/:videoId', (req, res) => {
   try {
     const { channelId } = req.body;
-    // Sahiplik kontrolü
+    // Sahiplik kontrolÃ¼
     const video = db.prepare('SELECT channel_id FROM videos WHERE id = ?').get(req.params.videoId);
-    if (!video) return res.status(404).json({ error: 'Video bulunamadı' });
+    if (!video) return res.status(404).json({ error: 'Video bulunamadÄ±' });
     if (channelId && video.channel_id != channelId) return res.status(403).json({ error: 'Yetkisiz' });
     db.prepare('DELETE FROM videos WHERE id = ?').run(req.params.videoId);
     res.json({ success: true });
@@ -2072,12 +2072,12 @@ router.delete('/video/:videoId', (req, res) => {
   }
 });
 
-// Video güncelle (başlık, açıklama, yorumlar, beğeniler, gizlilik)
+// Video gÃ¼ncelle (baÅŸlÄ±k, aÃ§Ä±klama, yorumlar, beÄŸeniler, gizlilik)
 router.put('/video/:videoId', (req, res) => {
   try {
     const { title, description, commentsEnabled, likesVisible, isHidden, channelId } = req.body;
     const video = db.prepare('SELECT channel_id FROM videos WHERE id = ?').get(req.params.videoId);
-    if (!video) return res.status(404).json({ error: 'Video bulunamadı' });
+    if (!video) return res.status(404).json({ error: 'Video bulunamadÄ±' });
     if (channelId && video.channel_id != channelId) return res.status(403).json({ error: 'Yetkisiz' });
 
     // is_hidden kolonu yoksa ekle
@@ -2096,13 +2096,13 @@ router.put('/video/:videoId', (req, res) => {
     res.json({ success: true });
   } catch(e) {
     console.error(e);
-    res.status(500).json({ error: 'Video güncellenemedi' });
+    res.status(500).json({ error: 'Video gÃ¼ncellenemedi' });
   }
 });
 
-// ==================== ENGELLEME SİSTEMİ ====================
+// ==================== ENGELLEME SÄ°STEMÄ° ====================
 
-// Kullanıcı engelle
+// KullanÄ±cÄ± engelle
 router.post('/block-user', (req, res) => {
   try {
     const { blockerId, blockedId, blockedIp, blockedDevice } = req.body;
@@ -2117,22 +2117,22 @@ router.post('/block-user', (req, res) => {
     res.json({ success: true });
   } catch(e) {
     console.error(e);
-    res.status(500).json({ error: 'Engelleme başarısız' });
+    res.status(500).json({ error: 'Engelleme baÅŸarÄ±sÄ±z' });
   }
 });
 
-// Engeli kaldır
+// Engeli kaldÄ±r
 router.delete('/block-user/:blockerId/:blockedId', (req, res) => {
   try {
     db.prepare('DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?')
       .run(req.params.blockerId, req.params.blockedId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Engel kaldırılamadı' });
+    res.status(500).json({ error: 'Engel kaldÄ±rÄ±lamadÄ±' });
   }
 });
 
-// Engellenen kullanıcıları getir
+// Engellenen kullanÄ±cÄ±larÄ± getir
 router.get('/blocked-users/:userId', (req, res) => {
   try {
     const blocked = db.prepare(`
@@ -2144,11 +2144,11 @@ router.get('/blocked-users/:userId', (req, res) => {
     `).all(req.params.userId);
     res.json(blocked);
   } catch(e) {
-    res.status(500).json({ error: 'Engellenenler alınamadı' });
+    res.status(500).json({ error: 'Engellenenler alÄ±namadÄ±' });
   }
 });
 
-// Engel kontrolü
+// Engel kontrolÃ¼
 router.get('/is-blocked/:userId/:targetId', (req, res) => {
   try {
     const block = db.prepare('SELECT id FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?')
@@ -2159,12 +2159,12 @@ router.get('/is-blocked/:userId/:targetId', (req, res) => {
   }
 });
 
-// IP/Cihaz bazlı engel kontrolü
+// IP/Cihaz bazlÄ± engel kontrolÃ¼
 router.post('/check-block', (req, res) => {
   try {
     const { userId, targetId, ip, device } = req.body;
     
-    // Direkt engel kontrolü
+    // Direkt engel kontrolÃ¼
     const directBlock = db.prepare('SELECT id FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?')
       .get(targetId, userId);
     
@@ -2172,7 +2172,7 @@ router.post('/check-block', (req, res) => {
       return res.json({ isBlocked: true, reason: 'user' });
     }
 
-    // IP bazlı engel kontrolü
+    // IP bazlÄ± engel kontrolÃ¼
     if (ip) {
       const ipBlock = db.prepare('SELECT id FROM user_blocks WHERE blocker_id = ? AND blocked_ip = ?')
         .get(targetId, ip);
@@ -2181,7 +2181,7 @@ router.post('/check-block', (req, res) => {
       }
     }
 
-    // Cihaz bazlı engel kontrolü
+    // Cihaz bazlÄ± engel kontrolÃ¼
     if (device) {
       const deviceBlock = db.prepare('SELECT id FROM user_blocks WHERE blocker_id = ? AND blocked_device = ?')
         .get(targetId, device);
@@ -2196,16 +2196,16 @@ router.post('/check-block', (req, res) => {
   }
 });
 
-// ==================== YORUM YÖNETİMİ ====================
+// ==================== YORUM YÃ–NETÄ°MÄ° ====================
 
-// Yorumu sabitle/sabitlemeyi kaldır
+// Yorumu sabitle/sabitlemeyi kaldÄ±r
 router.put('/comment/:commentId/pin', (req, res) => {
   try {
     const { userId, videoId } = req.body;
     const comment = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.commentId);
     
     if (!comment) {
-      return res.status(404).json({ error: 'Yorum bulunamadı' });
+      return res.status(404).json({ error: 'Yorum bulunamadÄ±' });
     }
 
     // Video sahibi mi kontrol et
@@ -2216,7 +2216,7 @@ router.put('/comment/:commentId/pin', (req, res) => {
       return res.status(403).json({ error: 'Yetkisiz' });
     }
 
-    // Diğer sabitlemeleri kaldır
+    // DiÄŸer sabitlemeleri kaldÄ±r
     db.prepare('UPDATE comments SET is_pinned = 0 WHERE video_id = ?').run(videoId);
     
     // Bu yorumu sabitle
@@ -2225,18 +2225,18 @@ router.put('/comment/:commentId/pin', (req, res) => {
     res.json({ success: true });
   } catch(e) {
     console.error(e);
-    res.status(500).json({ error: 'Sabitleme başarısız' });
+    res.status(500).json({ error: 'Sabitleme baÅŸarÄ±sÄ±z' });
   }
 });
 
-// Yorumu askıya al/geri al
+// Yorumu askÄ±ya al/geri al
 router.put('/comment/:commentId/hide', (req, res) => {
   try {
     const { userId, videoId, isHidden } = req.body;
     const comment = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.commentId);
     
     if (!comment) {
-      return res.status(404).json({ error: 'Yorum bulunamadı' });
+      return res.status(404).json({ error: 'Yorum bulunamadÄ±' });
     }
 
     // Video sahibi mi kontrol et
@@ -2252,18 +2252,18 @@ router.put('/comment/:commentId/hide', (req, res) => {
     res.json({ success: true });
   } catch(e) {
     console.error(e);
-    res.status(500).json({ error: 'İşlem başarısız' });
+    res.status(500).json({ error: 'Ä°ÅŸlem baÅŸarÄ±sÄ±z' });
   }
 });
 
-// Yorumu video sahibi beğendi olarak işaretle
+// Yorumu video sahibi beÄŸendi olarak iÅŸaretle
 router.put('/comment/:commentId/owner-like', (req, res) => {
   try {
     const { userId, videoId, liked } = req.body;
     const comment = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.commentId);
     
     if (!comment) {
-      return res.status(404).json({ error: 'Yorum bulunamadı' });
+      return res.status(404).json({ error: 'Yorum bulunamadÄ±' });
     }
 
     // Video sahibi mi kontrol et
@@ -2279,14 +2279,14 @@ router.put('/comment/:commentId/owner-like', (req, res) => {
     res.json({ success: true });
   } catch(e) {
     console.error(e);
-    res.status(500).json({ error: 'İşlem başarısız' });
+    res.status(500).json({ error: 'Ä°ÅŸlem baÅŸarÄ±sÄ±z' });
   }
 });
 
 
-// ==================== ROZET SİSTEMİ ====================
+// ==================== ROZET SÄ°STEMÄ° ====================
 
-// Kullanıcının rozetlerini getir
+// KullanÄ±cÄ±nÄ±n rozetlerini getir
 router.get('/user/:userId/badges', (req, res) => {
   try {
     const badges = db.prepare(`
@@ -2296,50 +2296,50 @@ router.get('/user/:userId/badges', (req, res) => {
       ORDER BY b.is_system DESC, ub.assigned_at ASC
     `).all(req.params.userId);
     res.json(badges);
-  } catch(e) { res.status(500).json({ error: 'Rozetler alınamadı' }); }
+  } catch(e) { res.status(500).json({ error: 'Rozetler alÄ±namadÄ±' }); }
 });
 
-// Aktif rozeti değiştir
+// Aktif rozeti deÄŸiÅŸtir
 router.put('/user/:userId/active-badge', (req, res) => {
   try {
     const { badgeId } = req.body;
-    // Kullanıcının bu rozete sahip olup olmadığını kontrol et
+    // KullanÄ±cÄ±nÄ±n bu rozete sahip olup olmadÄ±ÄŸÄ±nÄ± kontrol et
     if (badgeId) {
       const has = db.prepare('SELECT id FROM user_badges WHERE user_id=? AND badge_id=?').get(req.params.userId, badgeId);
-      if (!has) return res.status(403).json({ error: 'Bu rozete sahip değilsiniz' });
+      if (!has) return res.status(403).json({ error: 'Bu rozete sahip deÄŸilsiniz' });
     }
     db.prepare('UPDATE users SET active_badge_id=? WHERE id=?').run(badgeId || null, req.params.userId);
     res.json({ success: true });
-  } catch(e) { res.status(500).json({ error: 'Rozet değiştirilemedi' }); }
+  } catch(e) { res.status(500).json({ error: 'Rozet deÄŸiÅŸtirilemedi' }); }
 });
 
-// Kayıt olunca Demlikçi rozeti ver
+// KayÄ±t olunca DemlikÃ§i rozeti ver
 function assignDemlikBadge(userId) {
   try {
-    const badge = db.prepare("SELECT id FROM badges WHERE name='Demlikçi'").get();
+    const badge = db.prepare("SELECT id FROM badges WHERE name='DemlikÃ§i'").get();
     if (badge) db.prepare('INSERT OR IGNORE INTO user_badges (user_id, badge_id) VALUES (?, ?)').run(userId, badge.id);
   } catch(e) {}
 }
 
-// Hakkımda güncelle
+// HakkÄ±mda gÃ¼ncelle
 router.put('/channel/:channelId/about', (req, res) => {
   try {
     const { about } = req.body;
     db.prepare('UPDATE channels SET about = ? WHERE id = ?').run(about || '', req.params.channelId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Güncellenemedi' });
+    res.status(500).json({ error: 'GÃ¼ncellenemedi' });
   }
 });
 
 // ==================== ENGELLEME ====================
 
-// Kullanıcı engelle
+// KullanÄ±cÄ± engelle
 router.post('/block', (req, res) => {
   try {
     const { blockerId, blockedId } = req.body;
     db.prepare('INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)').run(blockerId, blockedId);
-    // Arkadaşlığı da kaldır
+    // ArkadaÅŸlÄ±ÄŸÄ± da kaldÄ±r
     db.prepare('DELETE FROM friendships WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)').run(blockerId, blockedId, blockedId, blockerId);
     res.json({ success: true });
   } catch(e) {
@@ -2347,18 +2347,18 @@ router.post('/block', (req, res) => {
   }
 });
 
-// Engeli kaldır
+// Engeli kaldÄ±r
 router.delete('/block/:blockedId', (req, res) => {
   try {
     const blockerId = req.query.blockerId;
     db.prepare('DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?').run(blockerId, req.params.blockedId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Engel kaldırılamadı' });
+    res.status(500).json({ error: 'Engel kaldÄ±rÄ±lamadÄ±' });
   }
 });
 
-// Engellenen kullanıcılar listesi
+// Engellenen kullanÄ±cÄ±lar listesi
 router.get('/blocks/:userId', (req, res) => {
   try {
     const blocks = db.prepare(`
@@ -2370,23 +2370,23 @@ router.get('/blocks/:userId', (req, res) => {
     `).all(req.params.userId);
     res.json(blocks);
   } catch(e) {
-    res.status(500).json({ error: 'Engellenenler alınamadı' });
+    res.status(500).json({ error: 'Engellenenler alÄ±namadÄ±' });
   }
 });
 
-// Engel kontrolü
+// Engel kontrolÃ¼
 router.get('/is-blocked/:blockerId/:blockedId', (req, res) => {
   try {
     const block = db.prepare('SELECT id FROM user_blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?)').get(req.params.blockerId, req.params.blockedId, req.params.blockedId, req.params.blockerId);
     res.json({ blocked: !!block });
   } catch(e) {
-    res.status(500).json({ error: 'Kontrol yapılamadı' });
+    res.status(500).json({ error: 'Kontrol yapÄ±lamadÄ±' });
   }
 });
 
-// ==================== İLGİLENMİYORUM SİSTEMİ ====================
+// ==================== Ä°LGÄ°LENMÄ°YORUM SÄ°STEMÄ° ====================
 
-// Etikete göre ilgilenmiyorum
+// Etikete gÃ¶re ilgilenmiyorum
 router.post('/not-interested', (req, res) => {
   try {
     const { userId, tag } = req.body;
@@ -2398,7 +2398,7 @@ router.post('/not-interested', (req, res) => {
   }
 });
 
-// Etikete göre ilgi göster (pozitif sinyal)
+// Etikete gÃ¶re ilgi gÃ¶ster (pozitif sinyal)
 router.post('/interested', (req, res) => {
   try {
     const { userId, tag } = req.body;
@@ -2410,13 +2410,13 @@ router.post('/interested', (req, res) => {
   }
 });
 
-// Kullanıcının tercihlerini getir
+// KullanÄ±cÄ±nÄ±n tercihlerini getir
 router.get('/tag-preferences/:userId', (req, res) => {
   try {
     const prefs = db.prepare('SELECT * FROM user_tag_preferences WHERE user_id = ?').all(req.params.userId);
     res.json(prefs);
   } catch(e) {
-    res.status(500).json({ error: 'Tercihler alınamadı' });
+    res.status(500).json({ error: 'Tercihler alÄ±namadÄ±' });
   }
 });
 
@@ -2425,9 +2425,9 @@ module.exports.VIDEO_TYPES = VIDEO_TYPES;
 module.exports.assignDemlikBadge = assignDemlikBadge;
 
 
-// ==================== BUG/İSTEK SİSTEMİ ====================
+// ==================== BUG/Ä°STEK SÄ°STEMÄ° ====================
 
-// Bug/İstek gönder
+// Bug/Ä°stek gÃ¶nder
 router.post('/bug-report', upload.single('photo'), async (req, res) => {
   try {
     const { userId, type, title, description } = req.body;
@@ -2443,12 +2443,12 @@ router.post('/bug-report', upload.single('photo'), async (req, res) => {
 
     res.json({ success: true, id: result.lastInsertRowid });
   } catch(e) {
-    console.error('Bug raporu hatası:', e);
-    res.status(500).json({ error: 'Rapor gönderilemedi' });
+    console.error('Bug raporu hatasÄ±:', e);
+    res.status(500).json({ error: 'Rapor gÃ¶nderilemedi' });
   }
 });
 
-// Tüm bug/istekleri getir
+// TÃ¼m bug/istekleri getir
 router.get('/bug-reports', (req, res) => {
   try {
     const reports = db.prepare(`
@@ -2463,7 +2463,7 @@ router.get('/bug-reports', (req, res) => {
   }
 });
 
-// Bug/İstek durumunu güncelle (admin)
+// Bug/Ä°stek durumunu gÃ¼ncelle (admin)
 router.put('/bug-report/:id/status', (req, res) => {
   try {
     const { status } = req.body;
@@ -2474,7 +2474,7 @@ router.put('/bug-report/:id/status', (req, res) => {
   }
 });
 
-// ==================== YENİLİKLER SİSTEMİ ====================
+// ==================== YENÄ°LÄ°KLER SÄ°STEMÄ° ====================
 
 // Yenilik ekle (admin)
 router.post('/announcement', (req, res) => {
@@ -2489,7 +2489,7 @@ router.post('/announcement', (req, res) => {
   }
 });
 
-// Tüm yenilikleri getir
+// TÃ¼m yenilikleri getir
 router.get('/announcements', (req, res) => {
   try {
     const announcements = db.prepare('SELECT * FROM announcements ORDER BY created_at DESC').all();

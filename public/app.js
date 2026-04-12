@@ -2035,7 +2035,7 @@ function renderShortsPlayer() {
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; cursor:pointer;" onclick="event.stopPropagation(); viewChannel(${v.channel_id})">
               <img src="${getProfilePhotoUrl(v.profile_photo)}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid white;" onerror="onProfilePhotoError(this)" />
               <div>
-                <p style="font-size:14px; font-weight:600;">${v.channel_name}</p>
+                <p style="font-size:14px; font-weight:600; display:flex; align-items:center; gap:4px;">${v.channel_name}${redVerifiedBadge(v.is_red_verified, 13)}</p>
                 <p style="font-size:12px; color:rgba(255,255,255,0.7);">${v.subscriber_count} takipçi</p>
               </div>
             </div>
@@ -3039,7 +3039,7 @@ function displayVideos(videos, containerId) {
           <img src="${getProfilePhotoUrl(video.profile_photo)}" alt="${video.nickname}" class="channel-avatar" onerror="onProfilePhotoError(this)" />
           <div class="video-details">
             <div class="video-title">${video.title}</div>
-            <div class="video-channel">${video.channel_name}</div>
+            <div class="video-channel">${video.channel_name}${redVerifiedBadge(video.is_red_verified)}</div>
             <div class="video-metadata">
               <span>${video.views} görüntülenme</span>
               <span>•</span>
@@ -3069,6 +3069,12 @@ function getProfilePhotoUrl(photo) {
     return 'logoteatube.png';
   }
   return photo;
+}
+
+// Kırmızı tik HTML'i döndür
+function redVerifiedBadge(isRedVerified, size = 14) {
+  if (!isRedVerified) return '';
+  return `<i class="fas fa-certificate" style="color:#ff0033;font-size:${size}px;margin-left:3px;flex-shrink:0;" title="Kırmızı Tik"></i>`;
 }
 
 // Profil fotoğrafı yükleme hatası için fallback

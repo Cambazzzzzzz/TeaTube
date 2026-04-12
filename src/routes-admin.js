@@ -83,7 +83,7 @@ router.get('/admin/users', (req, res) => {
     const { q, page = 1, limit = 30 } = req.query;
     const offset = (page - 1) * limit;
     let query = `
-      SELECT u.id, u.username, u.nickname, u.profile_photo, u.created_at, u.is_suspended, u.suspend_reason, u.last_ip,
+      SELECT u.id, u.username, u.nickname, u.profile_photo, u.created_at, u.is_suspended, u.suspend_reason, u.last_ip, u.is_red_verified,
              c.id as channel_id, c.channel_name, c.account_type,
              (SELECT COUNT(*) FROM videos WHERE channel_id = c.id) as video_count,
              (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as sub_count
@@ -554,6 +554,28 @@ router.put('/admin/music/artist/:artistId', (req, res) => {
 });
 
 module.exports = router;
+
+// ==================== KIRMIZI TİK ====================
+
+// Kırmızı tik ver
+router.post('/admin/user/:userId/red-verify', (req, res) => {
+  try {
+    db.prepare('UPDATE users SET is_red_verified = 1 WHERE id = ?').run(req.params.userId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'İşlem başarısız' });
+  }
+});
+
+// Kırmızı tik al
+router.delete('/admin/user/:userId/red-verify', (req, res) => {
+  try {
+    db.prepare('UPDATE users SET is_red_verified = 0 WHERE id = ?').run(req.params.userId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'İşlem başarısız' });
+  }
+});
 
 // ==================== FIREBASE ADMIN - MESAJLAŞMA ====================
 // Firebase Admin SDK'yı yükle

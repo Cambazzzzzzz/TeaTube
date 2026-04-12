@@ -837,3 +837,6 @@ console.log('✅ Şarkı Yaz tabloları hazır!');
 
 // Artist başvurularına örnek şarkı URL kolonu ekle
 try { db.prepare('ALTER TABLE music_artist_applications ADD COLUMN sample_audio_url TEXT').run(); } catch(e) {}
+
+// Kırmızı tik (red verified) kolonu ekle
+try { db.prepare('ALTER TABLE users ADD COLUMN is_red_verified INTEGER DEFAULT 0').run(); } catch(e) {}
