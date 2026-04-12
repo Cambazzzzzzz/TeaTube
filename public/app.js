@@ -1169,19 +1169,6 @@ function markGroupAsRead(groupId) {
   if (badge) badge.style.display = 'none';
   updateTotalMsgBadge();
 }
-  document.querySelectorAll('[id^="unread_"]').forEach(el => {
-    if (el.style.display !== 'none') total += parseInt(el.textContent) || 0;
-  });
-  const badge = document.getElementById('msgBadge');
-  if (badge) {
-    if (total > 0) {
-      badge.textContent = total > 9 ? '9+' : total;
-      badge.style.display = 'flex';
-    } else {
-      badge.style.display = 'none';
-    }
-  }
-}
 
 function listenFriendPresence(friendId) {
   if (!window.firebaseDB) return;
