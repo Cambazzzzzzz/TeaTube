@@ -2572,19 +2572,28 @@ async function loadHomeVideos(category) {
   try {
     // Reals kategorisi
     if (category === 'reals') {
-      const shorts = await fetch(`${API_URL}/shorts`).then(r => r.json()).catch(() => []);
+      const shorts = await fetch(`${API_URL}/shorts?userId=${currentUser?.id||''}`).then(r => r.json()).catch(() => []);
       if (loading) loading.style.display = 'none';
       if (!shorts.length) {
         container.innerHTML = '<p style="color:var(--yt-spec-text-secondary);">Henüz reals yok</p>';
         return;
       }
-      container.innerHTML = `
-        <h2 class="section-header" style="margin-bottom:16px;">
-          <i class="fas fa-film" style="color:var(--yt-spec-brand-background-solid); margin-right:8px;"></i>Reals
-        </h2>
-        <div class="shorts-grid" id="shortsGrid"></div>
-      `;
-      renderShortsGrid(shorts, 'shortsGrid');
+      let shown = 4;
+      const renderRealsGrid = () => {
+        container.innerHTML = `
+          <h2 class="section-header" style="margin-bottom:16px;">
+            <i class="fas fa-film" style="color:var(--yt-spec-brand-background-solid); margin-right:8px;"></i>Reals
+          </h2>
+          <div class="shorts-grid" id="shortsGrid"></div>
+          ${shown < shorts.length ? `<div style="text-align:center;margin-top:20px"><button id="loadMoreReals" class="yt-btn" style="background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)">Daha Fazla Yükle</button></div>` : ''}
+        `;
+        renderShortsGrid(shorts.slice(0, shown), 'shortsGrid');
+        document.getElementById('loadMoreReals')?.addEventListener('click', () => {
+          shown += 8;
+          renderRealsGrid();
+        });
+      };
+      renderRealsGrid();
       return;
     }
 
@@ -4587,19 +4596,25 @@ async function loadSettingsPage() {
         <h3 class="settings-card-title">Tema Ayarları</h3>
         <div class="theme-grid">
           ${[
-            {id:'dark', name:'Gece Karanlığı', bg:'#0f0f0f', accent:'#ff0000'},
-            {id:'neon-purple', name:'Elektrik Moru', bg:'#0d0d1a', accent:'#9b59b6'},
-            {id:'ocean-blue', name:'Okyanus Mavisi', bg:'#0a0e1a', accent:'#1e90ff'},
-            {id:'fire-red', name:'Ateş Kırmızısı', bg:'#1a0a0a', accent:'#ff4500'},
-            {id:'forest-green', name:'Yeşil Orman', bg:'#0a1a0a', accent:'#2ecc71'},
-            {id:'gold', name:'Altın Sarısı', bg:'#1a1500', accent:'#f1c40f'},
-            {id:'light', name:'Gün Işığı', bg:'#f9f9f9', accent:'#ff0000'},
-            {id:'midnight-blue', name:'Gece Mavisi', bg:'#050a1a', accent:'#3ea6ff'},
-            {id:'orange-fire', name:'Turuncu Ateş', bg:'#1a0f00', accent:'#ff6b00'},
-            {id:'pink-dream', name:'Pembe Rüya', bg:'#1a0a14', accent:'#e91e8c'}
+            {id:'dark', name:'Gece Karanlığı', bg:'#0f0f0f', accent:'#ff0000', preview:'linear-gradient(135deg,#0f0f0f,#1a1a1a)'},
+            {id:'neon-purple', name:'Elektrik Moru', bg:'#0d0d1a', accent:'#9b59b6', preview:'linear-gradient(135deg,#0d0d1a,#1a1a2e)'},
+            {id:'ocean-blue', name:'Okyanus Mavisi', bg:'#0a0e1a', accent:'#1e90ff', preview:'linear-gradient(135deg,#0a0e1a,#0d1b3e)'},
+            {id:'fire-red', name:'Ateş Kırmızısı', bg:'#1a0a0a', accent:'#ff4500', preview:'linear-gradient(135deg,#1a0a0a,#2d0f0f)'},
+            {id:'forest-green', name:'Yeşil Orman', bg:'#0a1a0a', accent:'#2ecc71', preview:'linear-gradient(135deg,#0a1a0a,#0f2d0f)'},
+            {id:'gold', name:'Altın Sarısı', bg:'#1a1500', accent:'#f1c40f', preview:'linear-gradient(135deg,#1a1500,#2d2400)'},
+            {id:'light', name:'Gün Işığı', bg:'#f9f9f9', accent:'#ff0000', preview:'linear-gradient(135deg,#f9f9f9,#eeeeee)'},
+            {id:'midnight-blue', name:'Gece Mavisi', bg:'#050a1a', accent:'#3ea6ff', preview:'linear-gradient(135deg,#050a1a,#0a1530)'},
+            {id:'orange-fire', name:'Turuncu Ateş', bg:'#1a0f00', accent:'#ff6b00', preview:'linear-gradient(135deg,#1a0f00,#2d1a00)'},
+            {id:'pink-dream', name:'Pembe Rüya', bg:'#1a0a14', accent:'#e91e8c', preview:'linear-gradient(135deg,#1a0a14,#2d0f22)'},
+            // 5 Gradient Tema
+            {id:'aurora', name:'Aurora Borealis', bg:'#050d1a', accent:'#00e5ff', preview:'linear-gradient(135deg,#050d1a 0%,#0d2137 40%,#1a0d37 100%)'},
+            {id:'sunset-glow', name:'Gün Batımı', bg:'#1a0a00', accent:'#ff6b35', preview:'linear-gradient(135deg,#1a0a00 0%,#2d1500 40%,#1a0a1a 100%)'},
+            {id:'deep-space', name:'Derin Uzay', bg:'#020408', accent:'#7c3aed', preview:'linear-gradient(135deg,#020408 0%,#0d0520 50%,#020408 100%)'},
+            {id:'emerald-night', name:'Zümrüt Gece', bg:'#020d0a', accent:'#10b981', preview:'linear-gradient(135deg,#020d0a 0%,#051a12 50%,#020d0a 100%)'},
+            {id:'rose-gold', name:'Gül Altını', bg:'#1a0a0f', accent:'#f43f5e', preview:'linear-gradient(135deg,#1a0a0f 0%,#2d0f1a 40%,#1a0a0f 100%)'},
           ].map(t => `
             <div class="theme-option ${(currentUser.theme || 'dark') === t.id ? 'active' : ''}" onclick="selectTheme('${t.id}')">
-              <div class="theme-preview" style="background: ${t.bg};">
+              <div class="theme-preview" style="background: ${t.preview || t.bg};">
                 <div style="width:100%; height:6px; background: ${t.accent}; border-radius: 3px; margin-bottom: 6px;"></div>
                 <div style="display:flex; gap:4px;">
                   <div style="flex:1; height:20px; background: rgba(255,255,255,0.1); border-radius: 3px;"></div>
@@ -4882,6 +4897,26 @@ function applyTheme(theme) {
     },
     'pink-dream': {
       bg: '#1a0a14', raised: '#2d1020', accent: '#e91e8c', accentHover: '#c2185b', text: '#fce4ec', textSec: '#f48fb1'
+    },
+    'aurora': {
+      bg: '#050d1a', raised: '#0d1f35', accent: '#00e5ff', accentHover: '#00b8d4', text: '#e0f7fa', textSec: '#80deea',
+      bodyGradient: 'linear-gradient(160deg,#050d1a 0%,#0d2137 50%,#1a0d37 100%)'
+    },
+    'sunset-glow': {
+      bg: '#1a0a00', raised: '#2d1500', accent: '#ff6b35', accentHover: '#e64a19', text: '#fff3e0', textSec: '#ffcc80',
+      bodyGradient: 'linear-gradient(160deg,#1a0a00 0%,#2d1500 40%,#1a0a1a 100%)'
+    },
+    'deep-space': {
+      bg: '#020408', raised: '#0d0520', accent: '#7c3aed', accentHover: '#6d28d9', text: '#ede9fe', textSec: '#c4b5fd',
+      bodyGradient: 'linear-gradient(160deg,#020408 0%,#0d0520 50%,#020408 100%)'
+    },
+    'emerald-night': {
+      bg: '#020d0a', raised: '#051a12', accent: '#10b981', accentHover: '#059669', text: '#d1fae5', textSec: '#6ee7b7',
+      bodyGradient: 'linear-gradient(160deg,#020d0a 0%,#051a12 50%,#020d0a 100%)'
+    },
+    'rose-gold': {
+      bg: '#1a0a0f', raised: '#2d0f1a', accent: '#f43f5e', accentHover: '#e11d48', text: '#ffe4e6', textSec: '#fda4af',
+      bodyGradient: 'linear-gradient(160deg,#1a0a0f 0%,#2d0f1a 40%,#1a0a0f 100%)'
     }
   };
 
@@ -4893,6 +4928,15 @@ function applyTheme(theme) {
   root.style.setProperty('--yt-spec-brand-background-hover', t.accentHover);
   root.style.setProperty('--yt-spec-text-primary', t.text);
   root.style.setProperty('--yt-spec-text-secondary', t.textSec);
+  
+  // Gradient tema ise body'ye uygula
+  if (t.bodyGradient) {
+    document.body.style.background = t.bodyGradient;
+    document.body.style.backgroundAttachment = 'fixed';
+  } else {
+    document.body.style.background = '';
+    document.body.style.backgroundAttachment = '';
+  }
   
   // Header gradient tema rengine göre
   const masthead = document.getElementById('masthead');
