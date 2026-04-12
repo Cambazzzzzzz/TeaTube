@@ -384,3 +384,216 @@ router.delete('/music/song/:songId', (req, res) => {
 });
 
 module.exports = router;
+
+// ==================== ŞARKI YAZ ====================
+
+// Şarkı yaz (artist - beat + lyrics)
+router.post('/music/writing', upload.single('beat'), async (req, res) => {
+  try {
+    const { userId, title, lyrics, genre, beatName } = req.body;
+    if (!userId || !title || !lyrics) return res.status(400).json({ error: 'Başlık ve şarkı sözü gerekli' });
+
+    const artist = db.prepare('SELECT * FROM music_artists WHERE user_id = ?').get(userId);
+    if (!artist) return res.status(403).json({ error: 'Artist hesabınız yok' });
+
+    let beatUrl = null;
+    if (req.file) {
+      beatUrl = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { resource_type: 'video', folder: 'tsmusic/beats', public_id: `beat_${Date.now()}` },
+          (err, result) => err ? reject(err) : resolve(result.secure_url)
+        );
+        stream.end(req.file.buffer);
+      });
+    }
+
+    const result = db.prepare(
+      'INSERT INTO song_writings (artist_id, title, lyrics, beat_url, beat_name, genre) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(artist.id, title, lyrics, beatUrl, beatName || null, genre || null);
+
+    res.json({ success: true, writingId: result.lastInsertRowid });
+  } catch(e) {
+    console.error('Şarkı yazma hatası:', e);
+    res.status(500).json({ error: 'Kaydedilemedi: ' + e.message });
+  }
+});
+
+// Tüm yazılan şarkılar (keşfet)
+router.get('/music/writings', (req, res) => {
+  try {
+    const { userId } = req.query;
+    const writings = db.prepare(`
+      SELECT sw.*,
+             a.artist_name, a.is_verified,
+             u.profile_photo,
+             ROUND(AVG(swr.beat_rating), 1) as avg_beat_rating,
+             ROUND(AVG(swr.lyrics_rating), 1) as avg_lyrics_rating,
+             COUNT(DISTINCT swr.id) as rating_count,
+             COUNT(DISTINCT swc.id) as comment_count
+      FROM song_writings sw
+      JOIN music_artists a ON sw.artist_id = a.id
+      JOIN users u ON a.user_id = u.id
+      LEFT JOIN song_writing_ratings swr ON swr.writing_id = sw.id
+      LEFT JOIN song_writing_comments swc ON swc.writing_id = sw.id
+      WHERE sw.status = 'published' AND a.is_suspended = 0
+      GROUP BY sw.id
+      ORDER BY sw.created_at DESC
+      LIMIT 50
+    `).all();
+
+    // Kullanıcının kendi puanlarını ekle
+    if (userId) {
+      const myRatings = db.prepare('SELECT * FROM song_writing_ratings WHERE user_id = ?').all(userId);
+      const ratingMap = {};
+      myRatings.forEach(r => { ratingMap[r.writing_id] = r; });
+      writings.forEach(w => { w.my_rating = ratingMap[w.id] || null; });
+    }
+
+    res.json(writings);
+  } catch(e) {
+    res.status(500).json({ error: 'Veriler alınamadı' });
+  }
+});
+
+// Artist'in kendi yazıları
+router.get('/music/writings/my/:userId', (req, res) => {
+  try {
+    const artist = db.prepare('SELECT id FROM music_artists WHERE user_id = ?').get(req.params.userId);
+    if (!artist) return res.json([]);
+
+    const writings = db.prepare(`
+      SELECT sw.*,
+             ROUND(AVG(swr.beat_rating), 1) as avg_beat_rating,
+             ROUND(AVG(swr.lyrics_rating), 1) as avg_lyrics_rating,
+             COUNT(DISTINCT swr.id) as rating_count,
+             COUNT(DISTINCT swc.id) as comment_count
+      FROM song_writings sw
+      LEFT JOIN song_writing_ratings swr ON swr.writing_id = sw.id
+      LEFT JOIN song_writing_comments swc ON swc.writing_id = sw.id
+      WHERE sw.artist_id = ?
+      GROUP BY sw.id
+      ORDER BY sw.created_at DESC
+    `).all(artist.id);
+
+    res.json(writings);
+  } catch(e) {
+    res.status(500).json({ error: 'Veriler alınamadı' });
+  }
+});
+
+// Şarkı yazısı detayı
+router.get('/music/writing/:id', (req, res) => {
+  try {
+    const { userId } = req.query;
+    const writing = db.prepare(`
+      SELECT sw.*,
+             a.artist_name, a.is_verified, a.id as artist_id,
+             u.profile_photo, u.id as user_id_owner,
+             ROUND(AVG(swr.beat_rating), 1) as avg_beat_rating,
+             ROUND(AVG(swr.lyrics_rating), 1) as avg_lyrics_rating,
+             COUNT(DISTINCT swr.id) as rating_count,
+             COUNT(DISTINCT swc.id) as comment_count
+      FROM song_writings sw
+      JOIN music_artists a ON sw.artist_id = a.id
+      JOIN users u ON a.user_id = u.id
+      LEFT JOIN song_writing_ratings swr ON swr.writing_id = sw.id
+      LEFT JOIN song_writing_comments swc ON swc.writing_id = sw.id
+      WHERE sw.id = ?
+      GROUP BY sw.id
+    `).get(req.params.id);
+
+    if (!writing) return res.status(404).json({ error: 'Bulunamadı' });
+
+    const comments = db.prepare(`
+      SELECT swc.*, u.nickname, u.profile_photo
+      FROM song_writing_comments swc
+      JOIN users u ON swc.user_id = u.id
+      WHERE swc.writing_id = ?
+      ORDER BY swc.created_at DESC
+    `).all(req.params.id);
+
+    let myRating = null;
+    if (userId) {
+      myRating = db.prepare('SELECT * FROM song_writing_ratings WHERE writing_id = ? AND user_id = ?').get(req.params.id, userId);
+    }
+
+    res.json({ writing, comments, myRating });
+  } catch(e) {
+    res.status(500).json({ error: 'Veri alınamadı' });
+  }
+});
+
+// Puanla (beat + lyrics ayrı)
+router.post('/music/writing/:id/rate', (req, res) => {
+  try {
+    const { userId, beatRating, lyricsRating } = req.body;
+    if (!userId) return res.status(400).json({ error: 'Kullanıcı gerekli' });
+
+    const existing = db.prepare('SELECT id FROM song_writing_ratings WHERE writing_id = ? AND user_id = ?').get(req.params.id, userId);
+    if (existing) {
+      db.prepare('UPDATE song_writing_ratings SET beat_rating = ?, lyrics_rating = ?, updated_at = datetime("now") WHERE writing_id = ? AND user_id = ?')
+        .run(beatRating || null, lyricsRating || null, req.params.id, userId);
+    } else {
+      db.prepare('INSERT INTO song_writing_ratings (writing_id, user_id, beat_rating, lyrics_rating) VALUES (?, ?, ?, ?)')
+        .run(req.params.id, userId, beatRating || null, lyricsRating || null);
+    }
+
+    // Güncel ortalamalar
+    const avgs = db.prepare('SELECT ROUND(AVG(beat_rating),1) as avg_beat, ROUND(AVG(lyrics_rating),1) as avg_lyrics, COUNT(*) as cnt FROM song_writing_ratings WHERE writing_id = ?').get(req.params.id);
+    res.json({ success: true, ...avgs });
+  } catch(e) {
+    res.status(500).json({ error: 'Puanlama başarısız' });
+  }
+});
+
+// Yorum ekle
+router.post('/music/writing/:id/comment', (req, res) => {
+  try {
+    const { userId, comment } = req.body;
+    if (!userId || !comment?.trim()) return res.status(400).json({ error: 'Yorum gerekli' });
+
+    const result = db.prepare('INSERT INTO song_writing_comments (writing_id, user_id, comment) VALUES (?, ?, ?)')
+      .run(req.params.id, userId, comment.trim());
+
+    const newComment = db.prepare(`
+      SELECT swc.*, u.nickname, u.profile_photo
+      FROM song_writing_comments swc
+      JOIN users u ON swc.user_id = u.id
+      WHERE swc.id = ?
+    `).get(result.lastInsertRowid);
+
+    res.json({ success: true, comment: newComment });
+  } catch(e) {
+    res.status(500).json({ error: 'Yorum eklenemedi' });
+  }
+});
+
+// Yorum sil
+router.delete('/music/writing/comment/:commentId', (req, res) => {
+  try {
+    const { userId } = req.body;
+    const comment = db.prepare('SELECT * FROM song_writing_comments WHERE id = ?').get(req.params.commentId);
+    if (!comment) return res.status(404).json({ error: 'Yorum bulunamadı' });
+    // Sadece yorum sahibi silebilir
+    if (comment.user_id != userId) return res.status(403).json({ error: 'Yetkisiz' });
+    db.prepare('DELETE FROM song_writing_comments WHERE id = ?').run(req.params.commentId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Silinemedi' });
+  }
+});
+
+// Şarkı yazısı sil (artist)
+router.delete('/music/writing/:id', (req, res) => {
+  try {
+    const { userId } = req.body;
+    const artist = db.prepare('SELECT id FROM music_artists WHERE user_id = ?').get(userId);
+    if (!artist) return res.status(403).json({ error: 'Yetkisiz' });
+    const writing = db.prepare('SELECT * FROM song_writings WHERE id = ? AND artist_id = ?').get(req.params.id, artist.id);
+    if (!writing) return res.status(404).json({ error: 'Bulunamadı' });
+    db.prepare('DELETE FROM song_writings WHERE id = ?').run(req.params.id);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Silinemedi' });
+  }
+});

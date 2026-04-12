@@ -533,6 +533,12 @@ function logout() {
 function showPage(page) {
   currentPage = page;
   
+  // Özel sayfaları gizle (song-writings, my-writings, writing-detail)
+  ['song-writings-page','my-writings-page','writing-detail-page'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  
   // Sidebar aktif durumunu güncelle
   document.querySelectorAll('.guide-item').forEach(item => {
     item.classList.remove('active');
@@ -597,6 +603,36 @@ function showPage(page) {
       break;
     case 'ts-music':
       loadTSMusicPage();
+      break;
+    case 'song-writings':
+      // Şarkı yazıları sayfası - HTML div'i göster
+      pageContent.innerHTML = '';
+      ['song-writings-page','my-writings-page','writing-detail-page'].forEach(eid => {
+        const el = document.getElementById(eid); if (el) el.style.display = 'none';
+      });
+      const swPage = document.getElementById('song-writings-page');
+      if (swPage) {
+        swPage.style.display = 'block';
+        const writeBtn = document.getElementById('sw-write-btn');
+        if (writeBtn) writeBtn.style.display = currentUser ? 'block' : 'none';
+        loadSongWritingsPage();
+      }
+      break;
+    case 'my-writings':
+      pageContent.innerHTML = '';
+      ['song-writings-page','my-writings-page','writing-detail-page'].forEach(eid => {
+        const el = document.getElementById(eid); if (el) el.style.display = 'none';
+      });
+      const mwPage = document.getElementById('my-writings-page');
+      if (mwPage) { mwPage.style.display = 'block'; showMyWritings(); }
+      break;
+    case 'writing-detail':
+      pageContent.innerHTML = '';
+      ['song-writings-page','my-writings-page','writing-detail-page'].forEach(eid => {
+        const el = document.getElementById(eid); if (el) el.style.display = 'none';
+      });
+      const wdPage = document.getElementById('writing-detail-page');
+      if (wdPage) wdPage.style.display = 'block';
       break;
     case 'groups':
       loadGroupsPage();
@@ -6913,7 +6949,12 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
   
   let topBanner = '';
   if (isArtist) {
-    topBanner = `<button class="yt-btn" onclick="showUploadSongModal()" style="margin-bottom:16px"><i class="fas fa-upload" style="margin-right:6px"></i>Şarkı Yükle</button>`;
+    topBanner = `
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <button class="yt-btn" onclick="showUploadSongModal()"><i class="fas fa-upload" style="margin-right:6px"></i>Şarkı Yükle</button>
+        <button class="yt-btn" onclick="showWriteSongModal()" style="background:linear-gradient(135deg,#1db954,#17a349);color:#fff"><i class="fas fa-pen" style="margin-right:6px"></i>Şarkı Yaz</button>
+        <button class="yt-btn" onclick="showMyWritings()" style="background:rgba(29,185,84,0.15);color:#1db954;border:1px solid rgba(29,185,84,0.3)"><i class="fas fa-book-open" style="margin-right:6px"></i>Yazılarım</button>
+      </div>`;
   } else if (hasPending) {
     topBanner = `<div style="background:rgba(255,200,0,0.1);border:1px solid rgba(255,200,0,0.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#ffc800"><i class="fas fa-clock" style="margin-right:6px"></i>Başvurunuz inceleniyor...</div>`;
   } else if (isRejected) {
@@ -6949,8 +6990,29 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
       ${artistsHtml}
       <h3 style="font-size:15px;font-weight:600;margin-bottom:12px">Yeni Çıkanlar</h3>
       <div style="display:flex;flex-direction:column;gap:4px">${newSongsHtml}</div>
+      
+      <!-- Şarkı Yazıları Bölümü -->
+      <div style="margin-top:28px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <h3 style="font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px">
+            <i class="fas fa-pen" style="color:#1db954"></i>Şarkı Yazıları
+          </h3>
+          <button onclick="loadSongWritingsPage()" style="background:none;border:none;color:#1db954;cursor:pointer;font-size:13px">Tümünü Gör →</button>
+        </div>
+        <div id="songWritingsPreview"><div class="yt-loading"><div class="yt-spinner"></div></div></div>
+      </div>
     </div>
   `;
+
+  // Şarkı yazıları önizlemesini yükle
+  fetch(`${API_URL}/music/writings?userId=${currentUser.id}`)
+    .then(r => r.json())
+    .then(writings => {
+      const el = document.getElementById('songWritingsPreview');
+      if (!el) return;
+      if (!writings.length) { el.innerHTML = '<p style="color:var(--yt-spec-text-secondary);font-size:13px">Henüz şarkı yazısı yok</p>'; return; }
+      el.innerHTML = writings.slice(0, 3).map(w => renderWritingCard(w)).join('');
+    }).catch(() => {});
 }
 
 function renderTSSongRow(s) {

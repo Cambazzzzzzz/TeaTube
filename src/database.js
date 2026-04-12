@@ -785,3 +785,52 @@ try {
 } catch(e) { /* Zaten var */ }
 
 module.exports = db;
+
+// ==================== ŞARKI YAZ SİSTEMİ ====================
+
+// Yazılan şarkılar (lyrics + beat)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS song_writings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    artist_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    lyrics TEXT NOT NULL,
+    beat_url TEXT,
+    beat_name TEXT,
+    genre TEXT,
+    status TEXT DEFAULT 'published',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (artist_id) REFERENCES music_artists(id) ON DELETE CASCADE
+  )
+`);
+
+// Şarkı yazısı puanlamaları (beat ve lyrics ayrı)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS song_writing_ratings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    writing_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    beat_rating INTEGER CHECK(beat_rating BETWEEN 1 AND 5),
+    lyrics_rating INTEGER CHECK(lyrics_rating BETWEEN 1 AND 5),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(writing_id, user_id),
+    FOREIGN KEY (writing_id) REFERENCES song_writings(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+// Şarkı yazısı yorumları
+db.exec(`
+  CREATE TABLE IF NOT EXISTS song_writing_comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    writing_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    comment TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (writing_id) REFERENCES song_writings(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+console.log('✅ Şarkı Yaz tabloları hazır!');

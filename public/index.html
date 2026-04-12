@@ -279,7 +279,40 @@
     </div>
   </div>
 
+  <!-- Şarkı Yaz sayfaları -->
+  <div id="song-writings-page" style="display:none;padding:16px;max-width:900px;margin:0 auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+      <h2 style="margin:0;font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px;">
+        <i class="fas fa-pen-nib" style="color:#1db954;"></i>Şarkı Yazıları
+      </h2>
+      <button onclick="showWriteSongModal()" id="sw-write-btn" style="display:none;background:#1db954;border:none;color:#000;font-weight:700;padding:10px 20px;border-radius:20px;cursor:pointer;font-size:14px;">
+        <i class="fas fa-plus" style="margin-right:6px;"></i>Şarkı Yaz
+      </button>
+    </div>
+    <div id="song-writings-content"></div>
+  </div>
+
+  <div id="my-writings-page" style="display:none;padding:16px;max-width:900px;margin:0 auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+      <h2 style="margin:0;font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px;">
+        <i class="fas fa-book-open" style="color:#1db954;"></i>Yazılarım
+      </h2>
+      <button onclick="showWriteSongModal()" style="background:#1db954;border:none;color:#000;font-weight:700;padding:10px 20px;border-radius:20px;cursor:pointer;font-size:14px;">
+        <i class="fas fa-plus" style="margin-right:6px;"></i>Yeni Şarkı Yaz
+      </button>
+    </div>
+    <div id="my-writings-content"></div>
+  </div>
+
+  <div id="writing-detail-page" style="display:none;padding:16px;">
+    <button onclick="showPage('song-writings')" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:14px;margin-bottom:16px;display:flex;align-items:center;gap:6px;">
+      <i class="fas fa-arrow-left"></i> Geri
+    </button>
+    <div id="writing-detail-content"></div>
+  </div>
+
   <script src="app.js"></script>
+  <script src="song-writing.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
