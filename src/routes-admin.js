@@ -147,8 +147,22 @@ router.get('/admin/user/:userId/messages', (req, res) => {
 router.put('/admin/user/:userId/suspend', (req, res) => {
   try {
     const { suspend, reason } = req.body;
+    const userId = req.params.userId;
+    
+    // Kullanıcıyı askıya al/kaldır
     db.prepare('UPDATE users SET is_suspended = ?, suspend_reason = ? WHERE id = ?')
-      .run(suspend ? 1 : 0, reason || null, req.params.userId);
+      .run(suspend ? 1 : 0, reason || null, userId);
+    
+    if (suspend) {
+      // Tüm videolarını askıya al
+      db.prepare('UPDATE videos SET is_suspended = 1 WHERE channel_id IN (SELECT id FROM channels WHERE user_id = ?)').run(userId);
+      // Tüm gruplardan çıkar (owner değilse)
+      db.prepare('DELETE FROM group_members WHERE user_id = ? AND role != "owner"').run(userId);
+    } else {
+      // Askıyı kaldırınca videoları da geri getir
+      db.prepare('UPDATE videos SET is_suspended = 0 WHERE channel_id IN (SELECT id FROM channels WHERE user_id = ?)').run(userId);
+    }
+    
     res.json({ success: true });
   } catch(e) {
     res.status(500).json({ error: 'İşlem başarısız' });

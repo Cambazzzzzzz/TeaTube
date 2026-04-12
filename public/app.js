@@ -2647,16 +2647,19 @@ async function loadHomeVideos(category) {
         <div id="normalVideosGrid" class="video-grid"></div>
         ${shorts.length > 0 ? `
           <div style="margin-top:40px;">
-            <h2 class="section-header" style="margin-bottom:16px;">
-              <i class="fas fa-film" style="color:var(--yt-spec-brand-background-solid); margin-right:8px;"></i>Reals
-            </h2>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <h2 class="section-header" style="margin:0;">
+                <i class="fas fa-film" style="color:var(--yt-spec-brand-background-solid); margin-right:8px;"></i>Reals
+              </h2>
+              ${shorts.length > 4 ? `<button onclick="showPage('reals')" style="background:none;border:none;color:var(--yt-spec-brand-background-solid);cursor:pointer;font-size:13px;font-weight:600">Tümünü Gör <i class="fas fa-chevron-right"></i></button>` : ''}
+            </div>
             <div class="shorts-grid" id="shortsGrid"></div>
           </div>
         ` : ''}
       `;
 
       displayVideos(normalVideos, 'normalVideosGrid');
-      if (shorts.length > 0) renderShortsGrid(shorts, 'shortsGrid');
+      if (shorts.length > 0) renderShortsGrid(shorts.slice(0, 4), 'shortsGrid');
       return;
     }
 
@@ -3882,14 +3885,8 @@ function showUploadVideoModal() {
     <!-- Video alanları (Reals + Uzun Video) -->
     <div id="videoFields">
       <div class="yt-form-group">
-        <label class="yt-form-label">Kategori</label>
-        <select id="videoType" class="yt-select">
-          ${VIDEO_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}
-        </select>
-      </div>
-      <div class="yt-form-group">
-        <label class="yt-form-label">Etiketler (virgülle ayırın)</label>
-        <input type="text" id="videoTags" class="yt-input" placeholder="etiket1, etiket2" />
+        <label class="yt-form-label">Etiketler <span style="color:#ff0033">*</span> <span style="font-size:11px;color:var(--yt-spec-text-secondary)">(virgülle ayırın - videonuzu tanıtan etiket girmelisiniz)</span></label>
+        <input type="text" id="videoTags" class="yt-input" placeholder="örn: oyun, minecraft, eğlence" />
       </div>
       <div class="yt-form-group">
         <label class="yt-form-label">Video Dosyası</label>
@@ -3987,6 +3984,11 @@ async function uploadVideo(isReals = false) {
   // Reals için banner zorunlu değil
   if (!title || !videoFile) {
     showToast('Başlık ve video gerekli', 'error');
+    return;
+  }
+  if (!tags) {
+    showToast('Videonuzu tanıtan bir etiket girmelisiniz', 'error');
+    document.getElementById('videoTags')?.focus();
     return;
   }
   if (!isReals && !bannerFile) {

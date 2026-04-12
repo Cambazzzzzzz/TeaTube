@@ -655,7 +655,7 @@ router.get('/videos', (req, res) => {
       JOIN channels c ON v.channel_id = c.id
       JOIN users u ON c.user_id = u.id
       LEFT JOIN user_settings us ON us.user_id = c.user_id
-      WHERE COALESCE(us.is_private, 0) = 0 AND COALESCE(v.is_hidden, 0) = 0
+      WHERE COALESCE(us.is_private, 0) = 0 AND COALESCE(v.is_hidden, 0) = 0 AND COALESCE(v.is_suspended, 0) = 0 AND COALESCE(u.is_suspended, 0) = 0
       ORDER BY v.created_at DESC
       LIMIT ? OFFSET ?
     `).all(limit, offset);
@@ -680,7 +680,7 @@ router.get('/videos/popular', (req, res) => {
       JOIN channels c ON v.channel_id = c.id
       JOIN users u ON c.user_id = u.id
       LEFT JOIN user_settings us ON us.user_id = c.user_id
-      WHERE COALESCE(us.is_private, 0) = 0
+      WHERE COALESCE(us.is_private, 0) = 0 AND COALESCE(v.is_suspended, 0) = 0 AND COALESCE(u.is_suspended, 0) = 0
       ORDER BY v.views DESC, v.likes DESC
       LIMIT ? OFFSET ?
     `).all(limit, offset);
@@ -707,6 +707,8 @@ router.get('/videos/recent', (req, res) => {
       LEFT JOIN user_settings us ON us.user_id = c.user_id
       WHERE v.created_at > datetime('now', '-7 days')
         AND COALESCE(us.is_private, 0) = 0
+        AND COALESCE(v.is_suspended, 0) = 0
+        AND COALESCE(u.is_suspended, 0) = 0
       ORDER BY v.created_at DESC
       LIMIT ? OFFSET ?
     `).all(limit, offset);
@@ -732,6 +734,8 @@ router.get('/videos/subscriptions/:userId', (req, res) => {
       JOIN channels c ON v.channel_id = c.id
       JOIN users u ON c.user_id = u.id
       WHERE c.id IN (SELECT channel_id FROM subscriptions WHERE user_id = ?)
+        AND COALESCE(v.is_suspended, 0) = 0
+        AND COALESCE(u.is_suspended, 0) = 0
       ORDER BY v.created_at DESC
       LIMIT ? OFFSET ?
     `).all(req.params.userId, req.params.userId, limit, offset);

@@ -779,4 +779,9 @@ db.exec(`
   )
 `);
 
+// Videos tablosuna is_suspended kolonu ekle (yoksa)
+try {
+  db.exec('ALTER TABLE videos ADD COLUMN is_suspended INTEGER DEFAULT 0');
+} catch(e) { /* Zaten var */ }
+
 module.exports = db;
