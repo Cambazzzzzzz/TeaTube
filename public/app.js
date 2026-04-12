@@ -2135,6 +2135,18 @@ function renderShortsPlayer() {
   checkShortLikeStatus(v.id);
   saveWatchProgress(v.id, 0, 0);
 
+  // Kaydedilmiş ses ayarını uygula
+  const shortsVid = document.getElementById('shortsVideo');
+  const shortSlider = document.getElementById('shortVolumeSlider');
+  const shortIcon = document.getElementById('shortMuteIcon');
+  if (shortsVid) {
+    const savedVol = parseFloat(localStorage.getItem('tea_volume') ?? '1');
+    const savedMuted = localStorage.getItem('tea_muted') === 'true';
+    shortsVid.volume = savedVol;
+    shortsVid.muted = savedMuted;
+    if (shortSlider) shortSlider.value = savedMuted ? 0 : Math.round(savedVol * 100);
+    if (shortIcon) shortIcon.className = savedMuted ? 'fas fa-volume-mute' : (savedVol < 0.5 ? 'fas fa-volume-down' : 'fas fa-volume-up');
+  }
 }
 
 function toggleShortPlay() {
@@ -2182,7 +2194,7 @@ function toggleShortMute() {
   video.muted = !video.muted;
   if (icon) icon.className = video.muted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
   if (slider) slider.value = video.muted ? 0 : Math.round(video.volume * 100);
-  // Slider'ı kısa süre göster
+  localStorage.setItem('tea_muted', video.muted);
   showVolumeSlider();
 }
 
@@ -2193,6 +2205,8 @@ function setShortVolume(val) {
   const v = parseInt(val) / 100;
   video.volume = v;
   video.muted = v === 0;
+  localStorage.setItem('tea_volume', v);
+  localStorage.setItem('tea_muted', v === 0);
   if (icon) {
     if (v === 0) icon.className = 'fas fa-volume-mute';
     else if (v < 0.5) icon.className = 'fas fa-volume-down';
@@ -4838,6 +4852,12 @@ async function loadSettingsPage() {
       <button class="yt-btn" style="width:auto; padding:0 24px; background: linear-gradient(135deg,#dc3545,#a71d2a); box-shadow: 0 2px 8px rgba(220,53,69,0.3);" onclick="logout()">
         <i class="fas fa-sign-out-alt" style="margin-right:8px;"></i>Çıkış Yap
       </button>
+
+      <!-- İmza -->
+      <div style="margin-top:32px;padding:16px;border-top:1px solid rgba(255,255,255,0.06);text-align:center;">
+        <p style="font-size:11px;color:rgba(255,255,255,0.2);margin:0 0 4px;letter-spacing:0.5px;">Created by <span style="color:rgba(255,255,255,0.35);font-weight:600;">CMS Team</span></p>
+        <p style="font-size:11px;color:rgba(255,255,255,0.15);margin:0;letter-spacing:0.5px;">Created by <span style="color:rgba(255,255,255,0.25);font-weight:600;">İ.D</span></p>
+      </div>
     `;
     
     // Account type'ı yükle
@@ -7031,6 +7051,12 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
           <button onclick="loadSongWritingsPage()" style="background:none;border:none;color:#1db954;cursor:pointer;font-size:13px">Tümünü Gör →</button>
         </div>
         <div id="songWritingsPreview"><div class="yt-loading"><div class="yt-spinner"></div></div></div>
+      </div>
+
+      <!-- İmza -->
+      <div style="margin-top:40px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.05);text-align:center;">
+        <p style="font-size:11px;color:rgba(255,255,255,0.18);margin:0 0 3px;letter-spacing:0.5px;">Created by <span style="color:rgba(255,255,255,0.3);font-weight:600;">CMS Team</span></p>
+        <p style="font-size:11px;color:rgba(255,255,255,0.12);margin:0;letter-spacing:0.5px;">Created by <span style="color:rgba(255,255,255,0.22);font-weight:600;">İ.D</span></p>
       </div>
     </div>
   `;
