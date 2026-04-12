@@ -452,8 +452,14 @@ router.delete('/admin/music/song/:songId', (req, res) => {
 router.put('/admin/music/song/:songId', (req, res) => {
   try {
     const { title, genre, play_count } = req.body;
-    db.prepare('UPDATE songs SET title = ?, genre = ?, play_count = ? WHERE id = ?')
-      .run(title, genre, play_count, req.params.songId);
+    // play_count gönderilmemişse mevcut değeri koru
+    if (play_count !== undefined && play_count !== null && play_count !== '') {
+      db.prepare('UPDATE songs SET title = ?, genre = ?, play_count = ? WHERE id = ?')
+        .run(title, genre, parseInt(play_count), req.params.songId);
+    } else {
+      db.prepare('UPDATE songs SET title = ?, genre = ? WHERE id = ?')
+        .run(title, genre, req.params.songId);
+    }
     res.json({ success: true });
   } catch(e) {
     res.status(500).json({ error: 'Şarkı düzenlenemedi' });
