@@ -1275,23 +1275,25 @@ router.post('/comment', (req, res) => {
 router.get('/comments/:videoId', (req, res) => {
   try {
     const { userId } = req.query;
-    // Ana yorumlar + yanıt sayısı + beğeni sayısı
     const comments = db.prepare(`
       SELECT c.*, u.nickname, u.profile_photo,
              (SELECT COUNT(*) FROM comments r WHERE r.parent_id = c.id) as reply_count,
              (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = 1) as likes,
              (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = -1) as dislikes,
-             (SELECT like_type FROM comment_likes WHERE comment_id = c.id AND user_id = ?) as user_like
+             (SELECT like_type FROM comment_likes WHERE comment_id = c.id AND user_id = ?) as user_like,
+             COALESCE(c.is_pinned, 0) as is_pinned,
+             COALESCE(c.is_hidden, 0) as is_hidden,
+             COALESCE(c.liked_by_owner, 0) as liked_by_owner
       FROM comments c
       JOIN users u ON c.user_id = u.id
       WHERE c.video_id = ? AND c.parent_id IS NULL
-      ORDER BY c.created_at DESC
+      ORDER BY c.is_pinned DESC, c.created_at DESC
     `).all(userId || 0, req.params.videoId);
 
     res.json(comments);
   } catch (error) {
     console.error('Yorumlar hatası:', error);
-    res.status(500).json({ error: 'Yorumlar alınamadı' });
+    res.status(500).json({ error: 'Yorumlar alınamadı', details: error.message });
   }
 });
 
@@ -1639,19 +1641,40 @@ router.get('/supporter-channels/:channelId', (req, res) => {
 // Shorts / Reals listesi
 router.get('/shorts', (req, res) => {
   try {
+    const { userId } = req.query;
+    
+    // Kullanıcının "ilgilenmiyorum" etiketlerini al
+    let dislikedTags = [];
+    if (userId) {
+      const prefs = db.prepare("SELECT tag FROM user_tag_preferences WHERE user_id = ? AND preference = -1").all(userId);
+      dislikedTags = prefs.map(p => p.tag.toLowerCase());
+    }
+
     const shorts = db.prepare(`
       SELECT v.*, c.channel_name, c.id as channel_id, c.user_id as channel_owner_id, u.profile_photo, u.nickname,
-             (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as subscriber_count
+             (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as subscriber_count,
+             (SELECT COUNT(*) FROM comments WHERE video_id = v.id) as comment_count
       FROM videos v
       JOIN channels c ON v.channel_id = c.id
       JOIN users u ON c.user_id = u.id
       LEFT JOIN user_settings us ON us.user_id = c.user_id
       WHERE v.is_short = 1
         AND COALESCE(us.is_private, 0) = 0
+        AND v.is_suspended = 0
       ORDER BY v.created_at DESC
-      LIMIT 50
+      LIMIT 100
     `).all();
-    res.json(shorts);
+
+    // Etiket filtresi uygula
+    const filtered = dislikedTags.length > 0
+      ? shorts.filter(v => {
+          if (!v.tags) return true;
+          const videoTags = v.tags.toLowerCase().split(',').map(t => t.trim());
+          return !videoTags.some(t => dislikedTags.includes(t));
+        })
+      : shorts;
+
+    res.json(filtered.slice(0, 50));
   } catch(e) {
     res.status(500).json({ error: 'Reals alınamadı' });
   }
@@ -2343,6 +2366,42 @@ router.get('/is-blocked/:blockerId/:blockedId', (req, res) => {
     res.json({ blocked: !!block });
   } catch(e) {
     res.status(500).json({ error: 'Kontrol yapılamadı' });
+  }
+});
+
+// ==================== İLGİLENMİYORUM SİSTEMİ ====================
+
+// Etikete göre ilgilenmiyorum
+router.post('/not-interested', (req, res) => {
+  try {
+    const { userId, tag } = req.body;
+    if (!userId || !tag) return res.status(400).json({ error: 'Eksik bilgi' });
+    db.prepare('INSERT OR REPLACE INTO user_tag_preferences (user_id, tag, preference) VALUES (?, ?, -1)').run(userId, tag.toLowerCase().trim());
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Kaydedilemedi' });
+  }
+});
+
+// Etikete göre ilgi göster (pozitif sinyal)
+router.post('/interested', (req, res) => {
+  try {
+    const { userId, tag } = req.body;
+    if (!userId || !tag) return res.status(400).json({ error: 'Eksik bilgi' });
+    db.prepare('INSERT OR REPLACE INTO user_tag_preferences (user_id, tag, preference) VALUES (?, ?, 1)').run(userId, tag.toLowerCase().trim());
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Kaydedilemedi' });
+  }
+});
+
+// Kullanıcının tercihlerini getir
+router.get('/tag-preferences/:userId', (req, res) => {
+  try {
+    const prefs = db.prepare('SELECT * FROM user_tag_preferences WHERE user_id = ?').all(req.params.userId);
+    res.json(prefs);
+  } catch(e) {
+    res.status(500).json({ error: 'Tercihler alınamadı' });
   }
 });
 

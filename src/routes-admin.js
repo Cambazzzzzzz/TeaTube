@@ -290,12 +290,22 @@ router.delete('/admin/video/:videoId', (req, res) => {
 // Video düzenle
 router.put('/admin/video/:videoId', (req, res) => {
   try {
-    const { title, description } = req.body;
-    db.prepare('UPDATE videos SET title = ?, description = ? WHERE id = ?')
-      .run(title, description, req.params.videoId);
+    const { title, description, tags } = req.body;
+    db.prepare('UPDATE videos SET title = ?, description = ?, tags = ? WHERE id = ?')
+      .run(title, description || null, tags || null, req.params.videoId);
     res.json({ success: true });
   } catch(e) {
     res.status(500).json({ error: 'Video düzenlenemedi' });
+  }
+});
+
+// Video etiketlerini getir
+router.get('/admin/video/:videoId/tags', (req, res) => {
+  try {
+    const video = db.prepare('SELECT tags FROM videos WHERE id = ?').get(req.params.videoId);
+    res.json({ tags: video?.tags || '' });
+  } catch(e) {
+    res.status(500).json({ error: 'Etiketler alınamadı' });
   }
 });
 

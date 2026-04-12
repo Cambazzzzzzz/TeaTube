@@ -767,4 +767,16 @@ db.exec(`
   )
 `);
 
+// İlgilenmiyorum tablosu (etiket bazlı)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_tag_preferences (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    tag TEXT NOT NULL,
+    preference INTEGER DEFAULT -1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, tag)
+  )
+`);
+
 module.exports = db;

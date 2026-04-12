@@ -1866,7 +1866,7 @@ async function loadShortsPage() {
   pageContent.innerHTML = `<div class="yt-loading"><div class="yt-spinner"></div></div>`;
 
   try {
-    const res = await fetch(`${API_URL}/shorts`);
+    const res = await fetch(`${API_URL}/shorts?userId=${currentUser?.id || ''}`);
     shortsVideos = await res.json();
 
     if (shortsVideos.length === 0) {
@@ -1879,11 +1879,8 @@ async function loadShortsPage() {
     }
 
     currentShortIndex = 0;
-    // Her girişte karışık sırala
-    for (let i = shortsVideos.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shortsVideos[i], shortsVideos[j]] = [shortsVideos[j], shortsVideos[i]];
-    }
+    // En yeniden eskiye sırala (created_at DESC)
+    shortsVideos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     renderShortsPlayer();
   } catch(e) { console.error(e); }
 }
@@ -1962,6 +1959,10 @@ function renderShortsPlayer() {
             <button class="sra-btn" onclick="toggleSaved(${v.id})">
               <i class="fas fa-bookmark"></i>
               <span>Kaydet</span>
+            </button>
+            <button class="sra-btn" onclick="notInterestedShort(${v.id},'${(v.tags||'').replace(/'/g,"\\'")}')" title="İlgilenmiyorum">
+              <i class="fas fa-times-circle"></i>
+              <span>İlgisiz</span>
             </button>
           </div>
         </div>
@@ -2213,14 +2214,38 @@ function prevShort() {
 }
 
 async function likeShort(videoId, likeType) {
+  // Anlık UI güncelle (optimistic)
+  const likeBtn = document.getElementById('shortLikeBtn');
+  const likeIcon = document.getElementById('shortLikeIcon');
+  const likeCount = document.getElementById('shortLikeCount');
+  const currentLiked = likeBtn?.classList.contains('liked');
+  
+  if (likeIcon) {
+    if (currentLiked) {
+      likeIcon.style.color = 'white';
+      likeBtn?.classList.remove('liked');
+      if (likeCount) likeCount.textContent = Math.max(0, parseInt(likeCount.textContent) - 1);
+    } else {
+      likeIcon.style.color = '#ff0033';
+      likeBtn?.classList.add('liked');
+      if (likeCount) likeCount.textContent = parseInt(likeCount.textContent || 0) + 1;
+    }
+  }
+
   try {
-    await fetch(`${API_URL}/like`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ videoId, userId: currentUser.id, likeType }) });
-    const res = await fetch(`${API_URL}/video/${videoId}`);
-    const v = await res.json();
-    document.getElementById('shortLikeCount').textContent = v.likes;
-    document.getElementById('shortDislikeCount').textContent = v.dislikes;
-    checkShortLikeStatus(videoId);
-  } catch(e) {}
+    await fetch(`${API_URL}/like`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoId, userId: currentUser.id, likeType })
+    });
+  } catch(e) {
+    // Hata olursa geri al
+    if (likeIcon) {
+      likeIcon.style.color = currentLiked ? '#ff0033' : 'white';
+      if (currentLiked) likeBtn?.classList.add('liked');
+      else likeBtn?.classList.remove('liked');
+    }
+  }
 }
 
 async function checkShortLikeStatus(videoId) {
@@ -2228,10 +2253,44 @@ async function checkShortLikeStatus(videoId) {
     const res = await fetch(`${API_URL}/like-status/${videoId}/${currentUser.id}`);
     const data = await res.json();
     const lb = document.getElementById('shortLikeBtn');
-    const db2 = document.getElementById('shortDislikeBtn');
-    if (lb) lb.style.color = data.likeType === 1 ? 'var(--yt-spec-brand-background-solid)' : '';
-    if (db2) db2.style.color = data.likeType === -1 ? '#3ea6ff' : '';
+    const icon = document.getElementById('shortLikeIcon');
+    if (data.likeType === 1) {
+      lb?.classList.add('liked');
+      if (icon) icon.style.color = '#ff0033';
+    } else {
+      lb?.classList.remove('liked');
+      if (icon) icon.style.color = 'white';
+    }
   } catch(e) {}
+}
+
+async function notInterestedShort(videoId, tags) {
+  try {
+    // Videonun etiketlerini al ve hepsini "ilgilenmiyorum" olarak işaretle
+    const tagList = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+    
+    if (tagList.length > 0) {
+      await Promise.all(tagList.map(tag =>
+        fetch(`${API_URL}/not-interested`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUser.id, tag })
+        })
+      ));
+    }
+    
+    // Bu videoyu listeden çıkar ve sonrakine geç
+    shortsVideos.splice(currentShortIndex, 1);
+    if (currentShortIndex >= shortsVideos.length) currentShortIndex = Math.max(0, shortsVideos.length - 1);
+    
+    showToast('Bu tür içerikler daha az gösterilecek', 'success');
+    
+    if (shortsVideos.length > 0) {
+      renderShortsPlayer();
+    } else {
+      showPage('home');
+    }
+  } catch(e) { showToast('Hata', 'error'); }
 }
 
 // Reals yorum paneli (Instagram stili)
@@ -2419,18 +2478,19 @@ async function loadMobileHomePage() {
     // İzlenen story'leri localStorage'dan al
     const watchedStories = JSON.parse(localStorage.getItem('Tea_watched_stories') || '[]');
     
-    // Reals'ları kullanıcı bazında tekil yap (her kullanıcıdan sadece 1 tane)
+    // Reals'ları kullanıcı bazında tekil yap - her kullanıcıdan en son videoyu al
+    // Reals zaten created_at DESC sıralı geliyor, ilk gelen her kullanıcının en yeni videosu
     const uniqueReals = [];
     const seenUsers = new Set();
     
     for (const real of reals) {
-      // channel_id veya user_id ile tekil yap
       const uid = real.channel_id || real.user_id || real.id;
       if (!seenUsers.has(uid)) {
         uniqueReals.push(real);
         seenUsers.add(uid);
       }
     }
+    // Zaten created_at DESC sıralı, en son video atan kullanıcı en başta
     
     // Yeni (izlenmemiş) önce, izlenenler sona - max 15
     const unwatched = uniqueReals.filter(v => !watchedStories.includes(v.id));

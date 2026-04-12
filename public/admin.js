@@ -329,20 +329,33 @@ async function toggleVideoSuspend(videoId, suspend) {
 
 function editVideoTitle(videoId, currentTitle) {
   showModal(`
-    <h3>Video Basligini Duzenle</h3>
-    <input id="editVideoTitleInput" class="a-input" value="${esc(currentTitle)}" style="width:100%;margin-bottom:12px">
-    <button class="a-btn" style="width:100%" onclick="saveVideoTitle(${videoId})">Kaydet</button>
+    <h3>Video Duzenle</h3>
+    <div class="a-form-group">
+      <label>Baslik</label>
+      <input id="editVideoTitleInput" class="a-input" value="${esc(currentTitle)}" style="width:100%;margin-bottom:12px">
+    </div>
+    <div class="a-form-group">
+      <label>Etiketler (virgülle ayirin)</label>
+      <input id="editVideoTagsInput" class="a-input" placeholder="oyun, muzik, spor..." style="width:100%;margin-bottom:12px">
+    </div>
+    <button class="a-btn" style="width:100%" onclick="saveVideoEdit(${videoId})">Kaydet</button>
   `);
+  // Mevcut etiketleri yükle
+  fetch(API+'/admin/video/'+videoId+'/tags').then(r=>r.json()).then(d=>{
+    const inp = document.getElementById('editVideoTagsInput');
+    if (inp && d.tags) inp.value = d.tags;
+  }).catch(()=>{});
 }
 
-async function saveVideoTitle(videoId) {
+async function saveVideoEdit(videoId) {
   const title = document.getElementById('editVideoTitleInput')?.value.trim();
+  const tags = document.getElementById('editVideoTagsInput')?.value.trim();
   if (!title) { showToast('Baslik bos olamaz', false); return; }
   try {
-    const r = await fetch(API+'/admin/video/'+videoId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title})});
+    const r = await fetch(API+'/admin/video/'+videoId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title, tags})});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
-    showToast('Baslik guncellendi');
+    showToast('Video guncellendi');
     closeModal();
     loadVideos();
   } catch(e) { showToast('Baglanti hatasi', false); }
