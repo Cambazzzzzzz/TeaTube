@@ -490,6 +490,12 @@ async function loadUserData() {
     // Bildirimleri yükle
     loadNotifications();
 
+    // Grup okunmamış mesajlarını dinle
+    fetch(`${API_URL}/groups/user/${currentUser.id}`)
+      .then(r => r.json())
+      .then(groups => { if (groups.length > 0) watchGroupUnreadBadges(groups.map(g => g.id)); })
+      .catch(() => {});
+
     // Duyuruları yükle
     loadActiveAnnouncements();
 
@@ -1046,8 +1052,85 @@ function listenLastMessage(friendId, friendName) {
 
 function updateTotalMsgBadge() {
   if (!window.firebaseDB || !currentUser) return;
-  // Tüm unread badge'leri topla
+  // Tüm unread badge'leri topla (DM + grup)
   let total = 0;
+  document.querySelectorAll('[id^="unread_"], [id^="unread2_"], [id^="groupUnread_"]').forEach(el => {
+    if (el.style.display !== 'none') total += parseInt(el.textContent) || 0;
+  });
+  const badge = document.getElementById('msgBadge');
+  if (badge) {
+    if (total > 0) {
+      badge.textContent = total > 9 ? '9+' : total;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+  // Gruplar nav badge'ini güncelle
+  const groupNavBadge = document.getElementById('groupNavBadge');
+  if (groupNavBadge) {
+    let groupTotal = 0;
+    document.querySelectorAll('[id^="groupUnread_"]').forEach(el => {
+      if (el.style.display !== 'none') groupTotal += parseInt(el.textContent) || 0;
+    });
+    if (groupTotal > 0) {
+      groupNavBadge.textContent = groupTotal > 9 ? '9+' : groupTotal;
+      groupNavBadge.style.display = 'flex';
+    } else {
+      groupNavBadge.style.display = 'none';
+    }
+  }
+}
+
+// Grup okunmamış mesajlarını Firebase'den dinle
+let groupUnreadListeners = {};
+function watchGroupUnreadBadges(groupIds) {
+  if (!window.firebaseDB || !currentUser) return;
+  // Önceki listener'ları temizle
+  Object.values(groupUnreadListeners).forEach(unsub => { try { unsub(); } catch(e) {} });
+  groupUnreadListeners = {};
+
+  const lastReadKey = `groupLastRead_${currentUser.id}`;
+  const lastReadMap = JSON.parse(localStorage.getItem(lastReadKey) || '{}');
+
+  groupIds.forEach(groupId => {
+    const ref = window.firebaseRef(window.firebaseDB, `group_chats/${groupId}/messages`);
+    const unsub = window.firebaseOnValue(ref, snap => {
+      const lastRead = lastReadMap[groupId] || 0;
+      let unread = 0;
+      snap.forEach(child => {
+        const msg = child.val();
+        if (msg.senderId != currentUser.id && msg.timestamp > lastRead && !msg.deletedForAll) {
+          const hidden = msg.hiddenFor || [];
+          if (!hidden.includes(String(currentUser.id))) unread++;
+        }
+      });
+      const badge = document.getElementById(`groupUnread_${groupId}`);
+      if (badge) {
+        if (unread > 0) {
+          badge.textContent = unread > 9 ? '9+' : unread;
+          badge.style.display = 'flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+      updateTotalMsgBadge();
+    });
+    groupUnreadListeners[groupId] = unsub;
+  });
+}
+
+// Grup açıldığında okundu olarak işaretle
+function markGroupAsRead(groupId) {
+  if (!currentUser) return;
+  const lastReadKey = `groupLastRead_${currentUser.id}`;
+  const lastReadMap = JSON.parse(localStorage.getItem(lastReadKey) || '{}');
+  lastReadMap[groupId] = Date.now();
+  localStorage.setItem(lastReadKey, JSON.stringify(lastReadMap));
+  const badge = document.getElementById(`groupUnread_${groupId}`);
+  if (badge) badge.style.display = 'none';
+  updateTotalMsgBadge();
+}
   document.querySelectorAll('[id^="unread_"]').forEach(el => {
     if (el.style.display !== 'none') total += parseInt(el.textContent) || 0;
   });
@@ -4960,8 +5043,8 @@ function applyTheme(theme) {
     document.getElementById('masthead').style.background = 'rgba(255,255,255,0.97)';
     document.getElementById('guide').style.background = '#f9f9f9';
   } else {
-    root.style.setProperty('--yt-spec-input-background', '#121212');
-    root.style.setProperty('--yt-spec-border', 'rgba(255,255,255,0.12)');
+    root.style.setProperty('--yt-spec-input-background', t.raised || 'rgba(255,255,255,0.08)');
+    root.style.setProperty('--yt-spec-border', `${t.accent}33` || 'rgba(255,255,255,0.12)');
     root.style.setProperty('--yt-spec-10-percent-layer', 'rgba(255,255,255,0.1)');
     root.style.setProperty('--yt-spec-wordmark-text', '#ffffff');
     root.style.setProperty('--yt-spec-text-disabled', '#717171');
@@ -5350,12 +5433,14 @@ async function loadNotificationsPage() {
     container.innerHTML = notifications.map(notif => {
       const isPartnerRequest = notif.type === 'supporter_request';
       const isFollowRequest = notif.type === 'follow_request';
+      const isComment = notif.type === 'new_comment' || notif.type === 'comment_reply';
       return `
-        <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; background:var(--yt-spec-raised-background); border-radius:8px; margin-bottom:8px; ${!notif.is_read ? 'border-left:3px solid var(--yt-spec-brand-background-solid);' : ''}">
+        <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; background:var(--yt-spec-raised-background); border-radius:8px; margin-bottom:8px; ${!notif.is_read ? 'border-left:3px solid var(--yt-spec-brand-background-solid);' : ''} ${isComment && notif.related_id ? 'cursor:pointer;' : ''}" ${isComment && notif.related_id ? `onclick="playVideo(${notif.related_id})"` : ''}>
           <i class="fas ${icons[notif.type] || 'fa-bell'}" style="font-size:18px; color:var(--yt-spec-brand-background-solid); width:20px; text-align:center; flex-shrink:0;"></i>
           <div style="flex:1;">
             <p style="font-size:14px; margin-bottom:4px;">${notif.content}</p>
             <p style="font-size:12px; color:var(--yt-spec-text-secondary);">${notif.created_at || ''}</p>
+            ${isComment && notif.related_id ? `<p style="font-size:12px;color:var(--yt-spec-brand-background-solid);margin-top:4px"><i class="fas fa-external-link-alt" style="margin-right:4px"></i>Videoya git</p>` : ''}
           </div>
           ${isPartnerRequest ? `
             <div style="display:flex; gap:8px; flex-shrink:0;">
@@ -7546,6 +7631,11 @@ async function loadGroupsPage() {
           </div>
         ` : myGroups.length === 0 ? '<p style="color:var(--yt-spec-text-secondary)">Henüz grup yok</p>' : ''}
       </div>`;
+
+    // Grup okunmamış mesaj badge'lerini Firebase'den dinle
+    if (window.firebaseDB && myGroups.length > 0) {
+      watchGroupUnreadBadges(myGroups.map(g => g.id));
+    }
   } catch(e) { pageContent.innerHTML = '<p>Hata oluştu</p>'; }
 }
 
@@ -7554,7 +7644,10 @@ function renderGroupCard(g, showJoin = false) {
                    g.role === 'moderator' ? '<i class="fas fa-shield-alt" style="color:#3ea6ff;font-size:11px;margin-left:4px"></i>' : '';
   return `
     <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--yt-spec-raised-background);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:background 0.2s" onclick="openGroup(${g.id})" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='var(--yt-spec-raised-background)'">
-      <img src="${g.photo_url || 'data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=48 height=48%3E%3Ccircle cx=24 cy=24 r=24 fill=%23333/%3E%3C/svg%3E'}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+      <div style="position:relative;flex-shrink:0">
+        <img src="${g.photo_url || 'data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=48 height=48%3E%3Ccircle cx=24 cy=24 r=24 fill=%23333/%3E%3C/svg%3E'}" style="width:48px;height:48px;border-radius:50%;object-fit:cover" />
+        <span id="groupUnread_${g.id}" class="unread-badge" style="display:none;position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;font-size:10px;padding:0 4px;"></span>
+      </div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:4px">
           <p style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${g.name}</p>
@@ -7638,6 +7731,7 @@ async function createGroup() {
 }
 
 async function openGroup(groupId) {
+  markGroupAsRead(groupId); // Okundu olarak işaretle
   const pageContent = document.getElementById('pageContent');
   pageContent.innerHTML = '<div class="yt-loading"><div class="yt-spinner"></div></div>';
 
@@ -7687,7 +7781,7 @@ async function openGroup(groupId) {
         ${isMember ? `
           <div style="padding:8px 12px 12px;border-top:1px solid rgba(255,255,255,0.06);flex-shrink:0;background:var(--yt-spec-base-background)">
             ${canWrite ? `
-              <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border-radius:28px;padding:6px 6px 6px 14px;border:1px solid rgba(255,255,255,0.08)">
+              <div style="display:flex;align-items:center;gap:8px;background:var(--yt-spec-input-background, rgba(255,255,255,0.06));border-radius:28px;padding:6px 6px 6px 14px;border:1px solid var(--yt-spec-border, rgba(255,255,255,0.1))">
                 <textarea id="groupMsgInput" placeholder="Mesaj yaz..." style="flex:1;background:none;border:none;outline:none;color:var(--yt-spec-text-primary);font-size:15px;resize:none;min-height:22px;max-height:120px;line-height:1.5;padding:0;font-family:inherit" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendGroupMessage(${group.id})}" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
                 <input type="file" id="groupPhotoInput" accept="image/*" style="display:none" onchange="uploadGroupPhoto(${group.id},this)" />
                 <button onclick="sendGroupPhoto(${group.id})" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:18px;padding:4px 6px;flex-shrink:0;-webkit-tap-highlight-color:transparent"><i class="fas fa-image"></i></button>
@@ -7995,6 +8089,9 @@ async function uploadGroupPhoto(groupId, input) {
 
 function showGroupMembersPanel(groupId, canManage = false) {
   fetch(`${API_URL}/groups/${groupId}/members`).then(r => r.json()).then(async members => {
+    const myMember = members.find(m => m.user_id === currentUser.id);
+    const myRole = myMember?.role || 'member';
+
     let requestsHtml = '';
     if (canManage) {
       const requests = await fetch(`${API_URL}/groups/${groupId}/requests`).then(r => r.json()).catch(() => []);
@@ -8024,7 +8121,7 @@ function showGroupMembersPanel(groupId, canManage = false) {
           return `<div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--yt-spec-raised-background)">
             <img src="${getProfilePhotoUrl(m.profile_photo)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" />
             <div style="flex:1"><div style="display:flex;align-items:center;gap:4px"><span style="font-size:13px;font-weight:500">${m.nickname}</span>${roleIcon}</div><span style="font-size:11px;color:var(--yt-spec-text-secondary)">@${m.username}</span></div>
-            ${canAct ? `<button onclick="showMemberActions(${groupId},${m.user_id},'${m.nickname.replace(/'/g,"\\'")}','${m.role}');closeModal()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:4px 8px"><i class="fas fa-ellipsis-v"></i></button>` : ''}
+            ${canAct ? `<button onclick="showMemberActions(${groupId},${m.user_id},'${m.nickname.replace(/'/g,"\\'")}','${m.role}','${myRole}');closeModal()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:4px 8px"><i class="fas fa-ellipsis-v"></i></button>` : ''}
           </div>`;
         }).join('')}
       </div>`);
@@ -8058,8 +8155,7 @@ async function respondGroupRequest(groupId, requestId, action) {
   loadGroupsPage();
 }
 
-function showMemberActions(groupId, memberId, memberName, memberRole) {
-  const myMember = { role: 'owner' }; // Gerçekte API'den alınmalı
+function showMemberActions(groupId, memberId, memberName, memberRole, myRole) {
   showModal(`
     <h3 style="margin-bottom:16px">${memberName}</h3>
     <div style="display:flex;flex-direction:column;gap:8px">
@@ -8075,9 +8171,10 @@ function showMemberActions(groupId, memberId, memberName, memberRole) {
       <button class="yt-btn" onclick="kickGroupMember(${groupId},${memberId});closeModal()" style="background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)">
         <i class="fas fa-user-times" style="margin-right:6px"></i>Gruptan At
       </button>
+      ${myRole === 'owner' ? `
       <button class="yt-btn" onclick="transferOwnership(${groupId},${memberId},'${memberName}');closeModal()" style="background:rgba(255,200,0,0.15);color:#ffc800;border:1px solid rgba(255,200,0,0.3)">
         <i class="fas fa-crown" style="margin-right:6px"></i>Yöneticilik Devret
-      </button>
+      </button>` : ''}
     </div>`);
 }
 
@@ -8123,19 +8220,23 @@ async function transferOwnership(groupId, memberId, memberName) {
   openGroup(groupId);
 }
 
-function showGroupSettings(groupId) {
+async function showGroupSettings(groupId) {
+  // Mevcut grup bilgilerini yükle
+  const group = await fetch(`${API_URL}/groups/${groupId}?userId=${currentUser.id}`).then(r => r.json()).catch(() => null);
+  if (!group) { showToast('Grup bilgileri alınamadı', 'error'); return; }
+
   showModal(`
     <h3 style="margin-bottom:16px">Grup Ayarları</h3>
-    <div class="yt-form-group"><label class="yt-form-label">Grup Adı</label><input id="gsName" class="yt-input" placeholder="Grup adı" /></div>
-    <div class="yt-form-group"><label class="yt-form-label">Açıklama</label><input id="gsDesc" class="yt-input" placeholder="Açıklama" /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Grup Adı</label><input id="gsName" class="yt-input" placeholder="Grup adı" value="${(group.name || '').replace(/"/g,'&quot;')}" /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Açıklama</label><input id="gsDesc" class="yt-input" placeholder="Açıklama" value="${(group.description || '').replace(/"/g,'&quot;')}" /></div>
     <div class="yt-form-group">
-      <label class="yt-checkbox-label"><input type="checkbox" id="gsPrivate" class="yt-checkbox" /><span>Özel Grup</span></label>
+      <label class="yt-checkbox-label"><input type="checkbox" id="gsPrivate" class="yt-checkbox" ${group.is_private ? 'checked' : ''} /><span>Özel Grup</span></label>
     </div>
     <div class="yt-form-group">
-      <label class="yt-checkbox-label"><input type="checkbox" id="gsAllowMsg" class="yt-checkbox" checked /><span>Üyeler mesaj yazabilir</span></label>
+      <label class="yt-checkbox-label"><input type="checkbox" id="gsAllowMsg" class="yt-checkbox" ${group.allow_member_messages !== 0 ? 'checked' : ''} /><span>Üyeler mesaj yazabilir</span></label>
     </div>
     <div class="yt-form-group">
-      <label class="yt-checkbox-label"><input type="checkbox" id="gsAllowPhoto" class="yt-checkbox" checked /><span>Üyeler fotoğraf gönderebilir</span></label>
+      <label class="yt-checkbox-label"><input type="checkbox" id="gsAllowPhoto" class="yt-checkbox" ${group.allow_member_photos !== 0 ? 'checked' : ''} /><span>Üyeler fotoğraf gönderebilir</span></label>
     </div>
     <button class="yt-btn" style="width:100%;margin-top:8px" onclick="saveGroupSettings(${groupId})">Kaydet</button>
     <button class="yt-btn" style="width:100%;margin-top:8px;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3)" onclick="deleteGroup(${groupId})">Grubu Sil</button>`);

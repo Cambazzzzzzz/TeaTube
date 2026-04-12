@@ -2567,8 +2567,8 @@ body {
 
 .chat-textarea {
   flex: 1;
-  background: rgba(255,255,255,0.08);
-  border: none;
+  background: var(--yt-spec-input-background, rgba(255,255,255,0.08));
+  border: 1px solid var(--yt-spec-border, rgba(255,255,255,0.1));
   border-radius: 20px;
   padding: 10px 16px;
   color: var(--yt-spec-text-primary);
@@ -2578,6 +2578,11 @@ body {
   min-height: 40px;
   outline: none;
   font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.chat-textarea:focus {
+  border-color: var(--yt-spec-brand-background-solid);
 }
 
 .chat-send-btn {
