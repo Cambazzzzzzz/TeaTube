@@ -2577,7 +2577,7 @@ async function loadMobileHomePage() {
   try {
     const [allVideos, reals] = await Promise.all([
       fetch(`${API_URL}/videos?limit=60`).then(r => r.json()).catch(() => []),
-      fetch(`${API_URL}/shorts`).then(r => r.json()).catch(() => [])
+      fetch(`${API_URL}/shorts?order=recent&userId=${currentUser?.id || ''}`).then(r => r.json()).catch(() => [])
     ]);
 
     const photoItems = allVideos.filter(v => v.video_type === 'Fotoğraf');
@@ -2880,8 +2880,9 @@ function renderTextGrid(texts, containerId) {
 }
 
 function openShortFromHome(videoId) {
+  videoId = parseInt(videoId);
   // Önce mevcut listede ara
-  const idx = shortsVideos.findIndex(v => v.id === videoId || v.id === parseInt(videoId));
+  const idx = shortsVideos.findIndex(v => v.id === videoId);
   if (idx !== -1) {
     // Tıklanan videoyu başa al
     const target = shortsVideos.splice(idx, 1)[0];
@@ -2889,15 +2890,24 @@ function openShortFromHome(videoId) {
     currentShortIndex = 0;
     showPage('reals');
   } else {
-    // Listeyi yükle, o videoyu başa koy
-    fetch(`${API_URL}/shorts`).then(r => r.json()).then(shorts => {
-      const targetIdx = shorts.findIndex(v => v.id === videoId || v.id === parseInt(videoId));
-      if (targetIdx !== -1) {
-        // Hedef videoyu başa al, geri kalanları arkasına ekle
-        const target = shorts.splice(targetIdx, 1)[0];
-        shortsVideos = [target, ...shorts];
+    // Videoyu direkt fetch et, sonra listeyi yükle
+    Promise.all([
+      fetch(`${API_URL}/videos/${videoId}?userId=${currentUser?.id || ''}`).then(r => r.json()).catch(() => null),
+      fetch(`${API_URL}/shorts`).then(r => r.json()).catch(() => [])
+    ]).then(([targetVideo, shorts]) => {
+      // Hedef videoyu listeden çıkar (varsa), başa ekle
+      const filtered = shorts.filter(v => v.id !== videoId);
+      if (targetVideo && targetVideo.id) {
+        shortsVideos = [targetVideo, ...filtered];
       } else {
-        shortsVideos = shorts;
+        // Listede ara
+        const targetIdx = shorts.findIndex(v => v.id === videoId);
+        if (targetIdx !== -1) {
+          const t = shorts.splice(targetIdx, 1)[0];
+          shortsVideos = [t, ...shorts];
+        } else {
+          shortsVideos = shorts;
+        }
       }
       currentShortIndex = 0;
       showPage('reals');

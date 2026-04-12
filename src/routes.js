@@ -1653,7 +1653,7 @@ router.get('/supporter-channels/:channelId', (req, res) => {
 // Shorts / Reals listesi
 router.get('/shorts', (req, res) => {
   try {
-    const { userId } = req.query;
+    const { userId, order } = req.query;
     
     // Kullanıcının "ilgilenmiyorum" etiketlerini al
     let dislikedTags = [];
@@ -1661,6 +1661,9 @@ router.get('/shorts', (req, res) => {
       const prefs = db.prepare("SELECT tag FROM user_tag_preferences WHERE user_id = ? AND preference = -1").all(userId);
       dislikedTags = prefs.map(p => p.tag.toLowerCase());
     }
+
+    // order=recent → story daireleri için created_at DESC, aksi halde RANDOM
+    const orderClause = order === 'recent' ? 'v.created_at DESC' : 'RANDOM()';
 
     const shorts = db.prepare(`
       SELECT v.*, c.channel_name, c.id as channel_id, c.user_id as channel_owner_id, u.profile_photo, u.nickname,
@@ -1673,7 +1676,7 @@ router.get('/shorts', (req, res) => {
       WHERE v.is_short = 1
         AND COALESCE(us.is_private, 0) = 0
         AND COALESCE(u.is_suspended, 0) = 0
-      ORDER BY RANDOM()
+      ORDER BY ${orderClause}
       LIMIT 100
     `).all();
 
