@@ -2058,8 +2058,11 @@ async function loadShortsPage() {
     }
 
     currentShortIndex = 0;
-    // En yeniden eskiye sırala (created_at DESC)
-    shortsVideos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    // Her girmede karışık sırala (Fisher-Yates shuffle)
+    for (let i = shortsVideos.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shortsVideos[i], shortsVideos[j]] = [shortsVideos[j], shortsVideos[i]];
+    }
     renderShortsPlayer();
   } catch(e) { console.error(e); }
 }
@@ -2090,43 +2093,39 @@ function renderShortsPlayer() {
             </div>
           </div>
 
-          <!-- Ses Kontrolü (sol üst) -->
-          <div style="position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:8px;z-index:10;" onclick="event.stopPropagation()" onmouseenter="showVolumeSlider()" ontouchstart="showVolumeSlider()">
-            <button id="shortMuteBtn" onclick="toggleShortMute()" style="background:rgba(0,0,0,0.5);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-tap-highlight-color:transparent">
+          <!-- Ses Kontrolü (sol üst) - z-index yüksek, kayma yok -->
+          <div style="position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:8px;z-index:20;" onclick="event.stopPropagation()" onmouseenter="showVolumeSlider()" ontouchstart="showVolumeSlider()">
+            <button id="shortMuteBtn" onclick="toggleShortMute()" style="background:rgba(0,0,0,0.6);border:none;color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);-webkit-tap-highlight-color:transparent;flex-shrink:0;">
               <i class="fas fa-volume-up" id="shortMuteIcon"></i>
             </button>
             <input type="range" id="shortVolumeSlider" min="0" max="100" value="100"
               oninput="setShortVolume(this.value)"
-              style="width:80px;height:4px;accent-color:#ff0033;cursor:pointer;opacity:0;transition:opacity 0.2s;pointer-events:none"
+              style="width:80px;height:4px;accent-color:#ff0033;cursor:pointer;opacity:0;transition:opacity 0.2s;pointer-events:none;flex-shrink:0;"
               class="short-vol-slider" />
           </div>
 
           <!-- Geri Dön (sağ üst) -->
-          <button onclick="event.stopPropagation();showPage('home')" style="position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.5);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);z-index:10;-webkit-tap-highlight-color:transparent">
+          <button onclick="event.stopPropagation();showPage('home')" style="position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.6);border:none;color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);z-index:20;-webkit-tap-highlight-color:transparent">
             <i class="fas fa-times"></i>
           </button>
 
-          <!-- Kanal + Başlık (sol alt) -->
-          <div class="shorts-info">
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; cursor:pointer;" onclick="event.stopPropagation(); viewChannel(${v.channel_id})">
-              <img src="${getProfilePhotoUrl(v.profile_photo)}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid white;" onerror="onProfilePhotoError(this)" />
-              <div>
-                <p style="font-size:14px; font-weight:600; display:flex; align-items:center; gap:4px;">${v.channel_name}${redVerifiedBadge(v.is_red_verified, 13)}</p>
-                <p style="font-size:12px; color:rgba(255,255,255,0.7);">${v.subscriber_count} takipçi</p>
+          <!-- Kanal + Başlık (sol alt) - siyahlık yok, temiz -->
+          <div class="shorts-info" style="background:none;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <div style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;min-width:0;" onclick="event.stopPropagation();viewChannel(${v.channel_id})">
+                <img src="${getProfilePhotoUrl(v.profile_photo)}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.8);flex-shrink:0;" onerror="onProfilePhotoError(this)" />
+                <div style="min-width:0;">
+                  <p style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:4px;text-shadow:0 1px 4px rgba(0,0,0,0.8);">${v.channel_name}${redVerifiedBadge(v.is_red_verified, 12)}</p>
+                </div>
               </div>
+              <button id="shortFollowBtn" onclick="event.stopPropagation();toggleShortFollow(${v.channel_id})" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.5);color:#fff;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;backdrop-filter:blur(4px);flex-shrink:0;display:none;">
+                Takip Et
+              </button>
             </div>
-            <p style="font-size:14px; line-height:1.4; cursor:pointer; user-select:none;" onclick="toggleShortDesc()" id="shortTitleEl">
-              ${v.title}
-              ${v.description ? `<i class="fas fa-chevron-down" id="shortDescChevron" style="font-size:11px; margin-left:6px; opacity:0.7; transition:transform 0.2s;"></i>` : ''}
-            </p>
-            ${v.description ? `
-              <div id="shortDescEl" style="display:none; margin-top:8px; font-size:13px; color:rgba(255,255,255,0.8); line-height:1.5; max-height:120px; overflow-y:auto;">
-                ${v.description}
-              </div>
-            ` : ''}
+            <p style="font-size:13px;line-height:1.4;text-shadow:0 1px 4px rgba(0,0,0,0.8);margin:0;" id="shortTitleEl">${v.title}</p>
           </div>
 
-          <!-- Sağ: Aksiyonlar (Instagram tarzı, video üzerinde) -->
+          <!-- Sağ: Aksiyonlar -->
           <div class="shorts-right-actions" onclick="event.stopPropagation()">
             <button class="sra-btn" id="shortLikeBtn" onclick="likeShort(${v.id}, 1)">
               <i class="fas fa-heart" id="shortLikeIcon"></i>
@@ -2143,6 +2142,10 @@ function renderShortsPlayer() {
             <button class="sra-btn" onclick="toggleSaved(${v.id})">
               <i class="fas fa-bookmark"></i>
               <span>Kaydet</span>
+            </button>
+            <button class="sra-btn" onclick="interestedShort(${v.id},'${(v.tags||'').replace(/'/g,"\\'")}')">
+              <i class="fas fa-fire" style="color:#ff6b35;"></i>
+              <span>İlgi</span>
             </button>
             <button class="sra-btn" onclick="notInterestedShort(${v.id},'${(v.tags||'').replace(/'/g,"\\'")}')" title="İlgilenmiyorum">
               <i class="fas fa-times-circle"></i>
@@ -2492,13 +2495,29 @@ async function checkShortLikeStatus(videoId) {
       if (icon) icon.style.color = 'white';
     }
   } catch(e) {}
+
+  // Takip durumunu kontrol et
+  try {
+    const v = shortsVideos[currentShortIndex];
+    if (!v || !v.channel_id) return;
+    // Kendi kanalı ise takip butonu gösterme
+    if (v.channel_owner_id === currentUser.id) return;
+    const subRes = await fetch(`${API_URL}/is-subscribed/${v.channel_id}/${currentUser.id}`);
+    const subData = await subRes.json();
+    const followBtn = document.getElementById('shortFollowBtn');
+    if (followBtn) {
+      if (subData.subscribed) {
+        followBtn.style.display = 'none'; // Zaten takip ediyorsa gösterme
+      } else {
+        followBtn.style.display = 'block';
+      }
+    }
+  } catch(e) {}
 }
 
 async function notInterestedShort(videoId, tags) {
   try {
-    // Videonun etiketlerini al ve hepsini "ilgilenmiyorum" olarak işaretle
     const tagList = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
-    
     if (tagList.length > 0) {
       await Promise.all(tagList.map(tag =>
         fetch(`${API_URL}/not-interested`, {
@@ -2508,18 +2527,41 @@ async function notInterestedShort(videoId, tags) {
         })
       ));
     }
-    
     // Bu videoyu listeden çıkar ve sonrakine geç
     shortsVideos.splice(currentShortIndex, 1);
     if (currentShortIndex >= shortsVideos.length) currentShortIndex = Math.max(0, shortsVideos.length - 1);
-    
     showToast('Bu tür içerikler daha az gösterilecek', 'success');
-    
-    if (shortsVideos.length > 0) {
-      renderShortsPlayer();
-    } else {
-      showPage('home');
+    if (shortsVideos.length > 0) renderShortsPlayer();
+    else showPage('home');
+  } catch(e) { showToast('Hata', 'error'); }
+}
+
+async function interestedShort(videoId, tags) {
+  try {
+    const tagList = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+    if (tagList.length > 0) {
+      await Promise.all(tagList.map(tag =>
+        fetch(`${API_URL}/interested`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUser.id, tag })
+        })
+      ));
     }
+    showToast('Bu tür içerikler daha fazla gösterilecek', 'success');
+  } catch(e) {}
+}
+
+async function toggleShortFollow(channelId) {
+  try {
+    const btn = document.getElementById('shortFollowBtn');
+    await fetch(`${API_URL}/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id, channelId })
+    });
+    if (btn) btn.style.display = 'none'; // Takip ettikten sonra gizle
+    showToast('Takip edildi', 'success');
   } catch(e) { showToast('Hata', 'error'); }
 }
 

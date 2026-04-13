@@ -2413,19 +2413,33 @@ router.post('/not-interested', (req, res) => {
   try {
     const { userId, tag } = req.body;
     if (!userId || !tag) return res.status(400).json({ error: 'Eksik bilgi' });
-    db.prepare('INSERT OR REPLACE INTO user_tag_preferences (user_id, tag, preference) VALUES (?, ?, -1)').run(userId, tag.toLowerCase().trim());
+    const cleanTag = tag.toLowerCase().trim();
+    db.prepare('INSERT OR REPLACE INTO user_tag_preferences (user_id, tag, preference) VALUES (?, ?, -1)').run(userId, cleanTag);
+    // Algoritma ağırlığını da düşür
+    const ex = db.prepare('SELECT * FROM algorithm_data WHERE user_id = ? AND tag = ?').get(userId, cleanTag);
+    if (ex) {
+      db.prepare('UPDATE algorithm_data SET weight = MAX(0, weight - 2.0), updated_at = datetime("now") WHERE id = ?').run(ex.id);
+    }
     res.json({ success: true });
   } catch(e) {
     res.status(500).json({ error: 'Kaydedilemedi' });
   }
 });
 
-// Etikete gÃ¶re ilgi gÃ¶ster (pozitif sinyal)
+// Etikete göre ilgi göster (pozitif sinyal)
 router.post('/interested', (req, res) => {
   try {
     const { userId, tag } = req.body;
     if (!userId || !tag) return res.status(400).json({ error: 'Eksik bilgi' });
-    db.prepare('INSERT OR REPLACE INTO user_tag_preferences (user_id, tag, preference) VALUES (?, ?, 1)').run(userId, tag.toLowerCase().trim());
+    const cleanTag = tag.toLowerCase().trim();
+    db.prepare('INSERT OR REPLACE INTO user_tag_preferences (user_id, tag, preference) VALUES (?, ?, 1)').run(userId, cleanTag);
+    // Algoritma ağırlığını artır
+    const ex = db.prepare('SELECT * FROM algorithm_data WHERE user_id = ? AND tag = ?').get(userId, cleanTag);
+    if (ex) {
+      db.prepare('UPDATE algorithm_data SET weight = weight + 2.0, updated_at = datetime("now") WHERE id = ?').run(ex.id);
+    } else {
+      db.prepare('INSERT INTO algorithm_data (user_id, video_type, tag, weight) VALUES (?, ?, ?, 2.0)').run(userId, 'Reals', cleanTag);
+    }
     res.json({ success: true });
   } catch(e) {
     res.status(500).json({ error: 'Kaydedilemedi' });

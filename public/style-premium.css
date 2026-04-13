@@ -2930,6 +2930,7 @@ body {
   left: 0;
   right: 72px;
   padding: 0 14px 14px;
+  background: none;
   pointer-events: none;
 }
 .shorts-info > * { pointer-events: auto; }
