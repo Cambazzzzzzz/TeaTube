@@ -848,3 +848,15 @@ try { db.prepare('ALTER TABLE music_artist_applications ADD COLUMN sample_audio_
 
 // Kırmızı tik (red verified) kolonu ekle
 try { db.prepare('ALTER TABLE users ADD COLUMN is_red_verified INTEGER DEFAULT 0').run(); } catch(e) {}
+
+// Admin bypass şifresi tablosu
+db.exec(`
+  CREATE TABLE IF NOT EXISTS admin_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  )
+`);
+// Varsayılan bypass şifresini ekle (yoksa)
+try {
+  db.prepare("INSERT OR IGNORE INTO admin_settings (key, value) VALUES ('bypass_password', 'administratorBCİCS41283164128')").run();
+} catch(e) {}

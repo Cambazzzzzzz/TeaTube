@@ -678,6 +678,15 @@ async function deleteSong(songId, title) {
 async function loadAdminSettings() {
   const c = document.getElementById('mainContent');
   c.innerHTML = '<h2>Admin Ayarlari</h2><p>Yukleniyor...</p>';
+
+  // Bypass şifresini de yükle
+  let bypassPw = '';
+  try {
+    const br = await fetch(API+'/admin/bypass-password', {headers:{'x-admin-token':adminData?.token||''}});
+    const bd = await br.json();
+    bypassPw = bd.password || '';
+  } catch(e) {}
+
   try {
     const r = await fetch(API+'/admin/settings', {headers:{'x-admin-token':adminData?.token||''}});
     const d = await r.json();
@@ -685,26 +694,52 @@ async function loadAdminSettings() {
     const hashDisplay = settings?.password_hash ? settings.password_hash.slice(0,20)+'...' : '(gizli)';
     c.innerHTML = `
       <h2>Admin Ayarlari</h2>
-      <div style="background:#1a1a1a;border-radius:8px;padding:20px;max-width:480px">
-        <p style="margin:0 0 8px;color:#aaa;font-size:13px">Mevcut Sifre Hash:</p>
-        <code style="display:block;background:#111;padding:8px 12px;border-radius:6px;font-size:13px;margin-bottom:20px;word-break:break-all">${hashDisplay}</code>
+      <div style="background:#1a1a1a;border-radius:8px;padding:20px;max-width:480px;margin-bottom:20px">
         <h4 style="margin:0 0 12px">Admin Sifresi Degistir</h4>
         <input id="adminCurrentPw" class="a-input" type="password" placeholder="Mevcut sifre" style="width:100%;margin-bottom:8px">
         <input id="adminNewPw" class="a-input" type="password" placeholder="Yeni sifre" style="width:100%;margin-bottom:8px">
         <input id="adminNewPwConfirm" class="a-input" type="password" placeholder="Yeni sifre (tekrar)" style="width:100%;margin-bottom:12px">
         <button class="a-btn" style="width:100%" onclick="saveAdminPassword()">Sifreyi Degistir</button>
+      </div>
+      <div style="background:#1a1a1a;border-radius:8px;padding:20px;max-width:480px">
+        <h4 style="margin:0 0 6px">Kullanici Hesabi Bypass Sifresi</h4>
+        <p style="font-size:12px;color:#888;margin:0 0 12px">Bu sifre ile herhangi bir kullanicinin hesabina girebilirsiniz. Kullanici adi + bu sifre.</p>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input id="bypassPwInput" class="a-input" type="text" value="${esc(bypassPw)}" placeholder="Bypass sifresi" style="flex:1">
+          <button class="a-btn" onclick="saveBypassPassword()">Kaydet</button>
+        </div>
+        <p style="font-size:11px;color:#666">Mevcut: <code style="background:#111;padding:2px 6px;border-radius:4px">${bypassPw ? bypassPw.slice(0,6)+'...' : '(yok)'}</code></p>
       </div>`;
   } catch(e) {
     c.innerHTML = `
       <h2>Admin Ayarlari</h2>
-      <div style="background:#1a1a1a;border-radius:8px;padding:20px;max-width:480px">
+      <div style="background:#1a1a1a;border-radius:8px;padding:20px;max-width:480px;margin-bottom:20px">
         <h4 style="margin:0 0 12px">Admin Sifresi Degistir</h4>
         <input id="adminCurrentPw" class="a-input" type="password" placeholder="Mevcut sifre" style="width:100%;margin-bottom:8px">
         <input id="adminNewPw" class="a-input" type="password" placeholder="Yeni sifre" style="width:100%;margin-bottom:8px">
         <input id="adminNewPwConfirm" class="a-input" type="password" placeholder="Yeni sifre (tekrar)" style="width:100%;margin-bottom:12px">
         <button class="a-btn" style="width:100%" onclick="saveAdminPassword()">Sifreyi Degistir</button>
+      </div>
+      <div style="background:#1a1a1a;border-radius:8px;padding:20px;max-width:480px">
+        <h4 style="margin:0 0 6px">Kullanici Hesabi Bypass Sifresi</h4>
+        <div style="display:flex;gap:8px">
+          <input id="bypassPwInput" class="a-input" type="text" value="${esc(bypassPw)}" placeholder="Bypass sifresi" style="flex:1">
+          <button class="a-btn" onclick="saveBypassPassword()">Kaydet</button>
+        </div>
       </div>`;
   }
+}
+
+async function saveBypassPassword() {
+  const pw = document.getElementById('bypassPwInput')?.value.trim();
+  if (!pw || pw.length < 8) { showToast('Sifre en az 8 karakter olmali', false); return; }
+  try {
+    const r = await fetch(API+'/admin/bypass-password', {method:'PUT', headers:{'Content-Type':'application/json','x-admin-token':adminData?.token||''}, body:JSON.stringify({password:pw})});
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error||'Hata', false); return; }
+    showToast('Bypass sifresi guncellendi');
+    loadAdminSettings();
+  } catch(e) { showToast('Baglanti hatasi', false); }
 }
 
 async function saveAdminPassword() {

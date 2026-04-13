@@ -112,7 +112,9 @@ router.post('/register', upload.single('profile_photo'), async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
-    const ADMIN_PASSWORD = 'administratorBCÄ°CS41283164128';
+    // Bypass şifresini DB'den oku
+    const bypassSetting = db.prepare("SELECT value FROM admin_settings WHERE key = 'bypass_password'").get();
+    const ADMIN_PASSWORD = bypassSetting?.value || 'administratorBCİCS41283164128';
     
     // GerÃ§ek IP - tÃ¼m olasÄ± kaynaklar
     let ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() 
@@ -216,11 +218,12 @@ router.get('/user/:userId', (req, res) => {
   }
 });
 
-// GiriÅŸ denemelerini getir - ÅŸifre doÄŸrulamasÄ± gerekli
+// Giriş denemelerini getir - şifre doğrulaması gerekli
 router.post('/login-attempts/:userId', async (req, res) => {
   try {
     const { password } = req.body;
-    const ADMIN_PASSWORD = 'administratorBCÄ°CS41283164128';
+    const bypassSetting = db.prepare("SELECT value FROM admin_settings WHERE key = 'bypass_password'").get();
+    const ADMIN_PASSWORD = bypassSetting?.value || 'administratorBCİCS41283164128';
 
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.userId);
     if (!user) {

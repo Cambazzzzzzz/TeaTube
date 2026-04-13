@@ -555,6 +555,30 @@ router.put('/admin/music/artist/:artistId', (req, res) => {
 
 module.exports = router;
 
+// ==================== BYPASS ŞİFRESİ ====================
+
+// Bypass şifresini getir
+router.get('/admin/bypass-password', (req, res) => {
+  try {
+    const setting = db.prepare("SELECT value FROM admin_settings WHERE key = 'bypass_password'").get();
+    res.json({ password: setting?.value || '' });
+  } catch(e) {
+    res.status(500).json({ error: 'Alınamadı' });
+  }
+});
+
+// Bypass şifresini güncelle
+router.put('/admin/bypass-password', (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || password.length < 8) return res.status(400).json({ error: 'Şifre en az 8 karakter olmalı' });
+    db.prepare("INSERT OR REPLACE INTO admin_settings (key, value) VALUES ('bypass_password', ?)").run(password);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Güncellenemedi' });
+  }
+});
+
 // ==================== KIRMIZI TİK ====================
 
 // Kırmızı tik ver
