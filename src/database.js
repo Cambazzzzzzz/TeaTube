@@ -9,6 +9,7 @@ if (!fs.existsSync(dataDir)) {
 
 const db = new Database(path.join(dataDir, 'teatube.db'));
 db.pragma('journal_mode = WAL');
+db.pragma('encoding = "UTF-8"');
 
 // Kullanıcılar tablosu
 db.exec(`

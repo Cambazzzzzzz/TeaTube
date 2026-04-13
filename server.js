@@ -17,6 +17,16 @@ app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 app.use(express.static('public'));
 
+// API route'larına UTF-8 charset ekle
+app.use('/api', (req, res, next) => {
+  const origJson = res.json.bind(res);
+  res.json = (data) => {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    return origJson(data);
+  };
+  next();
+});
+
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();

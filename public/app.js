@@ -2101,6 +2101,11 @@ function renderShortsPlayer() {
               class="short-vol-slider" />
           </div>
 
+          <!-- Geri Dön (sağ üst) -->
+          <button onclick="event.stopPropagation();showPage('home')" style="position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.5);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);z-index:10;-webkit-tap-highlight-color:transparent">
+            <i class="fas fa-times"></i>
+          </button>
+
           <!-- Kanal + Başlık (sol alt) -->
           <div class="shorts-info">
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; cursor:pointer;" onclick="event.stopPropagation(); viewChannel(${v.channel_id})">
@@ -2926,6 +2931,13 @@ async function loadHomeVideos(category) {
 function renderShortsGrid(shorts, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
+  // Bu grid'deki videoları shortsVideos'a kaydet (tıklanınca doğru açılsın)
+  if (shorts.length > 0) {
+    // Mevcut listede yoksa ekle
+    shorts.forEach(v => {
+      if (!shortsVideos.find(s => s.id === v.id)) shortsVideos.push(v);
+    });
+  }
   container.innerHTML = shorts.map(v => `
     <div class="short-card" onclick="openShortFromHome(${v.id})">
       <div class="short-card-thumb">
@@ -3008,28 +3020,26 @@ function openShortFromHome(videoId) {
     currentShortIndex = 0;
     showPage('reals');
   } else {
-    // Videoyu direkt fetch et, sonra listeyi yükle
-    Promise.all([
-      fetch(`${API_URL}/videos/${videoId}?userId=${currentUser?.id || ''}`).then(r => r.json()).catch(() => null),
-      fetch(`${API_URL}/shorts`).then(r => r.json()).catch(() => [])
-    ]).then(([targetVideo, shorts]) => {
-      // Hedef videoyu listeden çıkar (varsa), başa ekle
-      const filtered = shorts.filter(v => v.id !== videoId);
-      if (targetVideo && targetVideo.id) {
-        shortsVideos = [targetVideo, ...filtered];
-      } else {
-        // Listede ara
+    // Shorts listesini yükle, hedef videoyu başa koy
+    fetch(`${API_URL}/shorts?order=recent&userId=${currentUser?.id || ''}`)
+      .then(r => r.json())
+      .then(shorts => {
         const targetIdx = shorts.findIndex(v => v.id === videoId);
         if (targetIdx !== -1) {
           const t = shorts.splice(targetIdx, 1)[0];
           shortsVideos = [t, ...shorts];
         } else {
-          shortsVideos = shorts;
+          // Listede yoksa tek video olarak aç
+          shortsVideos = shorts.length > 0 ? shorts : [{ id: videoId }];
         }
-      }
-      currentShortIndex = 0;
-      showPage('reals');
-    });
+        currentShortIndex = 0;
+        showPage('reals');
+      })
+      .catch(() => {
+        shortsVideos = [];
+        currentShortIndex = 0;
+        showPage('reals');
+      });
   }
 }
 
@@ -3775,15 +3785,18 @@ async function addComment(videoId) {
   if (!commentText) return;
 
   try {
-    await fetch(`${API_URL}/comment`, {
+    const res = await fetch(`${API_URL}/comment`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ videoId, userId: currentUser.id, commentText })
     });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Yorum eklenemedi', 'error'); return; }
     commentInput.value = '';
     loadComments(videoId);
   } catch (error) {
     console.error('Yorum ekleme hatası:', error);
+    showToast('Yorum eklenemedi', 'error');
   }
 }
 

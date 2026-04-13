@@ -3424,3 +3424,23 @@ body {
 .mbb-btn { color: var(--yt-spec-text-secondary); transition: color 0.15s, transform 0.1s; }
 .mbb-btn:active { transform: scale(0.85); }
 #mbb-profile img.active-profile { border-color: var(--yt-spec-brand-background-solid) !important; }
+
+/* ── Mobil tam ekran anasayfa ────────────────────────────────── */
+@media (max-width: 768px) {
+  #content {
+    margin-left: 0 !important;
+    margin-top: var(--ytd-masthead-height) !important;
+    padding: 0 !important;
+    min-height: calc(100vh - var(--ytd-masthead-height) - 56px);
+  }
+  #pageContent {
+    padding: 0 !important;
+  }
+  .mobile-feed {
+    min-height: calc(100vh - var(--ytd-masthead-height) - 56px);
+  }
+  #tsMusicHeaderBtn { display: flex !important; align-items: center; }
+}
+@media (min-width: 769px) {
+  #tsMusicHeaderBtn { display: none !important; }
+}
