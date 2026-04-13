@@ -2930,7 +2930,6 @@ body {
   left: 0;
   right: 72px;
   padding: 0 14px 14px;
-  background: linear-gradient(transparent, rgba(0,0,0,0.75) 60%);
   pointer-events: none;
 }
 .shorts-info > * { pointer-events: auto; }
@@ -3404,3 +3403,24 @@ body {
   flex-shrink: 0;
   border: 1.5px solid rgba(255,255,255,0.12);
 }
+
+/* ── Mobile Header Instagram style ──────────────────────────── */
+@media (max-width: 768px) {
+  #guide-button { display: none !important; }
+  #uploadPlusBtn { display: flex !important; }
+  #center { display: none !important; }
+  #center-logo { display: flex !important; }
+  .desktop-only { display: none !important; }
+  #masthead-container { position: relative; }
+}
+@media (min-width: 769px) {
+  #center-logo { display: none !important; }
+  #center { visibility: visible !important; pointer-events: auto !important; }
+  #uploadPlusBtn { display: none !important; }
+}
+
+/* ── Bottom Nav active state ─────────────────────────────────── */
+.mbb-btn.active { color: var(--yt-spec-text-primary) !important; }
+.mbb-btn { color: var(--yt-spec-text-secondary); transition: color 0.15s, transform 0.1s; }
+.mbb-btn:active { transform: scale(0.85); }
+#mbb-profile img.active-profile { border-color: var(--yt-spec-brand-background-solid) !important; }

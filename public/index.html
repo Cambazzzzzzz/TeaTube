@@ -91,23 +91,29 @@
     <div id="masthead">
       <div id="masthead-container">
         <div id="start">
-          <button class="yt-icon-button" id="guide-button" onclick="toggleSidebar()">
+          <!-- Mobilde: + butonu sol üste | Masaüstü: hamburger + logo -->
+          <button class="yt-icon-button" id="guide-button" onclick="toggleSidebar()" id="sidebarToggleBtn">
             <i class="fas fa-bars"></i>
           </button>
-          <div id="logo" onclick="showPage('home')" style="display:flex; align-items:center; gap:8px;">
-            <img src="logoteatube.png" alt="Tea" style="height:64px; object-fit:contain;" />
-            <span style="font-size:20px; font-weight:700; color:var(--yt-spec-text-primary); letter-spacing:-0.5px;">TeaTube</span>
-          </div>
-          <!-- + Yükle butonu -->
-          <button id="uploadPlusBtn" onclick="showMobileUploadMenu()" style="background:none;border:none;color:var(--yt-spec-text-primary);cursor:pointer;font-size:24px;padding:4px 8px;">
-            <i class="fas fa-plus-circle" style="color:var(--yt-spec-brand-background-solid);"></i>
-          </button>
-          <!-- Arama butonu (mobilde) -->
-          <button id="mobileSearchBtn" class="yt-icon-button" onclick="toggleMobileSearch()" style="display:none;">
-            <i class="fas fa-search"></i>
+          <button id="uploadPlusBtn" onclick="showMobileUploadMenu()" style="background:none;border:none;color:var(--yt-spec-brand-background-solid);cursor:pointer;font-size:22px;padding:4px 8px;display:none;">
+            <i class="fas fa-plus-square"></i>
           </button>
         </div>
-        
+
+        <!-- Orta: Logo -->
+        <div id="center-logo" onclick="showPage('home')" style="display:flex;align-items:center;gap:6px;cursor:pointer;position:absolute;left:50%;transform:translateX(-50%);">
+          <img src="logoteatube.png" alt="Tea" style="height:52px;object-fit:contain;" />
+          <span style="font-size:18px;font-weight:800;color:var(--yt-spec-text-primary);letter-spacing:-0.5px;">TeaTube</span>
+        </div>
+
+        <div id="center" style="visibility:hidden;pointer-events:none;">
+          <form id="search-form" onsubmit="event.preventDefault(); search();">
+            <input type="text" id="searchInput" class="search-input" placeholder="Ara..." autocomplete="off" />
+            <button type="submit" id="search-button">
+              <i class="fas fa-search"></i>
+            </button>
+          </form>
+        </div>
         <div id="center">
           <form id="search-form" onsubmit="event.preventDefault(); search();">
             <input type="text" id="searchInput" class="search-input" placeholder="Ara..." autocomplete="off" />
@@ -118,13 +124,15 @@
         </div>
         
         <div id="end">
-          <button class="yt-icon-button" onclick="showPage('friends')" title="Arkadaşlar" style="position:relative;">
+          <!-- Masaüstü: arkadaşlar, gruplar, bildirimler, profil -->
+          <button class="yt-icon-button desktop-only" onclick="showPage('friends')" title="Arkadaşlar" style="position:relative;">
             <i class="fas fa-user-friends"></i>
           </button>
-          <button class="yt-icon-button" onclick="showPage('groups')" title="Gruplar" style="position:relative;">
+          <button class="yt-icon-button desktop-only" onclick="showPage('groups')" title="Gruplar" style="position:relative;">
             <i class="fas fa-layer-group"></i>
             <span id="groupNavBadge" class="badge" style="display:none;"></span>
           </button>
+          <!-- Bildirimler - hem mobil hem masaüstü -->
           <button class="yt-icon-button" onclick="showPage('notifications')" style="position:relative;">
             <i class="fas fa-bell"></i>
             <span id="notifBadge" class="badge" style="display: none;"></span>
@@ -251,17 +259,28 @@
       <div id="pageContent"></div>
     </div>
 
-    <!-- Mobil Alt Bar: Music | Reals | Mesajlar -->
+    <!-- Mobil Alt Bar: Instagram tarzı -->
     <nav id="mobileBottomBar" class="mobile-bottom-bar">
-      <button class="mbb-btn" onclick="showPage('ts-music')">
-        <i class="fas fa-music"></i>
+      <!-- Anasayfa -->
+      <button class="mbb-btn" onclick="showPage('home')" id="mbb-home">
+        <i class="fas fa-home"></i>
       </button>
-      <button class="mbb-btn mbb-reals" onclick="showPage('reals')">
+      <!-- Reals -->
+      <button class="mbb-btn" onclick="showPage('reals')" id="mbb-reals">
         <i class="fas fa-film"></i>
       </button>
-      <button class="mbb-btn" onclick="showPage('messages')" style="position:relative;">
-        <i class="fas fa-comment-dots"></i>
+      <!-- Mesajlar (ortada) -->
+      <button class="mbb-btn" onclick="showPage('messages')" id="mbb-messages" style="position:relative;">
+        <i class="fas fa-paper-plane"></i>
         <span id="mobileNavMsgBadge" class="badge" style="display:none;position:absolute;top:4px;right:4px;"></span>
+      </button>
+      <!-- Arama -->
+      <button class="mbb-btn" onclick="toggleMobileSearch()" id="mbb-search">
+        <i class="fas fa-search"></i>
+      </button>
+      <!-- Profil -->
+      <button class="mbb-btn" onclick="showPage('my-channel')" id="mbb-profile" style="padding:0;display:flex;align-items:center;justify-content:center;">
+        <img id="mbbProfilePhoto" src="logoteatube.png" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:2px solid transparent;" onerror="this.src='logoteatube.png'" />
       </button>
     </nav>
   </div>

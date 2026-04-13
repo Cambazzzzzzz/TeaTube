@@ -532,6 +532,17 @@ function logout() {
 // Sayfa gösterme
 function showPage(page) {
   currentPage = page;
+
+  // Bottom nav aktif durumu güncelle
+  const navMap = { home:'mbb-home', reals:'mbb-reals', messages:'mbb-messages', 'my-channel':'mbb-profile' };
+  document.querySelectorAll('.mbb-btn').forEach(b => b.classList.remove('active'));
+  if (navMap[page]) document.getElementById(navMap[page])?.classList.add('active');
+
+  // Profil fotoğrafını bottom nav'a yansıt
+  const mbbPhoto = document.getElementById('mbbProfilePhoto');
+  if (mbbPhoto && currentUser?.profile_photo && currentUser.profile_photo !== '?') {
+    mbbPhoto.src = getProfilePhotoUrl(currentUser.profile_photo);
+  }
   
   // Özel sayfaları gizle (song-writings, my-writings, writing-detail)
   ['song-writings-page','my-writings-page','writing-detail-page'].forEach(id => {
@@ -825,64 +836,106 @@ function loadMessagesPage() {
   const pageContent = document.getElementById('pageContent');
   pageContent.innerHTML = `<div class="yt-loading"><div class="yt-spinner"></div></div>`;
 
-  // Firebase hazır değilse bekle
   if (!window.firebaseDB) {
     document.addEventListener('firebaseReady', () => loadMessagesPage(), { once: true });
     return;
   }
 
-  fetch(`${API_URL}/friends/${currentUser.id}`)
-    .then(r => r.json())
-    .then(friends => {
+  Promise.all([
+    fetch(`${API_URL}/friends/${currentUser.id}`).then(r => r.json()).catch(() => []),
+    fetch(`${API_URL}/groups/user/${currentUser.id}`).then(r => r.json()).catch(() => [])
+  ]).then(([friends, groups]) => {
       const isMobile = window.innerWidth <= 768;
 
       if (isMobile) {
         pageContent.innerHTML = `
           <div class="mobile-messages-page">
-            <h2 style="font-size:18px;font-weight:700;padding:12px 16px 8px;margin:0;">Mesajlar</h2>
+            <!-- Başlık + Arama -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;">
+              <h2 style="font-size:20px;font-weight:800;margin:0;">Mesajlar</h2>
+              <button onclick="toggleMobileSearch()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:18px;"><i class="fas fa-search"></i></button>
+            </div>
 
-            <!-- Arkadaş Arama -->
-            <div style="padding:0 16px 12px;">
-              <div style="display:flex; gap:8px; background:rgba(255,255,255,0.06); border-radius:12px; padding:10px 14px; align-items:center;">
-                <i class="fas fa-search" style="color:var(--yt-spec-text-secondary); font-size:14px;"></i>
-                <input type="text" id="msgFriendSearch" placeholder="Kullanıcı ara..." 
-                  style="background:none; border:none; outline:none; color:var(--yt-spec-text-primary); font-size:14px; flex:1;"
-                  oninput="searchFriendsInMessages()" />
-              </div>
-              <div id="msgFriendSearchResults" style="margin-top:8px;"></div>
+            <!-- Sekmeler: Mesajlar | Gruplar -->
+            <div style="display:flex;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:4px;">
+              <button id="msgTab-dm" onclick="switchMsgTab('dm')" style="flex:1;padding:10px;background:none;border:none;color:var(--yt-spec-text-primary);font-size:14px;font-weight:700;border-bottom:2px solid var(--yt-spec-brand-background-solid);cursor:pointer;">Mesajlar</button>
+              <button id="msgTab-groups" onclick="switchMsgTab('groups')" style="flex:1;padding:10px;background:none;border:none;color:var(--yt-spec-text-secondary);font-size:14px;font-weight:500;border-bottom:2px solid transparent;cursor:pointer;">Gruplar</button>
             </div>
-            <div class="mobile-friends-row">
-              ${friends.map(f => `
-                <div class="mobile-friend-avatar" onclick="openMobileChat(${f.friend_id},'${f.nickname.replace(/'/g,"\\'")}','${getProfilePhotoUrl(f.profile_photo)}')">
-                  <div style="position:relative;">
-                    <img src="${getProfilePhotoUrl(f.profile_photo)}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.1);" />
-                    <div class="online-dot" id="online_${f.friend_id}" style="display:none;"></div>
-                    <div id="unread_${f.friend_id}" class="unread-badge" style="display:none;position:absolute;top:-2px;right:-2px;"></div>
-                  </div>
-                  <p style="font-size:11px;text-align:center;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60px;">${f.nickname}</p>
+
+            <!-- DM Sekmesi -->
+            <div id="msgTabContent-dm">
+              <div style="padding:0 16px 12px;">
+                <div style="display:flex;gap:8px;background:rgba(255,255,255,0.06);border-radius:12px;padding:10px 14px;align-items:center;">
+                  <i class="fas fa-search" style="color:var(--yt-spec-text-secondary);font-size:14px;"></i>
+                  <input type="text" id="msgFriendSearch" placeholder="Kullanıcı ara..."
+                    style="background:none;border:none;outline:none;color:var(--yt-spec-text-primary);font-size:14px;flex:1;"
+                    oninput="searchFriendsInMessages()" />
                 </div>
-              `).join('')}
+                <div id="msgFriendSearchResults" style="margin-top:8px;"></div>
+              </div>
+              <div class="mobile-friends-row">
+                ${friends.map(f => `
+                  <div class="mobile-friend-avatar" onclick="openMobileChat(${f.friend_id},'${f.nickname.replace(/'/g,"\\'")}','${getProfilePhotoUrl(f.profile_photo)}')">
+                    <div style="position:relative;">
+                      <img src="${getProfilePhotoUrl(f.profile_photo)}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.1);" />
+                      <div class="online-dot" id="online_${f.friend_id}" style="display:none;"></div>
+                      <div id="unread_${f.friend_id}" class="unread-badge" style="display:none;position:absolute;top:-2px;right:-2px;"></div>
+                    </div>
+                    <p style="font-size:11px;text-align:center;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60px;">${f.nickname}</p>
+                  </div>
+                `).join('')}
+              </div>
+              <div style="border-top:1px solid rgba(255,255,255,0.06);">
+                ${friends.length === 0
+                  ? '<p style="padding:24px 16px;color:var(--yt-spec-text-secondary);text-align:center;">Arkadaş ekleyerek mesajlaşmaya başla</p>'
+                  : friends.map(f => `
+                    <div class="mobile-chat-row" onclick="openMobileChat(${f.friend_id},'${f.nickname.replace(/'/g,"\\'")}','${getProfilePhotoUrl(f.profile_photo)}')">
+                      <div style="position:relative;flex-shrink:0;">
+                        <img src="${getProfilePhotoUrl(f.profile_photo)}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />
+                        <div class="online-dot" id="online2_${f.friend_id}" style="display:none;"></div>
+                      </div>
+                      <div style="flex:1;min-width:0;">
+                        <p style="font-size:14px;font-weight:600;margin-bottom:2px;">${f.nickname}</p>
+                        <p class="last-msg" id="lastmsg_${f.friend_id}" style="font-size:12px;color:var(--yt-spec-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
+                      </div>
+                      <div id="unread2_${f.friend_id}" class="unread-badge" style="display:none;"></div>
+                    </div>
+                  `).join('')
+                }
+              </div>
             </div>
-            <div style="border-top:1px solid rgba(255,255,255,0.08);margin-top:8px;">
-              ${friends.length === 0
-                ? '<p style="padding:24px 16px;color:var(--yt-spec-text-secondary);text-align:center;">Arkadaş ekleyerek mesajlaşmaya başla</p>'
-                : friends.map(f => `
-                  <div class="mobile-chat-row" onclick="openMobileChat(${f.friend_id},'${f.nickname.replace(/'/g,"\\'")}','${getProfilePhotoUrl(f.profile_photo)}')">
+
+            <!-- Gruplar Sekmesi -->
+            <div id="msgTabContent-groups" style="display:none;">
+              <div style="padding:12px 16px;">
+                <button onclick="showCreateGroupModal()" style="width:100%;padding:12px;background:rgba(255,255,255,0.06);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;">
+                  <i class="fas fa-plus"></i> Yeni Grup Oluştur
+                </button>
+              </div>
+              ${groups.length === 0
+                ? '<p style="padding:24px 16px;color:var(--yt-spec-text-secondary);text-align:center;">Henüz grubun yok</p>'
+                : groups.map(g => `
+                  <div class="mobile-chat-row" onclick="openGroup(${g.id})">
                     <div style="position:relative;flex-shrink:0;">
-                      <img src="${getProfilePhotoUrl(f.profile_photo)}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />
-                      <div class="online-dot" id="online2_${f.friend_id}" style="display:none;"></div>
+                      <img src="${g.photo_url || 'data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=48 height=48%3E%3Ccircle cx=24 cy=24 r=24 fill=%23333/%3E%3C/svg%3E'}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />
+                      <span id="groupUnread_${g.id}" class="unread-badge" style="display:none;position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;font-size:10px;padding:0 4px;"></span>
                     </div>
                     <div style="flex:1;min-width:0;">
-                      <p style="font-size:14px;font-weight:600;margin-bottom:2px;">${f.nickname}</p>
-                      <p class="last-msg" id="lastmsg_${f.friend_id}" style="font-size:12px;color:var(--yt-spec-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
+                      <p style="font-size:14px;font-weight:600;margin-bottom:2px;">${g.name}</p>
+                      <p style="font-size:12px;color:var(--yt-spec-text-secondary);">${g.member_count} üye</p>
                     </div>
-                    <div id="unread2_${f.friend_id}" class="unread-badge" style="display:none;"></div>
+                    <i class="fas fa-chevron-right" style="color:var(--yt-spec-text-secondary);font-size:12px;"></i>
                   </div>
                 `).join('')
               }
             </div>
           </div>
         `;
+
+        // Grup badge'lerini dinle
+        if (window.firebaseDB && groups.length > 0) {
+          watchGroupUnreadBadges(groups.map(g => g.id));
+        }
       } else {
         pageContent.innerHTML = `
           <div class="messages-layout">
@@ -925,6 +978,20 @@ function loadMessagesPage() {
         listenFriendPresence(f.friend_id);
       });
     });
+}
+
+// Mesajlar sekme geçişi
+function switchMsgTab(tab) {
+  ['dm','groups'].forEach(t => {
+    const content = document.getElementById(`msgTabContent-${t}`);
+    const btn = document.getElementById(`msgTab-${t}`);
+    if (content) content.style.display = t === tab ? 'block' : 'none';
+    if (btn) {
+      btn.style.color = t === tab ? 'var(--yt-spec-text-primary)' : 'var(--yt-spec-text-secondary)';
+      btn.style.fontWeight = t === tab ? '700' : '500';
+      btn.style.borderBottom = t === tab ? '2px solid var(--yt-spec-brand-background-solid)' : '2px solid transparent';
+    }
+  });
 }
 
 // Mobil tam ekran chat
@@ -974,7 +1041,7 @@ function openMobileChat(friendId, friendName, friendPhoto) {
             <i class="fas fa-image"></i>
             <input type="file" id="chatPhotoInput" accept="image/*" style="display:none;" onchange="previewChatPhoto(this,${friendId})" />
           </label>
-          <textarea id="chatInput" class="chat-input chat-textarea" placeholder="Mesaj yaz..." onkeydown="handleChatKey(event,${friendId})"></textarea>
+          <textarea id="chatInput" class="chat-input chat-textarea" placeholder="Mesaj yaz..." onkeydown="handleChatKey(event,${friendId})" oninput="sendTypingStatus(${friendId},this.value.length>0)"></textarea>
           <button class="chat-send-btn" onclick="sendMessage(${friendId})"><i class="fas fa-paper-plane"></i></button>
         </div>
       </div>
@@ -1174,11 +1241,15 @@ function listenFriendPresence(friendId) {
   if (!window.firebaseDB) return;
   const presRef = window.firebaseRef(window.firebaseDB, `presence/${friendId}`);
   window.firebaseOnValue(presRef, snap => {
-    const isOnline = snap.val()?.online === true;
+    const val = snap.val();
+    // Sadece açıkça online:true ise çevrimiçi say
+    const isOnline = val !== null && val?.online === true;
     const dot = document.getElementById(`online_${friendId}`);
+    const dot2 = document.getElementById(`online2_${friendId}`);
     const item = document.getElementById(`friend_${friendId}`);
     if (dot) dot.style.display = isOnline ? 'block' : 'none';
-    if (item) item.style.opacity = isOnline ? '1' : '0.5';
+    if (dot2) dot2.style.display = isOnline ? 'block' : 'none';
+    if (item) item.style.opacity = '1'; // opacity değiştirme
   });
 }
 
@@ -1252,7 +1323,7 @@ function openChat(friendId, friendName, friendPhoto) {
           <input type="file" id="chatPhotoInput" accept="image/*" style="display:none;" onchange="previewChatPhoto(this, ${friendId})" />
         </label>
         <textarea id="chatInput" class="chat-input chat-textarea" placeholder="Mesaj yaz..."
-                  onkeydown="handleChatKey(event,${friendId})"></textarea>
+                  onkeydown="handleChatKey(event,${friendId})" oninput="sendTypingStatus(${friendId},this.value.length>0)"></textarea>
         <button class="chat-send-btn" onclick="sendMessage(${friendId})">
           <i class="fas fa-paper-plane"></i>
         </button>

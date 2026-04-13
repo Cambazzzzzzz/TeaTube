@@ -399,6 +399,13 @@ try {
   db.prepare('ALTER TABLE comments ADD COLUMN liked_by_owner INTEGER DEFAULT 0').run();
 } catch(e) {}
 
+// Mevcut yorumlar için NULL değerleri düzelt
+try {
+  db.prepare('UPDATE comments SET is_pinned = 0 WHERE is_pinned IS NULL').run();
+  db.prepare('UPDATE comments SET is_hidden = 0 WHERE is_hidden IS NULL').run();
+  db.prepare('UPDATE comments SET liked_by_owner = 0 WHERE liked_by_owner IS NULL').run();
+} catch(e) {}
+
 console.log('TeaTube veritabanı hazır!');
 
 // Video görüntülenme takip tablosu (bot koruması)

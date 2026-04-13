@@ -961,16 +961,22 @@ router.post('/watch-history', (req, res) => {
         // Etiketleri algoritma verisine ekle
         if (video.tags) {
           const tags = video.tags.split(',').map(t => t.trim());
+          
+          // Bu videoyu daha önce izlemiş mi? (2x izleme = daha yüksek ağırlık)
+          const prevWatch = db.prepare('SELECT COUNT(*) as cnt FROM watch_history WHERE user_id = ? AND video_id = ?').get(userId, videoId);
+          const isRewatch = prevWatch && prevWatch.cnt > 0;
+          const tagWeight = isRewatch ? 0.6 : 0.3; // 2. kez izleme = 2x ağırlık
+
           for (const tag of tags) {
             const existingTag = db.prepare('SELECT * FROM algorithm_data WHERE user_id = ? AND tag = ?')
               .get(userId, tag);
             
             if (existingTag) {
-              db.prepare('UPDATE algorithm_data SET weight = weight + 0.3, updated_at = datetime("now") WHERE id = ?')
-                .run(existingTag.id);
+              db.prepare('UPDATE algorithm_data SET weight = weight + ?, updated_at = datetime("now") WHERE id = ?')
+                .run(tagWeight, existingTag.id);
             } else {
-              db.prepare('INSERT INTO algorithm_data (user_id, video_type, tag, weight) VALUES (?, ?, ?, 0.3)')
-                .run(userId, video.video_type, tag);
+              db.prepare('INSERT INTO algorithm_data (user_id, video_type, tag, weight) VALUES (?, ?, ?, ?)')
+                .run(userId, video.video_type, tag, tagWeight);
             }
           }
         }
@@ -1278,6 +1284,19 @@ router.post('/comment', (req, res) => {
     }
 
     res.json({ success: true, commentId: result.lastInsertRowid });
+
+    // Yorum algoritma ağırlığını artır
+    try {
+      const video = db.prepare('SELECT video_type, tags FROM videos WHERE id = ?').get(videoId);
+      if (video && video.tags) {
+        const tags = video.tags.split(',').map(t => t.trim()).filter(Boolean);
+        for (const tag of tags) {
+          const ex = db.prepare('SELECT * FROM algorithm_data WHERE user_id = ? AND tag = ?').get(userId, tag);
+          if (ex) db.prepare('UPDATE algorithm_data SET weight = weight + 0.8, updated_at = datetime("now") WHERE id = ?').run(ex.id);
+          else db.prepare('INSERT INTO algorithm_data (user_id, video_type, tag, weight) VALUES (?, ?, ?, 0.8)').run(userId, video.video_type, tag);
+        }
+      }
+    } catch(e) {}
   } catch (error) {
     console.error('Yorum ekleme hatasÄ±:', error);
     res.status(500).json({ error: 'Yorum eklenemedi' });
