@@ -343,9 +343,14 @@ router.delete('/admin/video/:videoId', (req, res) => {
 // Video düzenle
 router.put('/admin/video/:videoId', (req, res) => {
   try {
-    const { title, description, tags } = req.body;
-    db.prepare('UPDATE videos SET title = ?, description = ?, tags = ? WHERE id = ?')
-      .run(title, description || null, tags || null, req.params.videoId);
+    const { title, description, tags, views } = req.body;
+    if (views !== undefined && views !== null && views !== '') {
+      db.prepare('UPDATE videos SET title = ?, description = ?, tags = ?, views = ? WHERE id = ?')
+        .run(title, description || null, tags || null, parseInt(views) || 0, req.params.videoId);
+    } else {
+      db.prepare('UPDATE videos SET title = ?, description = ?, tags = ? WHERE id = ?')
+        .run(title, description || null, tags || null, req.params.videoId);
+    }
     res.json({ success: true });
   } catch(e) {
     res.status(500).json({ error: 'Video düzenlenemedi' });

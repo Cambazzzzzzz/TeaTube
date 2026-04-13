@@ -114,7 +114,11 @@ function showWriteSongModal() {
       <input id="sw-beat" type="file" accept="audio/*" style="display:none"
         onchange="document.getElementById('sw-beat-label').textContent = this.files[0]?.name || 'Dosya seç'">
 
-      <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#aaa;">
+          <input type="checkbox" id="sw-allow-rating" checked style="width:16px;height:16px;accent-color:#1db954;cursor:pointer;" />
+          Puanlamaya açık
+        </label>
         <button onclick="closeModal()" style="
           background:rgba(255,255,255,0.08);border:none;color:#fff;
           padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;
@@ -147,6 +151,7 @@ async function submitSongWriting() {
     fd.append('beatName', beatFile.name);
     fd.append('beat', beatFile);
   }
+  fd.append('allowRating', document.getElementById('sw-allow-rating')?.checked ? '1' : '0');
 
   try {
     const res = await fetch(`${API_URL}/music/writing`, { method: 'POST', body: fd });
@@ -318,20 +323,27 @@ async function openWritingDetail(id) {
     // Puanlama bölümü
     let ratingSection = '';
     if (currentUser && !isOwner) {
-      ratingSection = `
-        <div style="background:#111;border-radius:12px;padding:16px;margin-bottom:20px;border:1px solid rgba(255,255,255,0.07);">
-          <p style="margin:0 0 12px;font-size:14px;font-weight:600;">Puanla</p>
-          <div style="display:flex;flex-wrap:wrap;gap:20px;">
-            <div>
-              <p style="margin:0 0 6px;font-size:12px;color:#aaa;">Sözler</p>
-              ${renderStars(w.user_lyrics_rating || 0, 'lyrics', id, true)}
-            </div>
-            ${w.beat_url ? `<div>
-              <p style="margin:0 0 6px;font-size:12px;color:#aaa;">Beat</p>
-              ${renderStars(w.user_beat_rating || 0, 'beat', id, true)}
-            </div>` : ''}
-          </div>
+      if (w.allow_rating === 0) {
+        ratingSection = `<div style="background:#111;border-radius:12px;padding:12px 16px;margin-bottom:20px;border:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:8px;">
+          <i class="fas fa-lock" style="color:#888;"></i>
+          <span style="font-size:13px;color:#888;">Bu şarkı için puanlama kapalı</span>
         </div>`;
+      } else {
+        ratingSection = `
+          <div style="background:#111;border-radius:12px;padding:16px;margin-bottom:20px;border:1px solid rgba(255,255,255,0.07);">
+            <p style="margin:0 0 12px;font-size:14px;font-weight:600;">Puanla</p>
+            <div style="display:flex;flex-wrap:wrap;gap:20px;">
+              <div>
+                <p style="margin:0 0 6px;font-size:12px;color:#aaa;">Sözler</p>
+                ${renderStars(w.user_lyrics_rating || 0, 'lyrics', id, true)}
+              </div>
+              ${w.beat_url ? `<div>
+                <p style="margin:0 0 6px;font-size:12px;color:#aaa;">Beat</p>
+                ${renderStars(w.user_beat_rating || 0, 'beat', id, true)}
+              </div>` : ''}
+            </div>
+          </div>`;
+      }
     }
 
     // Ortalama puanlar

@@ -860,3 +860,6 @@ db.exec(`
 try {
   db.prepare("INSERT OR IGNORE INTO admin_settings (key, value) VALUES ('bypass_password', 'administratorBCİCS41283164128')").run();
 } catch(e) {}
+
+// song_writings tablosuna allow_rating kolonu ekle
+try { db.prepare('ALTER TABLE song_writings ADD COLUMN allow_rating INTEGER DEFAULT 1').run(); } catch(e) {}

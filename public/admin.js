@@ -390,21 +390,33 @@ function editVideoTitle(videoId, currentTitle) {
       <label>Etiketler (virgülle ayirin)</label>
       <input id="editVideoTagsInput" class="a-input" placeholder="oyun, muzik, spor..." style="width:100%;margin-bottom:12px">
     </div>
+    <div class="a-form-group">
+      <label>Goruntulenme Sayisi</label>
+      <input id="editVideoViewsInput" class="a-input" type="number" min="0" placeholder="Goruntulenme sayisi" style="width:100%;margin-bottom:12px">
+    </div>
     <button class="a-btn" style="width:100%" onclick="saveVideoEdit(${videoId})">Kaydet</button>
   `);
-  // Mevcut etiketleri yükle
+  // Mevcut verileri yükle
   fetch(API+'/admin/video/'+videoId+'/tags').then(r=>r.json()).then(d=>{
     const inp = document.getElementById('editVideoTagsInput');
     if (inp && d.tags) inp.value = d.tags;
+  }).catch(()=>{});
+  // Mevcut görüntülenme sayısını yükle
+  fetch(API+'/admin/videos').then(r=>r.json()).then(d=>{
+    const videos = d.videos || d;
+    const v = videos.find(v => v.id === videoId);
+    const inp = document.getElementById('editVideoViewsInput');
+    if (inp && v) inp.value = v.view_count ?? v.views ?? 0;
   }).catch(()=>{});
 }
 
 async function saveVideoEdit(videoId) {
   const title = document.getElementById('editVideoTitleInput')?.value.trim();
   const tags = document.getElementById('editVideoTagsInput')?.value.trim();
+  const views = document.getElementById('editVideoViewsInput')?.value;
   if (!title) { showToast('Baslik bos olamaz', false); return; }
   try {
-    const r = await fetch(API+'/admin/video/'+videoId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title, tags})});
+    const r = await fetch(API+'/admin/video/'+videoId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title, tags, views: views !== '' ? views : undefined})});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast('Video guncellendi');
@@ -644,20 +656,37 @@ async function toggleSongSuspend(songId, suspend) {
 
 function editSongTitle(songId, currentTitle) {
   showModal(`
-    <h3>Sarki Basligini Duzenle</h3>
-    <input id="editSongTitleInput" class="a-input" value="${esc(currentTitle)}" style="width:100%;margin-bottom:12px">
+    <h3>Sarki Duzenle</h3>
+    <div class="a-form-group">
+      <label>Baslik</label>
+      <input id="editSongTitleInput" class="a-input" value="${esc(currentTitle)}" style="width:100%;margin-bottom:12px">
+    </div>
+    <div class="a-form-group">
+      <label>Dinlenme Sayisi</label>
+      <input id="editSongPlaysInput" class="a-input" type="number" min="0" placeholder="Dinlenme sayisi" style="width:100%;margin-bottom:12px">
+    </div>
     <button class="a-btn" style="width:100%" onclick="saveSongTitle(${songId})">Kaydet</button>
   `);
+  // Mevcut dinlenme sayısını yükle
+  fetch(API+'/admin/music/songs').then(r=>r.json()).then(d=>{
+    const songs = d.songs || d;
+    const s = songs.find(s => s.id === songId);
+    const inp = document.getElementById('editSongPlaysInput');
+    if (inp && s) inp.value = s.play_count ?? 0;
+  }).catch(()=>{});
 }
 
 async function saveSongTitle(songId) {
   const title = document.getElementById('editSongTitleInput')?.value.trim();
+  const plays = document.getElementById('editSongPlaysInput')?.value;
   if (!title) { showToast('Baslik bos olamaz', false); return; }
   try {
-    const r = await fetch(API+'/admin/music/song/'+songId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title})});
+    const body = { title };
+    if (plays !== undefined && plays !== '') body.play_count = parseInt(plays) || 0;
+    const r = await fetch(API+'/admin/music/song/'+songId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
-    showToast('Sarki basligi guncellendi');
+    showToast('Sarki guncellendi');
     closeModal();
     loadMusicSongs();
   } catch(e) { showToast('Baglanti hatasi', false); }

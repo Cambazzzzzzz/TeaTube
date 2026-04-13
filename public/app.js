@@ -2790,7 +2790,7 @@ async function loadMobileHomePage() {
                   <img src="${getProfilePhotoUrl(v.profile_photo)}" class="insta-post-avatar" onerror="onProfilePhotoError(this)" />
                   <div style="flex:1;min-width:0">
                     <p style="font-size:13px;font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.channel_name}${redVerifiedBadge(v.is_red_verified, 11)}</p>
-                    <p style="font-size:11px;color:var(--yt-spec-text-secondary);margin:0">${v.views} görüntülenme</p>
+                    <p style="font-size:11px;color:var(--yt-spec-text-secondary);margin:0">${formatNumber(v.views)} görüntülenme</p>
                   </div>
                 </div>
                 <div style="aspect-ratio:16/9;overflow:hidden;background:#111">
@@ -2985,7 +2985,7 @@ function renderShortsGrid(shorts, containerId) {
       </div>
       <div class="short-card-info">
         <p class="short-card-title">${v.title}</p>
-        <p class="short-card-meta">${v.views} görüntülenme</p>
+        <p class="short-card-meta">${formatNumber(v.views)} görüntülenme</p>
       </div>
     </div>
   `).join('');
@@ -3159,7 +3159,7 @@ function displayVideos(videos, containerId) {
             <div class="video-title">${video.title}</div>
             <div class="video-channel">${video.channel_name}${redVerifiedBadge(video.is_red_verified)}</div>
             <div class="video-metadata">
-              <span>${video.views} görüntülenme</span>
+              <span>${formatNumber(video.views)} görüntülenme</span>
               <span>•</span>
               <span>${video.likes} beğeni</span>
             </div>
@@ -3345,7 +3345,7 @@ async function playVideo(videoId) {
           <!-- Meta + Aksiyonlar -->
           <div class="watch-meta-row">
             <div class="watch-meta-info">
-              <span><i class="fas fa-eye"></i> ${video.views} görüntülenme</span>
+              <span><i class="fas fa-eye"></i> ${formatNumber(video.views)} görüntülenme</span>
               <span style="margin-left:16px; color: var(--yt-spec-text-secondary);">${video.created_at ? video.created_at.substring(0,10) : ''}</span>
             </div>
             <div class="watch-actions">
@@ -6534,11 +6534,11 @@ function createVideoCard(video) {
 
 // Sayı formatlama
 function formatNumber(num) {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
-  }
+  if (!num && num !== 0) return '0';
+  num = parseInt(num) || 0;
+  if (num >= 1000000000) return (num / 1000000000).toFixed(1).replace('.0','') + 'MR';
+  if (num >= 1000000)    return (num / 1000000).toFixed(1).replace('.0','') + 'M';
+  if (num >= 1000)       return (num / 1000).toFixed(1).replace('.0','') + 'B';
   return num.toString();
 }
 
@@ -7179,6 +7179,7 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
         <h2 style="font-size:22px;font-weight:700"><i class="fas fa-music" style="color:#1db954;margin-right:8px"></i>TS Music</h2>
         <div style="display:flex;gap:8px">
           <button class="yt-btn" onclick="showTSMusicSearch()" style="background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)"><i class="fas fa-search"></i></button>
+          <button class="yt-btn" onclick="loadSongWritingsPage()" style="background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)" title="Yazılan Şarkılar"><i class="fas fa-book-open"></i></button>
           <button class="yt-btn" onclick="showMyPlaylists()" style="background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)"><i class="fas fa-list"></i></button>
         </div>
       </div>
@@ -7219,7 +7220,7 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
 }
 
 function renderTSSongRow(s) {
-  const playCount = s.show_play_count ? `<span class="song-play-count" style="font-size:11px;color:var(--yt-spec-text-secondary)">${s.play_count || 0} dinlenme</span>` : '';
+  const playCount = s.show_play_count ? `<span class="song-play-count" style="font-size:11px;color:var(--yt-spec-text-secondary)">${formatNumber(s.play_count || 0)} dinlenme</span>` : '';
   return `
     <div data-song-id="${s.id}" onclick="playSong(${s.id})" style="display:flex;align-items:center;gap:12px;padding:8px;border-radius:10px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
       <img src="${s.cover_url}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=48 height=48%3E%3Crect width=48 height=48 fill=%23333/%3E%3C/svg%3E'" />
@@ -7228,6 +7229,7 @@ function renderTSSongRow(s) {
         <p style="font-size:12px;color:var(--yt-spec-text-secondary);display:flex;align-items:center;gap:3px">${s.artist_name || ''}<i class="fas fa-check-circle" style="color:#1db954;font-size:10px"></i></p>
       </div>
       ${playCount}
+      ${s.lyrics ? `<button onclick="event.stopPropagation();showSongLyrics(${s.id},'${(s.title||'').replace(/'/g,"\\'")}','${(s.lyrics||'').replace(/'/g,"\\'").replace(/\n/g,'\\n')}')" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:4px 8px" title="Şarkı Sözleri"><i class="fas fa-book-open"></i></button>` : ''}
       <button onclick="event.stopPropagation();addToPlaylistPrompt(${s.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:4px 8px"><i class="fas fa-plus"></i></button>
     </div>`;
 }
@@ -7399,7 +7401,7 @@ async function loadMySongsPage() {
                 <img src="${s.cover_url}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer" onclick="playSong(${s.id})" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=44 height=44%3E%3Crect width=44 height=44 fill=%23333/%3E%3C/svg%3E'" />
                 <div style="flex:1;min-width:0;cursor:pointer" onclick="playSong(${s.id})">
                   <p style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title}</p>
-                  <p style="font-size:12px;color:var(--yt-spec-text-secondary)">${s.play_count || 0} dinlenme</p>
+                  <p style="font-size:12px;color:var(--yt-spec-text-secondary)">${formatNumber(s.play_count || 0)} dinlenme</p>
                 </div>
                 <button onclick="editMySong(${s.id},'${s.title.replace(/'/g,"\\'")}','${s.cover_url}','${s.genre||''}','${s.lyrics||''}')" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:6px 8px;border-radius:8px;font-size:14px" title="Düzenle"><i class="fas fa-edit"></i></button>
                 <button onclick="deleteMySong(${s.id},'${s.title.replace(/'/g,"\\'")}',this)" style="background:none;border:none;color:rgba(255,0,0,0.5);cursor:pointer;padding:6px 8px;border-radius:8px;font-size:14px" title="Sil"><i class="fas fa-trash"></i></button>
@@ -7484,6 +7486,20 @@ async function viewArtistPage(artistId) {
         </div>
       </div>`;
   } catch(e) { pageContent.innerHTML = '<p>Hata oluştu</p>'; }
+}
+
+// Şarkı sözlerini modal'da göster
+function showSongLyrics(songId, title, lyrics) {
+  const lyricsText = lyrics.replace(/\\n/g, '\n');
+  showModal(`
+    <div style="max-height:70vh;overflow-y:auto;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <i class="fas fa-book-open" style="color:#1db954;font-size:20px;"></i>
+        <h3 style="margin:0;font-size:17px;font-weight:700;">${title}</h3>
+      </div>
+      <div style="background:#fff;color:#111;border-radius:12px;padding:20px;white-space:pre-wrap;font-size:15px;line-height:1.8;font-family:'Courier New',monospace;">${lyricsText.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+    </div>
+  `);
 }
 
 async function showMyPlaylists() {

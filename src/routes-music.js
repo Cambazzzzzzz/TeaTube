@@ -426,8 +426,8 @@ router.post('/music/writing', upload.single('beat'), async (req, res) => {
     }
 
     const result = db.prepare(
-      'INSERT INTO song_writings (artist_id, title, lyrics, beat_url, beat_name, genre) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(artist.id, title, lyrics, beatUrl, beatName || null, genre || null);
+      'INSERT INTO song_writings (artist_id, title, lyrics, beat_url, beat_name, genre, allow_rating) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(artist.id, title, lyrics, beatUrl, beatName || null, genre || null, req.body.allowRating !== '0' ? 1 : 0);
 
     res.json({ success: true, writingId: result.lastInsertRowid });
   } catch(e) {
@@ -546,6 +546,12 @@ router.post('/music/writing/:id/rate', (req, res) => {
   try {
     const { userId, beatRating, lyricsRating } = req.body;
     if (!userId) return res.status(400).json({ error: 'Kullanıcı gerekli' });
+
+    // allow_rating kontrolü
+    const writing = db.prepare('SELECT allow_rating FROM song_writings WHERE id = ?').get(req.params.id);
+    if (writing && writing.allow_rating === 0) {
+      return res.status(403).json({ error: 'Bu şarkı için puanlama kapalı' });
+    }
 
     const existing = db.prepare('SELECT id FROM song_writing_ratings WHERE writing_id = ? AND user_id = ?').get(req.params.id, userId);
     if (existing) {
