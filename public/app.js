@@ -2093,14 +2093,14 @@ function renderShortsPlayer() {
             </div>
           </div>
 
-          <!-- Ses Kontrolü (sol üst) - z-index yüksek, kayma yok -->
-          <div style="position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:8px;z-index:20;" onclick="event.stopPropagation()" onmouseenter="showVolumeSlider()" ontouchstart="showVolumeSlider()">
-            <button id="shortMuteBtn" onclick="toggleShortMute()" style="background:rgba(0,0,0,0.6);border:none;color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);-webkit-tap-highlight-color:transparent;flex-shrink:0;">
+          <!-- Ses Kontrolü (sol üst) - sabit pozisyon, kayma yok -->
+          <div style="position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:6px;z-index:20;pointer-events:auto;" onclick="event.stopPropagation()">
+            <button id="shortMuteBtn" onclick="toggleShortMute()" style="background:rgba(0,0,0,0.55);border:none;color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);-webkit-tap-highlight-color:transparent;flex-shrink:0;">
               <i class="fas fa-volume-up" id="shortMuteIcon"></i>
             </button>
             <input type="range" id="shortVolumeSlider" min="0" max="100" value="100"
               oninput="setShortVolume(this.value)"
-              style="width:80px;height:4px;accent-color:#ff0033;cursor:pointer;opacity:0;transition:opacity 0.2s;pointer-events:none;flex-shrink:0;"
+              style="width:70px;height:4px;accent-color:#ff0033;cursor:pointer;flex-shrink:0;opacity:1;"
               class="short-vol-slider" />
           </div>
 
@@ -2294,15 +2294,9 @@ function setShortVolume(val) {
 }
 
 function showVolumeSlider() {
+  // Slider artık her zaman görünür, bu fonksiyon sadece uyumluluk için
   const slider = document.getElementById('shortVolumeSlider');
-  if (!slider) return;
-  slider.style.opacity = '1';
-  slider.style.pointerEvents = 'auto';
-  clearTimeout(window._volHideTimer);
-  window._volHideTimer = setTimeout(() => {
-    slider.style.opacity = '0';
-    slider.style.pointerEvents = 'none';
-  }, 2000);
+  if (slider) { slider.style.opacity = '1'; slider.style.pointerEvents = 'auto'; }
 }
 
 // ==================== PAYLAŞ ====================
@@ -3280,7 +3274,7 @@ async function showPhotoPage(video) {
             <div style="display:flex; gap:10px; margin-bottom:16px;">
               <img src="${getProfilePhotoUrl(currentUser.profile_photo)}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; flex-shrink:0;" />
               <div style="flex:1; display:flex; gap:8px;">
-                <input type="text" id="commentInput" class="yt-input" placeholder="Yorum ekle..." style="margin-bottom:0; height:36px;" />
+                <input type="text" id="commentInput" class="yt-input" placeholder="Yorum ekle..." style="margin-bottom:0; height:36px;" onkeydown="if(event.key==='Enter'){event.preventDefault();addComment(${video.id})}" />
                 <button class="yt-btn" onclick="addComment(${video.id})" style="height:36px; padding:0 14px; font-size:13px;">Gönder</button>
               </div>
             </div>
@@ -3396,7 +3390,7 @@ async function playVideo(videoId) {
               <div style="display:flex; gap:12px; margin-bottom:24px;">
                 <img src="${getProfilePhotoUrl(currentUser.profile_photo)}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; flex-shrink:0;" />
                 <div style="flex:1; display:flex; gap:8px;">
-                  <input type="text" id="commentInput" class="yt-input" placeholder="Yorum ekle..." style="margin-bottom:0;" />
+                  <input type="text" id="commentInput" class="yt-input" placeholder="Yorum ekle..." style="margin-bottom:0;" onkeydown="if(event.key==='Enter'){event.preventDefault();addComment(${video.id})}" />
                   <button class="yt-btn" onclick="addComment(${video.id})">Gönder</button>
                 </div>
               </div>
@@ -3689,6 +3683,11 @@ async function loadComments(videoId, videoOwnerId = null) {
 
     const commentsList = document.getElementById('commentsList');
     if (!commentsList) return;
+
+    if (!response.ok) {
+      commentsList.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:8px 0;font-size:13px;">Yorumlar yüklenemedi</p>';
+      return;
+    }
     
     if (comments.length === 0) {
       commentsList.innerHTML = '<p style="color: var(--yt-spec-text-secondary); padding: 16px 0;">Henüz yorum yok. İlk yorumu sen yap!</p>';
@@ -3703,6 +3702,8 @@ async function loadComments(videoId, videoOwnerId = null) {
     commentsList.innerHTML = sortedComments.map(c => renderComment(c, videoId, false, videoOwnerId)).join('');
   } catch (error) {
     console.error('Yorumlar yükleme hatası:', error);
+    const commentsList = document.getElementById('commentsList');
+    if (commentsList) commentsList.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:8px 0;font-size:13px;">Yorumlar yüklenemedi</p>';
   }
 }
 
@@ -7134,10 +7135,22 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
   let topBanner = '';
   if (isArtist) {
     topBanner = `
-      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-        <button class="yt-btn" onclick="showUploadSongModal()"><i class="fas fa-upload" style="margin-right:6px"></i>Şarkı Yükle</button>
-        <button class="yt-btn" onclick="showWriteSongModal()" style="background:linear-gradient(135deg,#1db954,#17a349);color:#fff"><i class="fas fa-pen" style="margin-right:6px"></i>Şarkı Yaz</button>
-        <button class="yt-btn" onclick="showMyWritings()" style="background:rgba(29,185,84,0.15);color:#1db954;border:1px solid rgba(29,185,84,0.3)"><i class="fas fa-book-open" style="margin-right:6px"></i>Yazılarım</button>
+      <div style="display:flex;gap:10px;margin-bottom:20px;padding:14px 16px;background:rgba(29,185,84,0.08);border-radius:14px;border:1px solid rgba(29,185,84,0.2);align-items:center;flex-wrap:wrap;">
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:13px;font-weight:700;color:#1db954;margin:0 0 2px;"><i class="fas fa-check-circle" style="margin-right:5px;"></i>Artist Hesabı</p>
+          <p style="font-size:12px;color:var(--yt-spec-text-secondary);margin:0;">Şarkı yükle, yaz ve paylaş</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          <button onclick="showUploadSongModal()" style="background:#1db954;border:none;color:#000;font-weight:700;padding:8px 16px;border-radius:20px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent">
+            <i class="fas fa-upload"></i> Yükle
+          </button>
+          <button onclick="showWriteSongModal()" style="background:rgba(29,185,84,0.15);border:1px solid rgba(29,185,84,0.4);color:#1db954;font-weight:600;padding:8px 16px;border-radius:20px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent">
+            <i class="fas fa-pen"></i> Yaz
+          </button>
+          <button onclick="showMyWritings()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--yt-spec-text-secondary);font-weight:500;padding:8px 14px;border-radius:20px;cursor:pointer;font-size:13px;-webkit-tap-highlight-color:transparent">
+            <i class="fas fa-book-open"></i>
+          </button>
+        </div>
       </div>`;
   } else if (hasPending) {
     topBanner = `<div style="background:rgba(255,200,0,0.1);border:1px solid rgba(255,200,0,0.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#ffc800"><i class="fas fa-clock" style="margin-right:6px"></i>Başvurunuz inceleniyor...</div>`;
