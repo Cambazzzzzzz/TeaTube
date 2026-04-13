@@ -2671,28 +2671,29 @@ async function loadMobileHomePage() {
 
         <!-- Normal Videolar -->
         ${normalVideos.length > 0 ? `
-          <div style="padding:0 12px;margin-bottom:8px">
-            <h3 style="font-size:14px;font-weight:600;color:var(--yt-spec-text-secondary);margin-bottom:8px">Videolar</h3>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              ${normalVideos.slice(0,10).map(v => `
-                <div onclick="playVideo(${v.id})" style="display:flex;gap:10px;cursor:pointer;padding:6px;border-radius:10px;background:var(--yt-spec-raised-background)">
-                  <img src="${v.banner_url}" style="width:100px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0" />
+          <div style="margin-bottom:4px">
+            ${normalVideos.slice(0,10).map(v => `
+              <div onclick="playVideo(${v.id})" class="insta-post-card">
+                <div class="insta-post-header">
+                  <img src="${getProfilePhotoUrl(v.profile_photo)}" class="insta-post-avatar" onerror="onProfilePhotoError(this)" />
                   <div style="flex:1;min-width:0">
-                    <p style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.title}</p>
-                    <p style="font-size:11px;color:var(--yt-spec-text-secondary);margin-top:2px">${v.channel_name}</p>
-                    <p style="font-size:11px;color:var(--yt-spec-text-secondary)">${v.views} görüntülenme</p>
+                    <p style="font-size:13px;font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.channel_name}${redVerifiedBadge(v.is_red_verified, 11)}</p>
+                    <p style="font-size:11px;color:var(--yt-spec-text-secondary);margin:0">${v.views} görüntülenme</p>
                   </div>
                 </div>
-              `).join('')}
-            </div>
+                <div style="aspect-ratio:16/9;overflow:hidden;background:#111">
+                  <img src="${v.banner_url}" style="width:100%;height:100%;object-fit:cover;display:block" loading="lazy" />
+                </div>
+                <div style="padding:8px 12px 12px">
+                  <p style="font-size:13px;font-weight:600;margin:0 0 2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${v.title}</p>
+                </div>
+              </div>
+            `).join('')}
           </div>
         ` : ''}
 
         <!-- Fotoğraf Grid -->
         ${photoItems.length > 0 ? `
-          <div style="padding:0 12px;margin-bottom:8px">
-            <h3 style="font-size:14px;font-weight:600;color:var(--yt-spec-text-secondary);margin-bottom:8px">Fotoğraflar</h3>
-          </div>
           <div class="mobile-photo-grid">
             ${photoItems.map(v => `
               <div class="mobile-photo-item" onclick="playVideo(${v.id})">
