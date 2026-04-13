@@ -2746,9 +2746,10 @@ body {
   height: 64px;
   border-radius: 50%;
   padding: 2.5px;
-  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  background: linear-gradient(45deg, var(--yt-spec-brand-background-solid), var(--yt-spec-brand-background-hover, #cc0000), var(--yt-spec-brand-background-solid));
   box-shadow: 0 0 0 1px var(--yt-spec-base-background);
   transition: transform 0.15s;
+  cursor: pointer;
 }
 .mobile-story:active .mobile-story-ring { transform: scale(0.93); }
 .mobile-story-ring.watched {

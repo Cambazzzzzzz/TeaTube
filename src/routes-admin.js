@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const db = require('./database');
 const bcrypt = require('bcrypt');
@@ -9,45 +9,45 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // ==================== ADMIN AUTH ====================
 
-// Admin giriş
+// Admin giriÅ
 router.post('/admin/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get(username);
-    if (!admin) return res.status(401).json({ error: 'Hatalı kullanıcı adı veya şifre' });
+    if (!admin) return res.status(401).json({ error: 'HatalÄ± kullanÄ±cÄ± adÄ± veya Åifre' });
     const valid = await bcrypt.compare(password, admin.password);
-    if (!valid) return res.status(401).json({ error: 'Hatalı kullanıcı adı veya şifre' });
+    if (!valid) return res.status(401).json({ error: 'HatalÄ± kullanÄ±cÄ± adÄ± veya Åifre' });
     const { password: _, ...adminData } = admin;
     res.json({ success: true, admin: adminData });
   } catch(e) {
-    res.status(500).json({ error: 'Giriş hatası' });
+    res.status(500).json({ error: 'GiriÅ hatasÄ±' });
   }
 });
 
-// Admin şifre değiştir
+// Admin Åifre deÄiÅtir
 router.put('/admin/password', async (req, res) => {
   try {
     const { adminId, oldPassword, newPassword } = req.body;
     const admin = db.prepare('SELECT * FROM admins WHERE id = ?').get(adminId);
-    if (!admin) return res.status(404).json({ error: 'Admin bulunamadı' });
+    if (!admin) return res.status(404).json({ error: 'Admin bulunamadÄ±' });
     const valid = await bcrypt.compare(oldPassword, admin.password);
-    if (!valid) return res.status(401).json({ error: 'Eski şifre hatalı' });
+    if (!valid) return res.status(401).json({ error: 'Eski Åifre hatalÄ±' });
     const hashed = await bcrypt.hash(newPassword, 10);
     db.prepare('UPDATE admins SET password = ? WHERE id = ?').run(hashed, adminId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Şifre değiştirilemedi' });
+    res.status(500).json({ error: 'Åifre deÄiÅtirilemedi' });
   }
 });
 
-// Admin mevcut şifreyi göster (hash olarak)
+// Admin mevcut Åifreyi gÃ¶ster (hash olarak)
 router.get('/admin/info/:adminId', (req, res) => {
   try {
     const admin = db.prepare('SELECT id, username, password, created_at FROM admins WHERE id = ?').get(req.params.adminId);
-    if (!admin) return res.status(404).json({ error: 'Admin bulunamadı' });
+    if (!admin) return res.status(404).json({ error: 'Admin bulunamadÄ±' });
     res.json(admin);
   } catch(e) {
-    res.status(500).json({ error: 'Bilgi alınamadı' });
+    res.status(500).json({ error: 'Bilgi alÄ±namadÄ±' });
   }
 });
 
@@ -71,13 +71,13 @@ router.get('/admin/stats', (req, res) => {
       totalPersonal, totalSongs, totalArtists, pendingApplications, bannedIPs
     });
   } catch(e) {
-    res.status(500).json({ error: 'İstatistikler alınamadı' });
+    res.status(500).json({ error: 'Ä°statistikler alÄ±namadÄ±' });
   }
 });
 
-// ==================== KULLANICI YÖNETİMİ ====================
+// ==================== KULLANICI YÃNETÄ°MÄ° ====================
 
-// Tüm kullanıcılar
+// TÃ¼m kullanÄ±cÄ±lar
 router.get('/admin/users', (req, res) => {
   try {
     const { q, page = 1, limit = 30 } = req.query;
@@ -97,11 +97,11 @@ router.get('/admin/users', (req, res) => {
     const users = db.prepare(query).all(...params);
     res.json(users);
   } catch(e) {
-    res.status(500).json({ error: 'Kullanıcılar alınamadı' });
+    res.status(500).json({ error: 'KullanÄ±cÄ±lar alÄ±namadÄ±' });
   }
 });
 
-// Kullanıcı detayı
+// KullanÄ±cÄ± detayÄ±
 router.get('/admin/user/:userId', (req, res) => {
   try {
     const user = db.prepare(`
@@ -109,67 +109,67 @@ router.get('/admin/user/:userId', (req, res) => {
       FROM users u LEFT JOIN channels c ON c.user_id = u.id
       WHERE u.id = ?
     `).get(req.params.userId);
-    if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+    if (!user) return res.status(404).json({ error: 'KullanÄ±cÄ± bulunamadÄ±' });
     res.json(user);
   } catch(e) {
-    res.status(500).json({ error: 'Kullanıcı alınamadı' });
+    res.status(500).json({ error: 'KullanÄ±cÄ± alÄ±namadÄ±' });
   }
 });
 
-// Kullanıcı giriş denemeleri (şifresiz)
+// KullanÄ±cÄ± giriÅ denemeleri (Åifresiz)
 router.get('/admin/user/:userId/login-attempts', (req, res) => {
   try {
     const user = db.prepare('SELECT username FROM users WHERE id = ?').get(req.params.userId);
-    if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+    if (!user) return res.status(404).json({ error: 'KullanÄ±cÄ± bulunamadÄ±' });
     const attempts = db.prepare(
       'SELECT ip_address, success, attempted_at FROM login_attempts WHERE username = ? ORDER BY attempted_at DESC LIMIT 100'
     ).all(user.username);
     res.json(attempts);
   } catch(e) {
-    res.status(500).json({ error: 'Denemeler alınamadı' });
+    res.status(500).json({ error: 'Denemeler alÄ±namadÄ±' });
   }
 });
 
-// Kullanıcı mesajları
+// KullanÄ±cÄ± mesajlarÄ±
 router.get('/admin/user/:userId/messages', (req, res) => {
   try {
-    // Firebase mesajları DB'de olmadığı için sadece bildirim geçmişini döndür
+    // Firebase mesajlarÄ± DB'de olmadÄ±ÄÄ± iÃ§in sadece bildirim geÃ§miÅini dÃ¶ndÃ¼r
     const notifs = db.prepare(
       'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50'
     ).all(req.params.userId);
     res.json(notifs);
   } catch(e) {
-    res.status(500).json({ error: 'Mesajlar alınamadı' });
+    res.status(500).json({ error: 'Mesajlar alÄ±namadÄ±' });
   }
 });
 
-// Kullanıcı askıya al / aktif et
+// KullanÄ±cÄ± askÄ±ya al / aktif et
 router.put('/admin/user/:userId/suspend', (req, res) => {
   try {
     const { suspend, reason } = req.body;
     const userId = req.params.userId;
     
-    // Kullanıcıyı askıya al/kaldır
+    // KullanÄ±cÄ±yÄ± askÄ±ya al/kaldÄ±r
     db.prepare('UPDATE users SET is_suspended = ?, suspend_reason = ? WHERE id = ?')
       .run(suspend ? 1 : 0, reason || null, userId);
     
     if (suspend) {
-      // Tüm videolarını askıya al
+      // TÃ¼m videolarÄ±nÄ± askÄ±ya al
       db.prepare('UPDATE videos SET is_suspended = 1 WHERE channel_id IN (SELECT id FROM channels WHERE user_id = ?)').run(userId);
-      // Tüm gruplardan çıkar (owner değilse)
+      // TÃ¼m gruplardan Ã§Ä±kar (owner deÄilse)
       db.prepare('DELETE FROM group_members WHERE user_id = ? AND role != "owner"').run(userId);
     } else {
-      // Askıyı kaldırınca videoları da geri getir
+      // AskÄ±yÄ± kaldÄ±rÄ±nca videolarÄ± da geri getir
       db.prepare('UPDATE videos SET is_suspended = 0 WHERE channel_id IN (SELECT id FROM channels WHERE user_id = ?)').run(userId);
     }
     
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'İşlem başarısız' });
+    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
   }
 });
 
-// Kullanıcı şifresini değiştir
+// KullanÄ±cÄ± Åifresini deÄiÅtir
 router.put('/admin/user/:userId/password', async (req, res) => {
   try {
     const { newPassword } = req.body;
@@ -177,17 +177,17 @@ router.put('/admin/user/:userId/password', async (req, res) => {
     db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashed, req.params.userId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Şifre değiştirilemedi' });
+    res.status(500).json({ error: 'Åifre deÄiÅtirilemedi' });
   }
 });
 
-// Kullanıcı isim/nickname değiştir (admin)
+// KullanÄ±cÄ± isim/nickname deÄiÅtir (admin)
 router.put('/admin/user/:userId/rename', (req, res) => {
   try {
     const { username, nickname } = req.body;
     if (username) {
       const existing = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(username, req.params.userId);
-      if (existing) return res.status(400).json({ error: 'Bu kullanıcı adı zaten kullanılıyor' });
+      if (existing) return res.status(400).json({ error: 'Bu kullanÄ±cÄ± adÄ± zaten kullanÄ±lÄ±yor' });
       db.prepare('UPDATE users SET username = ? WHERE id = ?').run(username, req.params.userId);
     }
     if (nickname) {
@@ -195,21 +195,21 @@ router.put('/admin/user/:userId/rename', (req, res) => {
     }
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'İsim değiştirilemedi' });
+    res.status(500).json({ error: 'Ä°sim deÄiÅtirilemedi' });
   }
 });
 
-// Kullanıcı sil
+// KullanÄ±cÄ± sil
 router.delete('/admin/user/:userId', (req, res) => {
   try {
     db.prepare('DELETE FROM users WHERE id = ?').run(req.params.userId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Kullanıcı silinemedi' });
+    res.status(500).json({ error: 'KullanÄ±cÄ± silinemedi' });
   }
 });
 
-// Kullanıcıya yasak ekle (mesaj/yorum/video)
+// KullanÄ±cÄ±ya yasak ekle (mesaj/yorum/video)
 router.post('/admin/user/:userId/ban', (req, res) => {
   try {
     const { banType, reason, isPermanent, bannedUntil } = req.body;
@@ -221,23 +221,23 @@ router.post('/admin/user/:userId/ban', (req, res) => {
   }
 });
 
-// Kullanıcı yasaklarını getir
+// KullanÄ±cÄ± yasaklarÄ±nÄ± getir
 router.get('/admin/user/:userId/bans', (req, res) => {
   try {
     const bans = db.prepare('SELECT * FROM user_bans WHERE user_id = ?').all(req.params.userId);
     res.json(bans);
   } catch(e) {
-    res.status(500).json({ error: 'Yasaklar alınamadı' });
+    res.status(500).json({ error: 'Yasaklar alÄ±namadÄ±' });
   }
 });
 
-// Yasak kaldır
+// Yasak kaldÄ±r
 router.delete('/admin/ban/:banId', (req, res) => {
   try {
     db.prepare('DELETE FROM user_bans WHERE id = ?').run(req.params.banId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Yasak kaldırılamadı' });
+    res.status(500).json({ error: 'Yasak kaldÄ±rÄ±lamadÄ±' });
   }
 });
 
@@ -249,27 +249,27 @@ router.post('/admin/ip-ban', (req, res) => {
     db.prepare('INSERT OR REPLACE INTO ip_blocks (ip_address, blocked_until) VALUES (?, ?)').run(ip, until);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'IP banlanamadı' });
+    res.status(500).json({ error: 'IP banlanamadÄ±' });
   }
 });
 
-// IP ban kaldır
+// IP ban kaldÄ±r
 router.delete('/admin/ip-ban/:ip', (req, res) => {
   try {
     db.prepare('DELETE FROM ip_blocks WHERE ip_address = ?').run(decodeURIComponent(req.params.ip));
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Ban kaldırılamadı' });
+    res.status(500).json({ error: 'Ban kaldÄ±rÄ±lamadÄ±' });
   }
 });
 
-// Tüm IP banları + POST ile yeni ban ekle
+// TÃ¼m IP banlarÄ± + POST ile yeni ban ekle
 router.get('/admin/ip-bans', (req, res) => {
   try {
     const bans = db.prepare("SELECT * FROM ip_blocks ORDER BY created_at DESC").all();
     res.json(bans);
   } catch(e) {
-    res.status(500).json({ error: 'Banlar alınamadı' });
+    res.status(500).json({ error: 'Banlar alÄ±namadÄ±' });
   }
 });
 
@@ -281,7 +281,7 @@ router.post('/admin/ip-bans', (req, res) => {
     db.prepare('INSERT OR REPLACE INTO ip_blocks (ip_address, blocked_until) VALUES (?, ?)').run(ip, until);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'IP banlanamadı' });
+    res.status(500).json({ error: 'IP banlanamadÄ±' });
   }
 });
 
@@ -290,13 +290,13 @@ router.delete('/admin/ip-bans/:id', (req, res) => {
     db.prepare('DELETE FROM ip_blocks WHERE id = ?').run(req.params.id);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Ban kaldırılamadı' });
+    res.status(500).json({ error: 'Ban kaldÄ±rÄ±lamadÄ±' });
   }
 });
 
-// ==================== VİDEO YÖNETİMİ ====================
+// ==================== VÄ°DEO YÃNETÄ°MÄ° ====================
 
-// Tüm videolar
+// TÃ¼m videolar
 router.get('/admin/videos', (req, res) => {
   try {
     const { q, page = 1, limit = 30 } = req.query;
@@ -314,11 +314,11 @@ router.get('/admin/videos', (req, res) => {
     const videos = db.prepare(query).all(...params);
     res.json(videos);
   } catch(e) {
-    res.status(500).json({ error: 'Videolar alınamadı' });
+    res.status(500).json({ error: 'Videolar alÄ±namadÄ±' });
   }
 });
 
-// Video askıya al / aktif et
+// Video askÄ±ya al / aktif et
 router.put('/admin/video/:videoId/suspend', (req, res) => {
   try {
     const { suspend } = req.body;
@@ -326,7 +326,7 @@ router.put('/admin/video/:videoId/suspend', (req, res) => {
       .run(suspend ? 1 : 0, suspend ? 1 : 0, req.params.videoId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'İşlem başarısız' });
+    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
   }
 });
 
@@ -340,7 +340,7 @@ router.delete('/admin/video/:videoId', (req, res) => {
   }
 });
 
-// Video düzenle
+// Video dÃ¼zenle
 router.put('/admin/video/:videoId', (req, res) => {
   try {
     const { title, description, tags, views } = req.body;
@@ -353,7 +353,7 @@ router.put('/admin/video/:videoId', (req, res) => {
     }
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Video düzenlenemedi' });
+    res.status(500).json({ error: 'Video dÃ¼zenlenemedi' });
   }
 });
 
@@ -363,13 +363,13 @@ router.get('/admin/video/:videoId/tags', (req, res) => {
     const video = db.prepare('SELECT tags FROM videos WHERE id = ?').get(req.params.videoId);
     res.json({ tags: video?.tags || '' });
   } catch(e) {
-    res.status(500).json({ error: 'Etiketler alınamadı' });
+    res.status(500).json({ error: 'Etiketler alÄ±namadÄ±' });
   }
 });
 
-// ==================== KANAL YÖNETİMİ ====================
+// ==================== KANAL YÃNETÄ°MÄ° ====================
 
-// Tüm kanallar
+// TÃ¼m kanallar
 router.get('/admin/channels', (req, res) => {
   try {
     const { type } = req.query;
@@ -385,11 +385,11 @@ router.get('/admin/channels', (req, res) => {
     const channels = db.prepare(query).all();
     res.json(channels);
   } catch(e) {
-    res.status(500).json({ error: 'Kanallar alınamadı' });
+    res.status(500).json({ error: 'Kanallar alÄ±namadÄ±' });
   }
 });
 
-// Kanal düzenle
+// Kanal dÃ¼zenle
 router.put('/admin/channel/:channelId', (req, res) => {
   try {
     const { channel_name, about, account_type } = req.body;
@@ -397,13 +397,13 @@ router.put('/admin/channel/:channelId', (req, res) => {
       .run(channel_name, about, account_type, req.params.channelId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Kanal düzenlenemedi' });
+    res.status(500).json({ error: 'Kanal dÃ¼zenlenemedi' });
   }
 });
 
 // ==================== TS MUSIC ADMIN ====================
 
-// Tüm başvurular
+// TÃ¼m baÅvurular
 router.get('/admin/music/applications', (req, res) => {
   try {
     const { status } = req.query;
@@ -417,16 +417,16 @@ router.get('/admin/music/applications', (req, res) => {
     const apps = db.prepare(query).all();
     res.json(apps);
   } catch(e) {
-    res.status(500).json({ error: 'Başvurular alınamadı' });
+    res.status(500).json({ error: 'BaÅvurular alÄ±namadÄ±' });
   }
 });
 
-// Başvuru kabul/red
+// BaÅvuru kabul/red
 router.put('/admin/music/application/:id', (req, res) => {
   try {
     const { action, note } = req.body;
     const app = db.prepare('SELECT * FROM music_artist_applications WHERE id = ?').get(req.params.id);
-    if (!app) return res.status(404).json({ error: 'Başvuru bulunamadı: id=' + req.params.id });
+    if (!app) return res.status(404).json({ error: 'BaÅvuru bulunamadÄ±: id=' + req.params.id });
 
     db.prepare('UPDATE music_artist_applications SET status = ?, admin_note = ?, reviewed_at = datetime(\'now\') WHERE id = ?')
       .run(action, note || null, req.params.id);
@@ -439,23 +439,23 @@ router.put('/admin/music/application/:id', (req, res) => {
       }
       try {
         db.prepare('INSERT INTO notifications (user_id, type, content) VALUES (?, ?, ?)')
-          .run(app.user_id, 'music_accepted', 'TS Music başvurunuz kabul edildi! Artık şarkı yükleyebilirsiniz.');
+          .run(app.user_id, 'music_accepted', 'TS Music baÅvurunuz kabul edildi! ArtÄ±k ÅarkÄ± yÃ¼kleyebilirsiniz.');
       } catch(ne) {}
     } else if (action === 'rejected') {
       try {
         db.prepare('INSERT INTO notifications (user_id, type, content) VALUES (?, ?, ?)')
-          .run(app.user_id, 'music_rejected', `TS Music başvurunuz reddedildi.${note ? ' Not: ' + note : ''}`);
+          .run(app.user_id, 'music_rejected', `TS Music baÅvurunuz reddedildi.${note ? ' Not: ' + note : ''}`);
       } catch(ne) {}
     }
 
     res.json({ success: true });
   } catch(e) {
     console.error('Music application error:', e);
-    res.status(500).json({ error: 'İşlem başarısız: ' + e.message });
+    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z: ' + e.message });
   }
 });
 
-// Tüm şarkılar (admin)
+// TÃ¼m ÅarkÄ±lar (admin)
 router.get('/admin/music/songs', (req, res) => {
   try {
     const songs = db.prepare(`
@@ -467,36 +467,36 @@ router.get('/admin/music/songs', (req, res) => {
     `).all();
     res.json(songs);
   } catch(e) {
-    res.status(500).json({ error: 'Şarkılar alınamadı' });
+    res.status(500).json({ error: 'ÅarkÄ±lar alÄ±namadÄ±' });
   }
 });
 
-// Şarkı askıya al / aktif et
+// ÅarkÄ± askÄ±ya al / aktif et
 router.put('/admin/music/song/:songId/suspend', (req, res) => {
   try {
     const { suspend } = req.body;
     db.prepare('UPDATE songs SET is_suspended = ? WHERE id = ?').run(suspend ? 1 : 0, req.params.songId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'İşlem başarısız' });
+    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
   }
 });
 
-// Şarkı sil
+// ÅarkÄ± sil
 router.delete('/admin/music/song/:songId', (req, res) => {
   try {
     db.prepare('DELETE FROM songs WHERE id = ?').run(req.params.songId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Şarkı silinemedi' });
+    res.status(500).json({ error: 'ÅarkÄ± silinemedi' });
   }
 });
 
-// Şarkı düzenle (admin)
+// ÅarkÄ± dÃ¼zenle (admin)
 router.put('/admin/music/song/:songId', (req, res) => {
   try {
     const { title, genre, play_count } = req.body;
-    // play_count gönderilmemişse mevcut değeri koru
+    // play_count gÃ¶nderilmemiÅse mevcut deÄeri koru
     if (play_count !== undefined && play_count !== null && play_count !== '') {
       db.prepare('UPDATE songs SET title = ?, genre = ?, play_count = ? WHERE id = ?')
         .run(title, genre, parseInt(play_count), req.params.songId);
@@ -506,11 +506,11 @@ router.put('/admin/music/song/:songId', (req, res) => {
     }
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Şarkı düzenlenemedi' });
+    res.status(500).json({ error: 'ÅarkÄ± dÃ¼zenlenemedi' });
   }
 });
 
-// Tüm artistler (admin)
+// TÃ¼m artistler (admin)
 router.get('/admin/music/artists', (req, res) => {
   try {
     const artists = db.prepare(`
@@ -521,18 +521,18 @@ router.get('/admin/music/artists', (req, res) => {
     `).all();
     res.json(artists);
   } catch(e) {
-    res.status(500).json({ error: 'Artistler alınamadı' });
+    res.status(500).json({ error: 'Artistler alÄ±namadÄ±' });
   }
 });
 
-// Artist askıya al
+// Artist askÄ±ya al
 router.put('/admin/music/artist/:artistId/suspend', (req, res) => {
   try {
     const { suspend } = req.body;
     db.prepare('UPDATE music_artists SET is_suspended = ? WHERE id = ?').run(suspend ? 1 : 0, req.params.artistId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'İşlem başarısız' });
+    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
   }
 });
 
@@ -546,7 +546,7 @@ router.delete('/admin/music/artist/:artistId', (req, res) => {
   }
 });
 
-// Artist düzenle
+// Artist dÃ¼zenle
 router.put('/admin/music/artist/:artistId', (req, res) => {
   try {
     const { artist_name, artist_alias, bio } = req.body;
@@ -554,70 +554,70 @@ router.put('/admin/music/artist/:artistId', (req, res) => {
       .run(artist_name, artist_alias, bio, req.params.artistId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Artist düzenlenemedi' });
+    res.status(500).json({ error: 'Artist dÃ¼zenlenemedi' });
   }
 });
 
 module.exports = router;
 
-// ==================== BYPASS ŞİFRESİ ====================
+// ==================== BYPASS ÅÄ°FRESÄ° ====================
 
-// Bypass şifresini getir
+// Bypass Åifresini getir
 router.get('/admin/bypass-password', (req, res) => {
   try {
     const setting = db.prepare("SELECT value FROM admin_settings WHERE key = 'bypass_password'").get();
     res.json({ password: setting?.value || '' });
   } catch(e) {
-    res.status(500).json({ error: 'Alınamadı' });
+    res.status(500).json({ error: 'AlÄ±namadÄ±' });
   }
 });
 
-// Bypass şifresini güncelle
+// Bypass Åifresini gÃ¼ncelle
 router.put('/admin/bypass-password', (req, res) => {
   try {
     const { password } = req.body;
-    if (!password || password.length < 8) return res.status(400).json({ error: 'Şifre en az 8 karakter olmalı' });
+    if (!password || password.length < 8) return res.status(400).json({ error: 'Åifre en az 8 karakter olmalÄ±' });
     db.prepare("INSERT OR REPLACE INTO admin_settings (key, value) VALUES ('bypass_password', ?)").run(password);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Güncellenemedi' });
+    res.status(500).json({ error: 'GÃ¼ncellenemedi' });
   }
 });
 
-// ==================== KIRMIZI TİK ====================
+// ==================== KIRMIZI TÄ°K ====================
 
-// Kırmızı tik ver
+// KÄ±rmÄ±zÄ± tik ver
 router.post('/admin/user/:userId/red-verify', (req, res) => {
   try {
     db.prepare('UPDATE users SET is_red_verified = 1 WHERE id = ?').run(req.params.userId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'İşlem başarısız' });
+    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
   }
 });
 
-// Kırmızı tik al
+// KÄ±rmÄ±zÄ± tik al
 router.delete('/admin/user/:userId/red-verify', (req, res) => {
   try {
     db.prepare('UPDATE users SET is_red_verified = 0 WHERE id = ?').run(req.params.userId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'İşlem başarısız' });
+    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
   }
 });
 
-// ==================== FIREBASE ADMIN - MESAJLAŞMA ====================
-// Firebase Admin SDK'yı yükle
+// ==================== FIREBASE ADMIN - MESAJLAÅMA ====================
+// Firebase Admin SDK'yÄ± yÃ¼kle
 let firebaseAdmin = null;
 try {
   firebaseAdmin = require('./firebase-admin');
 } catch(e) {
-  console.warn('⚠️ Firebase Admin SDK yüklenmedi. Mesajlaşma özellikleri çalışmayacak.');
+  console.warn('â ï¸ Firebase Admin SDK yÃ¼klenmedi. MesajlaÅma Ã¶zellikleri Ã§alÄ±Åmayacak.');
 }
 
-// Tüm DM konuşmalarını listele
+// TÃ¼m DM konuÅmalarÄ±nÄ± listele
 router.get('/admin/firebase/conversations', async (req, res) => {
-  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapılandırılmamış' });
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÄ±landÄ±rÄ±lmamÄ±Å' });
   try {
     const snapshot = await firebaseAdmin.db.ref('conversations').once('value');
     const conversations = [];
@@ -626,13 +626,13 @@ router.get('/admin/firebase/conversations', async (req, res) => {
     });
     res.json(conversations);
   } catch(e) {
-    res.status(500).json({ error: 'Konuşmalar alınamadı', message: e.message });
+    res.status(500).json({ error: 'KonuÅmalar alÄ±namadÄ±', message: e.message });
   }
 });
 
-// Belirli bir konuşmanın mesajlarını getir
+// Belirli bir konuÅmanÄ±n mesajlarÄ±nÄ± getir
 router.get('/admin/firebase/messages/:conversationId', async (req, res) => {
-  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapılandırılmamış' });
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÄ±landÄ±rÄ±lmamÄ±Å' });
   try {
     const snapshot = await firebaseAdmin.db.ref(`messages/${req.params.conversationId}`).once('value');
     const messages = [];
@@ -641,13 +641,13 @@ router.get('/admin/firebase/messages/:conversationId', async (req, res) => {
     });
     res.json(messages);
   } catch(e) {
-    res.status(500).json({ error: 'Mesajlar alınamadı', message: e.message });
+    res.status(500).json({ error: 'Mesajlar alÄ±namadÄ±', message: e.message });
   }
 });
 
-// Admin olarak mesaj gönder
+// Admin olarak mesaj gÃ¶nder
 router.post('/admin/firebase/send-message', async (req, res) => {
-  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapılandırılmamış' });
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÄ±landÄ±rÄ±lmamÄ±Å' });
   try {
     const { conversationId, senderId, text, type = 'text' } = req.body;
     const messageRef = firebaseAdmin.db.ref(`messages/${conversationId}`).push();
@@ -660,13 +660,13 @@ router.post('/admin/firebase/send-message', async (req, res) => {
     });
     res.json({ success: true, messageId: messageRef.key });
   } catch(e) {
-    res.status(500).json({ error: 'Mesaj gönderilemedi', message: e.message });
+    res.status(500).json({ error: 'Mesaj gÃ¶nderilemedi', message: e.message });
   }
 });
 
 // Mesaj sil
 router.delete('/admin/firebase/message/:conversationId/:messageId', async (req, res) => {
-  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapılandırılmamış' });
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÄ±landÄ±rÄ±lmamÄ±Å' });
   try {
     await firebaseAdmin.db.ref(`messages/${req.params.conversationId}/${req.params.messageId}`).remove();
     res.json({ success: true });
@@ -675,11 +675,11 @@ router.delete('/admin/firebase/message/:conversationId/:messageId', async (req, 
   }
 });
 
-// ==================== FIREBASE ADMIN - GRUP YÖNETİMİ ====================
+// ==================== FIREBASE ADMIN - GRUP YÃNETÄ°MÄ° ====================
 
-// Tüm grup mesajlarını listele
+// TÃ¼m grup mesajlarÄ±nÄ± listele
 router.get('/admin/firebase/group-messages/:groupId', async (req, res) => {
-  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapılandırılmamış' });
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÄ±landÄ±rÄ±lmamÄ±Å' });
   try {
     const snapshot = await firebaseAdmin.db.ref(`groupMessages/${req.params.groupId}`).once('value');
     const messages = [];
@@ -688,13 +688,13 @@ router.get('/admin/firebase/group-messages/:groupId', async (req, res) => {
     });
     res.json(messages);
   } catch(e) {
-    res.status(500).json({ error: 'Grup mesajları alınamadı', message: e.message });
+    res.status(500).json({ error: 'Grup mesajlarÄ± alÄ±namadÄ±', message: e.message });
   }
 });
 
-// Admin olarak gruba mesaj gönder
+// Admin olarak gruba mesaj gÃ¶nder
 router.post('/admin/firebase/send-group-message', async (req, res) => {
-  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapılandırılmamış' });
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÄ±landÄ±rÄ±lmamÄ±Å' });
   try {
     const { groupId, senderId, text, type = 'text' } = req.body;
     const messageRef = firebaseAdmin.db.ref(`groupMessages/${groupId}`).push();
@@ -706,57 +706,57 @@ router.post('/admin/firebase/send-group-message', async (req, res) => {
     });
     res.json({ success: true, messageId: messageRef.key });
   } catch(e) {
-    res.status(500).json({ error: 'Grup mesajı gönderilemedi', message: e.message });
+    res.status(500).json({ error: 'Grup mesajÄ± gÃ¶nderilemedi', message: e.message });
   }
 });
 
-// Grup mesajı sil
+// Grup mesajÄ± sil
 router.delete('/admin/firebase/group-message/:groupId/:messageId', async (req, res) => {
-  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapılandırılmamış' });
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÄ±landÄ±rÄ±lmamÄ±Å' });
   try {
     await firebaseAdmin.db.ref(`groupMessages/${req.params.groupId}/${req.params.messageId}`).remove();
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Grup mesajı silinemedi', message: e.message });
+    res.status(500).json({ error: 'Grup mesajÄ± silinemedi', message: e.message });
   }
 });
 
-// ==================== GRUP YÖNETİMİ (SQL) ====================
+// ==================== GRUP YÃNETÄ°MÄ° (SQL) ====================
 
-// Grup adını değiştir
+// Grup adÄ±nÄ± deÄiÅtir
 router.put('/admin/group/:groupId/name', (req, res) => {
   try {
     const { name } = req.body;
     db.prepare('UPDATE groups SET name = ? WHERE id = ?').run(name, req.params.groupId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Grup adı değiştirilemedi' });
+    res.status(500).json({ error: 'Grup adÄ± deÄiÅtirilemedi' });
   }
 });
 
-// Grup açıklamasını değiştir
+// Grup aÃ§Ä±klamasÄ±nÄ± deÄiÅtir
 router.put('/admin/group/:groupId/description', (req, res) => {
   try {
     const { description } = req.body;
     db.prepare('UPDATE groups SET description = ? WHERE id = ?').run(description, req.params.groupId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Grup açıklaması değiştirilemedi' });
+    res.status(500).json({ error: 'Grup aÃ§Ä±klamasÄ± deÄiÅtirilemedi' });
   }
 });
 
-// Grup üyesini çıkar
+// Grup Ã¼yesini Ã§Ä±kar
 router.delete('/admin/group/:groupId/member/:userId', (req, res) => {
   try {
     db.prepare('DELETE FROM group_members WHERE group_id = ? AND user_id = ?')
       .run(req.params.groupId, req.params.userId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Üye çıkarılamadı' });
+    res.status(500).json({ error: 'Ãye Ã§Ä±karÄ±lamadÄ±' });
   }
 });
 
-// Grup üyesinin rolünü değiştir
+// Grup Ã¼yesinin rolÃ¼nÃ¼ deÄiÅtir
 router.put('/admin/group/:groupId/member/:userId/role', (req, res) => {
   try {
     const { role } = req.body; // owner, moderator, member
@@ -764,7 +764,7 @@ router.put('/admin/group/:groupId/member/:userId/role', (req, res) => {
       .run(role, req.params.groupId, req.params.userId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Rol değiştirilemedi' });
+    res.status(500).json({ error: 'Rol deÄiÅtirilemedi' });
   }
 });
 
@@ -779,17 +779,17 @@ router.delete('/admin/group/:groupId', (req, res) => {
   }
 });
 
-// ==================== ROZET YÖNETİMİ ====================
+// ==================== ROZET YÃNETÄ°MÄ° ====================
 
-// Tüm rozetler
+// TÃ¼m rozetler
 router.get('/admin/badges', (req, res) => {
   try {
     const badges = db.prepare('SELECT * FROM badges ORDER BY created_at DESC').all();
     res.json(badges);
-  } catch(e) { res.status(500).json({ error: 'Rozetler alınamadı' }); }
+  } catch(e) { res.status(500).json({ error: 'Rozetler alÄ±namadÄ±' }); }
 });
 
-// Rozet oluştur
+// Rozet oluÅtur
 router.post('/admin/badges', (req, res) => {
   try {
     const { name, icon, color, nameColor, description } = req.body;
@@ -797,17 +797,17 @@ router.post('/admin/badges', (req, res) => {
     const result = db.prepare('INSERT INTO badges (name, icon, color, name_color, description) VALUES (?, ?, ?, ?, ?)')
       .run(name, icon, color || '#ffffff', nameColor || '#ffffff', description || null);
     res.json({ success: true, badgeId: result.lastInsertRowid });
-  } catch(e) { res.status(500).json({ error: 'Rozet oluşturulamadı' }); }
+  } catch(e) { res.status(500).json({ error: 'Rozet oluÅturulamadÄ±' }); }
 });
 
-// Rozet güncelle
+// Rozet gÃ¼ncelle
 router.put('/admin/badges/:id', (req, res) => {
   try {
     const { name, icon, color, nameColor, description } = req.body;
     db.prepare('UPDATE badges SET name=?, icon=?, color=?, name_color=?, description=? WHERE id=?')
       .run(name, icon, color, nameColor, description, req.params.id);
     res.json({ success: true });
-  } catch(e) { res.status(500).json({ error: 'Rozet güncellenemedi' }); }
+  } catch(e) { res.status(500).json({ error: 'Rozet gÃ¼ncellenemedi' }); }
 });
 
 // Rozet sil
@@ -818,7 +818,7 @@ router.delete('/admin/badges/:id', (req, res) => {
   } catch(e) { res.status(500).json({ error: 'Rozet silinemedi' }); }
 });
 
-// Kullanıcıya rozet ver
+// KullanÄ±cÄ±ya rozet ver
 router.post('/admin/badges/:badgeId/assign/:userId', (req, res) => {
   try {
     db.prepare('INSERT OR IGNORE INTO user_badges (user_id, badge_id) VALUES (?, ?)').run(req.params.userId, req.params.badgeId);
@@ -826,15 +826,15 @@ router.post('/admin/badges/:badgeId/assign/:userId', (req, res) => {
   } catch(e) { res.status(500).json({ error: 'Rozet verilemedi' }); }
 });
 
-// Kullanıcıdan rozet al
+// KullanÄ±cÄ±dan rozet al
 router.delete('/admin/badges/:badgeId/revoke/:userId', (req, res) => {
   try {
     db.prepare('DELETE FROM user_badges WHERE user_id=? AND badge_id=?').run(req.params.userId, req.params.badgeId);
     res.json({ success: true });
-  } catch(e) { res.status(500).json({ error: 'Rozet alınamadı' }); }
+  } catch(e) { res.status(500).json({ error: 'Rozet alÄ±namadÄ±' }); }
 });
 
-// Kullanıcının rozetleri
+// KullanÄ±cÄ±nÄ±n rozetleri
 router.get('/admin/users/:userId/badges', (req, res) => {
   try {
     const badges = db.prepare(`
@@ -843,24 +843,24 @@ router.get('/admin/users/:userId/badges', (req, res) => {
       WHERE ub.user_id = ?
     `).all(req.params.userId);
     res.json(badges);
-  } catch(e) { res.status(500).json({ error: 'Rozetler alınamadı' }); }
+  } catch(e) { res.status(500).json({ error: 'Rozetler alÄ±namadÄ±' }); }
 });
 
-// ==================== DUYURU SİSTEMİ ====================
+// ==================== DUYURU SÄ°STEMÄ° ====================
 
-// Tüm duyurular
+// TÃ¼m duyurular
 router.get('/admin/announcements', (req, res) => {
   try {
     const list = db.prepare('SELECT * FROM announcements ORDER BY created_at DESC').all();
     res.json(list);
-  } catch(e) { res.status(500).json({ error: 'Duyurular alınamadı' }); }
+  } catch(e) { res.status(500).json({ error: 'Duyurular alÄ±namadÄ±' }); }
 });
 
-// Duyuru oluştur
+// Duyuru oluÅtur
 router.post('/admin/announcements', (req, res) => {
   try {
     const { title, content, type, durationSeconds } = req.body;
-    if (!title || !content) return res.status(400).json({ error: 'Başlık ve içerik gerekli' });
+    if (!title || !content) return res.status(400).json({ error: 'BaÅlÄ±k ve iÃ§erik gerekli' });
     let expiresAt = null;
     if (type === 'timed' && durationSeconds) {
       expiresAt = new Date(Date.now() + durationSeconds * 1000).toISOString();
@@ -870,16 +870,16 @@ router.post('/admin/announcements', (req, res) => {
     const result = db.prepare('INSERT INTO announcements (title, content, type, duration_seconds, expires_at) VALUES (?, ?, ?, ?, ?)')
       .run(title, content, type || 'permanent', durationSeconds || null, expiresAt);
     res.json({ success: true, id: result.lastInsertRowid });
-  } catch(e) { res.status(500).json({ error: 'Duyuru oluşturulamadı' }); }
+  } catch(e) { res.status(500).json({ error: 'Duyuru oluÅturulamadÄ±' }); }
 });
 
-// Duyuru güncelle
+// Duyuru gÃ¼ncelle
 router.put('/admin/announcements/:id', (req, res) => {
   try {
     const { title, content } = req.body;
     db.prepare('UPDATE announcements SET title=?, content=? WHERE id=?').run(title, content, req.params.id);
     res.json({ success: true });
-  } catch(e) { res.status(500).json({ error: 'Güncellenemedi' }); }
+  } catch(e) { res.status(500).json({ error: 'GÃ¼ncellenemedi' }); }
 });
 
 // Duyuru sil
@@ -890,7 +890,7 @@ router.delete('/admin/announcements/:id', (req, res) => {
   } catch(e) { res.status(500).json({ error: 'Silinemedi' }); }
 });
 
-// Aktif duyuruları getir (kullanıcı tarafı)
+// Aktif duyurularÄ± getir (kullanÄ±cÄ± tarafÄ±)
 router.get('/announcements/active', (req, res) => {
   try {
     const list = db.prepare(`
@@ -900,11 +900,11 @@ router.get('/announcements/active', (req, res) => {
       ORDER BY created_at DESC
     `).all();
     res.json(list);
-  } catch(e) { res.status(500).json({ error: 'Duyurular alınamadı' }); }
+  } catch(e) { res.status(500).json({ error: 'Duyurular alÄ±namadÄ±' }); }
 });
-// ==================== GRUPLAR YÖNETİMİ ====================
+// ==================== GRUPLAR YÃNETÄ°MÄ° ====================
 
-// Tüm grupları getir
+// TÃ¼m gruplarÄ± getir
 router.get('/admin/groups', (req, res) => {
   try {
     const groups = db.prepare(`
@@ -920,17 +920,17 @@ router.get('/admin/groups', (req, res) => {
   }
 });
 
-// Grup mesajlarını getir
+// Grup mesajlarÄ±nÄ± getir
 router.get('/admin/group-messages/:groupId', (req, res) => {
   try {
-    // Firebase'den grup mesajlarını alamayız, sadece bilgi verelim
-    // Gerçek uygulamada Firebase Admin SDK kullanılmalı
+    // Firebase'den grup mesajlarÄ±nÄ± alamayÄ±z, sadece bilgi verelim
+    // GerÃ§ek uygulamada Firebase Admin SDK kullanÄ±lmalÄ±
     res.json([
       {
         id: 1,
         nickname: 'Sistem',
         profile_photo: 'logoteatube.png',
-        message: 'Bu grup Firebase üzerinde çalışıyor. Mesajları görüntülemek için Firebase Admin SDK gerekli.',
+        message: 'Bu grup Firebase Ã¼zerinde Ã§alÄ±ÅÄ±yor. MesajlarÄ± gÃ¶rÃ¼ntÃ¼lemek iÃ§in Firebase Admin SDK gerekli.',
         created_at: new Date().toISOString()
       }
     ]);
@@ -939,15 +939,15 @@ router.get('/admin/group-messages/:groupId', (req, res) => {
   }
 });
 
-// Admin grup mesajı gönder
+// Admin grup mesajÄ± gÃ¶nder
 router.post('/admin/send-group-message', (req, res) => {
   try {
     const { groupId, message } = req.body;
     
-    // Firebase'e mesaj gönderme işlemi burada yapılmalı
-    // Şimdilik sadece başarılı response döndürelim
+    // Firebase'e mesaj gÃ¶nderme iÅlemi burada yapÄ±lmalÄ±
+    // Åimdilik sadece baÅarÄ±lÄ± response dÃ¶ndÃ¼relim
     
-    res.json({ success: true, message: 'Admin mesajı gönderildi (Firebase entegrasyonu gerekli)' });
+    res.json({ success: true, message: 'Admin mesajÄ± gÃ¶nderildi (Firebase entegrasyonu gerekli)' });
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
@@ -956,10 +956,10 @@ router.post('/admin/send-group-message', (req, res) => {
 // Grup sil
 router.delete('/admin/group/:groupId', (req, res) => {
   try {
-    // Önce grup üyelerini sil
+    // Ãnce grup Ã¼yelerini sil
     db.prepare('DELETE FROM group_members WHERE group_id = ?').run(req.params.groupId);
     
-    // Grup katılım isteklerini sil
+    // Grup katÄ±lÄ±m isteklerini sil
     db.prepare('DELETE FROM group_join_requests WHERE group_id = ?').run(req.params.groupId);
     
     // Grubu sil
@@ -968,19 +968,19 @@ router.delete('/admin/group/:groupId', (req, res) => {
     if (result.changes > 0) {
       res.json({ success: true });
     } else {
-      res.status(404).json({ error: 'Grup bulunamadı' });
+      res.status(404).json({ error: 'Grup bulunamadÄ±' });
     }
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// ==================== MESAJLAŞMA GÖZETİMİ ====================
+// ==================== MESAJLAÅMA GÃZETÄ°MÄ° ====================
 
-// Tüm mesajlaşmaları getir (özet)
+// TÃ¼m mesajlaÅmalarÄ± getir (Ã¶zet)
 router.get('/admin/all-messages', (req, res) => {
   try {
-    // Firebase mesajları DB'de olmadığı için sadece arkadaşlık listesini döndürelim
+    // Firebase mesajlarÄ± DB'de olmadÄ±ÄÄ± iÃ§in sadece arkadaÅlÄ±k listesini dÃ¶ndÃ¼relim
     const conversations = db.prepare(`
       SELECT 
         f.sender_id as user1_id,
@@ -989,7 +989,7 @@ router.get('/admin/all-messages', (req, res) => {
         u1.profile_photo as user1_profile_photo,
         u2.nickname as user2_nickname,
         u2.profile_photo as user2_profile_photo,
-        'Firebase mesajları' as last_message,
+        'Firebase mesajlarÄ±' as last_message,
         0 as message_count,
         f.created_at as last_activity
       FROM friendships f
@@ -1005,12 +1005,12 @@ router.get('/admin/all-messages', (req, res) => {
   }
 });
 
-// Belirli konuşmayı getir
+// Belirli konuÅmayÄ± getir
 router.get('/admin/conversation/:user1Id/:user2Id', (req, res) => {
   try {
     const { user1Id, user2Id } = req.params;
     
-    // Firebase'den mesajları alamayız, bilgi mesajı döndürelim
+    // Firebase'den mesajlarÄ± alamayÄ±z, bilgi mesajÄ± dÃ¶ndÃ¼relim
     const user1 = db.prepare('SELECT nickname, profile_photo FROM users WHERE id = ?').get(user1Id);
     const user2 = db.prepare('SELECT nickname, profile_photo FROM users WHERE id = ?').get(user2Id);
     
@@ -1019,7 +1019,7 @@ router.get('/admin/conversation/:user1Id/:user2Id', (req, res) => {
         id: 1,
         nickname: 'Sistem',
         profile_photo: 'logoteatube.png',
-        message: `${user1?.nickname || 'Kullanıcı'} ve ${user2?.nickname || 'Kullanıcı'} arasındaki mesajlar Firebase üzerinde saklanıyor. Mesajları görüntülemek için Firebase Admin SDK entegrasyonu gerekli.`,
+        message: `${user1?.nickname || 'KullanÄ±cÄ±'} ve ${user2?.nickname || 'KullanÄ±cÄ±'} arasÄ±ndaki mesajlar Firebase Ã¼zerinde saklanÄ±yor. MesajlarÄ± gÃ¶rÃ¼ntÃ¼lemek iÃ§in Firebase Admin SDK entegrasyonu gerekli.`,
         created_at: new Date().toISOString()
       }
     ];
@@ -1029,15 +1029,15 @@ router.get('/admin/conversation/:user1Id/:user2Id', (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-// ==================== ROZET YÖNETİMİ ====================
+// ==================== ROZET YÃNETÄ°MÄ° ====================
 
-// Rozet oluştur
+// Rozet oluÅtur
 router.post('/admin/badges', (req, res) => {
   try {
     const { name, icon, color, nameColor, description } = req.body;
     
     if (!name || !icon) {
-      return res.status(400).json({ error: 'Rozet adı ve ikon gerekli' });
+      return res.status(400).json({ error: 'Rozet adÄ± ve ikon gerekli' });
     }
     
     const result = db.prepare(
@@ -1050,20 +1050,20 @@ router.post('/admin/badges', (req, res) => {
   }
 });
 
-// Rozet güncelle
+// Rozet gÃ¼ncelle
 router.put('/admin/badges/:badgeId', (req, res) => {
   try {
     const { name, icon, color, nameColor, description } = req.body;
     const { badgeId } = req.params;
     
-    // Sistem rozetlerini güncellemeyi engelle
+    // Sistem rozetlerini gÃ¼ncellemeyi engelle
     const badge = db.prepare('SELECT is_system FROM badges WHERE id = ?').get(badgeId);
     if (!badge) {
-      return res.status(404).json({ error: 'Rozet bulunamadı' });
+      return res.status(404).json({ error: 'Rozet bulunamadÄ±' });
     }
     
     if (badge.is_system) {
-      return res.status(400).json({ error: 'Sistem rozetleri düzenlenemez' });
+      return res.status(400).json({ error: 'Sistem rozetleri dÃ¼zenlenemez' });
     }
     
     const result = db.prepare(
@@ -1073,7 +1073,7 @@ router.put('/admin/badges/:badgeId', (req, res) => {
     if (result.changes > 0) {
       res.json({ success: true });
     } else {
-      res.status(404).json({ error: 'Rozet bulunamadı' });
+      res.status(404).json({ error: 'Rozet bulunamadÄ±' });
     }
   } catch(e) {
     res.status(500).json({ error: e.message });
@@ -1088,17 +1088,17 @@ router.delete('/admin/badges/:badgeId', (req, res) => {
     // Sistem rozetlerini silmeyi engelle
     const badge = db.prepare('SELECT is_system FROM badges WHERE id = ?').get(badgeId);
     if (!badge) {
-      return res.status(404).json({ error: 'Rozet bulunamadı' });
+      return res.status(404).json({ error: 'Rozet bulunamadÄ±' });
     }
     
     if (badge.is_system) {
       return res.status(400).json({ error: 'Sistem rozetleri silinemez' });
     }
     
-    // Önce kullanıcı rozetlerini sil
+    // Ãnce kullanÄ±cÄ± rozetlerini sil
     db.prepare('DELETE FROM user_badges WHERE badge_id = ?').run(badgeId);
     
-    // Aktif rozet olarak ayarlanmışsa kaldır
+    // Aktif rozet olarak ayarlanmÄ±Åsa kaldÄ±r
     db.prepare('UPDATE users SET active_badge_id = NULL WHERE active_badge_id = ?').run(badgeId);
     
     // Rozeti sil
@@ -1107,34 +1107,34 @@ router.delete('/admin/badges/:badgeId', (req, res) => {
     if (result.changes > 0) {
       res.json({ success: true });
     } else {
-      res.status(404).json({ error: 'Rozet bulunamadı' });
+      res.status(404).json({ error: 'Rozet bulunamadÄ±' });
     }
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// Kullanıcıya rozet ver
+// KullanÄ±cÄ±ya rozet ver
 router.post('/admin/badges/:badgeId/assign/:userId', (req, res) => {
   try {
     const { badgeId, userId } = req.params;
     
-    // Kullanıcı ve rozet var mı kontrol et
+    // KullanÄ±cÄ± ve rozet var mÄ± kontrol et
     const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
     const badge = db.prepare('SELECT id FROM badges WHERE id = ?').get(badgeId);
     
     if (!user) {
-      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      return res.status(404).json({ error: 'KullanÄ±cÄ± bulunamadÄ±' });
     }
     
     if (!badge) {
-      return res.status(404).json({ error: 'Rozet bulunamadı' });
+      return res.status(404).json({ error: 'Rozet bulunamadÄ±' });
     }
     
-    // Zaten var mı kontrol et
+    // Zaten var mÄ± kontrol et
     const existing = db.prepare('SELECT id FROM user_badges WHERE user_id = ? AND badge_id = ?').get(userId, badgeId);
     if (existing) {
-      return res.status(400).json({ error: 'Kullanıcıda bu rozet zaten var' });
+      return res.status(400).json({ error: 'KullanÄ±cÄ±da bu rozet zaten var' });
     }
     
     // Rozeti ver
@@ -1146,48 +1146,48 @@ router.post('/admin/badges/:badgeId/assign/:userId', (req, res) => {
   }
 });
 
-// Kullanıcının aktif rozetini ayarla
+// KullanÄ±cÄ±nÄ±n aktif rozetini ayarla
 router.put('/admin/users/:userId/active-badge', (req, res) => {
   try {
     const { userId } = req.params;
     const { badgeId } = req.body;
     
-    // Kullanıcının bu rozeti var mı kontrol et
+    // KullanÄ±cÄ±nÄ±n bu rozeti var mÄ± kontrol et
     if (badgeId) {
       const userBadge = db.prepare('SELECT id FROM user_badges WHERE user_id = ? AND badge_id = ?').get(userId, badgeId);
       if (!userBadge) {
-        return res.status(400).json({ error: 'Kullanıcıda bu rozet yok' });
+        return res.status(400).json({ error: 'KullanÄ±cÄ±da bu rozet yok' });
       }
     }
     
-    // Aktif rozeti ayarla (null ise kaldır)
+    // Aktif rozeti ayarla (null ise kaldÄ±r)
     const result = db.prepare('UPDATE users SET active_badge_id = ? WHERE id = ?').run(badgeId || null, userId);
     
     if (result.changes > 0) {
       res.json({ success: true });
     } else {
-      res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      res.status(404).json({ error: 'KullanÄ±cÄ± bulunamadÄ±' });
     }
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// Kullanıcıdan rozet al
+// KullanÄ±cÄ±dan rozet al
 router.delete('/admin/badges/:badgeId/remove/:userId', (req, res) => {
   try {
     const { badgeId, userId } = req.params;
     
-    // Rozeti kaldır
+    // Rozeti kaldÄ±r
     const result = db.prepare('DELETE FROM user_badges WHERE user_id = ? AND badge_id = ?').run(userId, badgeId);
     
-    // Eğer aktif rozetiyse kaldır
+    // EÄer aktif rozetiyse kaldÄ±r
     db.prepare('UPDATE users SET active_badge_id = NULL WHERE id = ? AND active_badge_id = ?').run(userId, badgeId);
     
     if (result.changes > 0) {
       res.json({ success: true });
     } else {
-      res.status(404).json({ error: 'Kullanıcıda bu rozet yok' });
+      res.status(404).json({ error: 'KullanÄ±cÄ±da bu rozet yok' });
     }
   } catch(e) {
     res.status(500).json({ error: e.message });

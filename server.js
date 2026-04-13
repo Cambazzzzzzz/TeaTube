@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const db = require('./src/database');
@@ -17,7 +17,7 @@ app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 app.use(express.static('public'));
 
-// API route'larına UTF-8 charset ekle
+// API route'larÄ±na UTF-8 charset ekle
 app.use('/api', (req, res, next) => {
   const origJson = res.json.bind(res);
   res.json = (data) => {
@@ -44,36 +44,36 @@ app.get('/', (req, res) => {
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ error: 'Endpoint bulunamadı' });
+  res.status(404).json({ error: 'Endpoint bulunamadÄ±' });
 });
 
 // Error handler
 app.use((err, req, res, next) => {
   console.error('Server Error:', err);
-  res.status(500).json({ error: 'Sunucu hatası', message: err.message });
+  res.status(500).json({ error: 'Sunucu hatasÄ±', message: err.message });
 });
 
 const server = app.listen(PORT, () => {
   console.log(`
-╔═══════════════════════════════════════╗
-║         TeaTube Server v1.0          ║
-╠═══════════════════════════════════════╣
-║  Port: ${PORT}                         ║
-║  URL: http://localhost:${PORT}        ║
-║  Status: ✓ Çalışıyor                 ║
-╚═══════════════════════════════════════╝
+âââââââââââââââââââââââââââââââââââââââââ
+â         TeaTube Server v1.0          â
+â ââââââââââââââââââââââââââââââââââââââââ£
+â  Port: ${PORT}                         â
+â  URL: http://localhost:${PORT}        â
+â  Status: â ÃalÄ±ÅÄ±yor                 â
+âââââââââââââââââââââââââââââââââââââââââ
   `);
 });
 
-// Video yükleme için uzun timeout
+// Video yÃ¼kleme iÃ§in uzun timeout
 server.timeout = 1800000; // 30 dakika
 server.keepAliveTimeout = 1800000;
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM alındı, sunucu kapatılıyor...');
+  console.log('SIGTERM alÄ±ndÄ±, sunucu kapatÄ±lÄ±yor...');
   server.close(() => {
-    console.log('Sunucu kapatıldı');
+    console.log('Sunucu kapatÄ±ldÄ±');
     process.exit(0);
   });
 });

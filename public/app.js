@@ -1072,7 +1072,7 @@ function openMobileChat(friendId, friendName, friendPhoto) {
         ${!isMe ? `<img src="${friendPhoto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;align-self:flex-end;margin-right:6px;" />` : ''}
         <div class="chat-bubble" oncontextmenu="showMsgMenu(event,'${msgId}',${isMe},'${chatId}')" onclick="handleBubbleClick(event,'${msgId}',${isMe})">
           ${msg.videoShare ? `
-            <div onclick="event.stopPropagation();openShortFromHome(${msg.videoShare.videoId})" style="cursor:pointer;border-radius:10px;overflow:hidden;max-width:220px;background:rgba(0,0,0,0.3)">
+            <div onclick="event.stopPropagation();${msg.videoShare.isShort ? `openShortFromHome(${msg.videoShare.videoId})` : `playVideo(${msg.videoShare.videoId})`}" style="cursor:pointer;border-radius:10px;overflow:hidden;max-width:220px;background:rgba(0,0,0,0.3)">
               <video src="${msg.videoShare.videoUrl}" style="width:100%;max-height:160px;object-fit:cover;display:block;pointer-events:none" muted></video>
               <div style="padding:8px 10px;display:flex;align-items:center;gap:6px">
                 <i class="fas fa-play-circle" style="color:#ff0033;font-size:16px;flex-shrink:0"></i>
@@ -2135,7 +2135,7 @@ function renderShortsPlayer() {
               <i class="fas fa-comment"></i>
               <span>${v.comment_count || 0}</span>
             </button>
-            <button class="sra-btn" onclick="shareContent(${v.id}, '${(v.title || '').replace(/'/g, "\\'")}', '${v.video_url}')">
+            <button class="sra-btn" onclick="shareContent(${v.id}, '${(v.title || '').replace(/'/g, "\\'")}', '${v.video_url}', true)">
               <i class="fas fa-paper-plane"></i>
               <span>Paylaş</span>
             </button>
@@ -2300,7 +2300,7 @@ function showVolumeSlider() {
 }
 
 // ==================== PAYLAŞ ====================
-async function shareContent(videoId, title, videoUrl) {
+async function shareContent(videoId, title, videoUrl, isShort = false) {
   // Arkadaşları ve grupları yükle
   const [friendsRes, groupsRes] = await Promise.all([
     fetch(`${API_URL}/friends/${currentUser.id}`).then(r => r.json()).catch(() => []),
@@ -2368,9 +2368,9 @@ async function sendShareMessages(videoId, title, videoUrl) {
   const checked = document.querySelectorAll('.share-chk:checked');
   if (!checked.length) { showToast('En az bir kişi/grup seç', 'error'); return; }
 
-  // Video önizleme kartı olarak gönder - tıklayınca Reals'ta o videoya gider
+  // Video önizleme kartı olarak gönder
   const shareText = `📹 ${title}`;
-  const shareData = { type: 'video_share', videoId, title, videoUrl };
+  const shareData = { type: 'video_share', videoId, title, videoUrl, isShort: !!isShort };
   const promises = [];
 
   checked.forEach(chk => {
@@ -2769,13 +2769,12 @@ async function loadMobileHomePage() {
         ${realsItems.length > 0 ? `
           <div class="mobile-stories-bar">
             ${realsItems.map(v => {
-              const isWatched = watchedStories.includes(v.id);
               return `
-              <div class="mobile-story" data-id="${v.id}" onclick="openShortFromHomeAndMark(${v.id})">
-                <div class="mobile-story-ring${isWatched ? ' watched' : ''}">
+              <div class="mobile-story" data-id="${v.id}">
+                <div class="mobile-story-ring" onclick="openShortFromHomeAndMark(${v.id})">
                   <img src="${getProfilePhotoUrl(v.profile_photo)}" onerror="onProfilePhotoError(this)" />
                 </div>
-                <p>${v.channel_name?.split(' ')[0] || 'Tea'}</p>
+                <p onclick="viewChannel(${v.channel_id})" style="cursor:pointer;">${v.channel_name?.split(' ')[0] || 'Tea'}</p>
               </div>`;
             }).join('')}
           </div>
@@ -7223,13 +7222,12 @@ function renderTSSongRow(s) {
   const playCount = s.show_play_count ? `<span class="song-play-count" style="font-size:11px;color:var(--yt-spec-text-secondary)">${formatNumber(s.play_count || 0)} dinlenme</span>` : '';
   return `
     <div data-song-id="${s.id}" onclick="playSong(${s.id})" style="display:flex;align-items:center;gap:12px;padding:8px;border-radius:10px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
-      <img src="${s.cover_url}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=48 height=48%3E%3Crect width=48 height=48 fill=%23333/%3E%3C/svg%3E'" />
+      <img src="${s.cover_url}" onclick="event.stopPropagation();openSongDetailPage(${s.id})" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=48 height=48%3E%3Crect width=48 height=48 fill=%23333/%3E%3C/svg%3E'" />
       <div style="flex:1;min-width:0">
         <p style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title || ''}</p>
-        <p style="font-size:12px;color:var(--yt-spec-text-secondary);display:flex;align-items:center;gap:3px">${s.artist_name || ''}<i class="fas fa-check-circle" style="color:#1db954;font-size:10px"></i></p>
+        <p onclick="event.stopPropagation();viewArtistPage(${s.artist_id})" style="font-size:12px;color:#1db954;display:flex;align-items:center;gap:3px;cursor:pointer;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${s.artist_name || ''}<i class="fas fa-check-circle" style="color:#1db954;font-size:10px"></i></p>
       </div>
       ${playCount}
-      ${s.lyrics ? `<button onclick="event.stopPropagation();showSongLyrics(${s.id},'${(s.title||'').replace(/'/g,"\\'")}','${(s.lyrics||'').replace(/'/g,"\\'").replace(/\n/g,'\\n')}')" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:4px 8px" title="Şarkı Sözleri"><i class="fas fa-book-open"></i></button>` : ''}
       <button onclick="event.stopPropagation();addToPlaylistPrompt(${s.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:4px 8px"><i class="fas fa-plus"></i></button>
     </div>`;
 }
@@ -7280,10 +7278,10 @@ function updateTSMiniPlayer() {
 
   player.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-      <img src="${s.cover_url}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0" />
-      <div style="flex:1;min-width:0">
+      <img src="${s.cover_url}" onclick="openSongDetailPage(${s.id})" style="width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0;cursor:pointer" />
+      <div style="flex:1;min-width:0;cursor:pointer" onclick="openSongDetailPage(${s.id})">
         <p style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title || ''}</p>
-        <p style="font-size:11px;color:var(--yt-spec-text-secondary)">${s.artist_name || ''}</p>
+        <p style="font-size:11px;color:#1db954">${s.artist_name || ''}</p>
       </div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
         <i class="fas fa-volume-up" style="font-size:11px;color:var(--yt-spec-text-secondary)"></i>
@@ -7500,6 +7498,91 @@ function showSongLyrics(songId, title, lyrics) {
       <div style="background:#fff;color:#111;border-radius:12px;padding:20px;white-space:pre-wrap;font-size:15px;line-height:1.8;font-family:'Courier New',monospace;">${lyricsText.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
     </div>
   `);
+}
+
+// Spotify tarzı şarkı detay sayfası
+async function openSongDetailPage(songId) {
+  const pageContent = document.getElementById('pageContent');
+  pageContent.innerHTML = '<div class="yt-loading"><div class="yt-spinner"></div></div>';
+  showPage('ts-music'); // sayfayı ts-music olarak işaretle
+
+  try {
+    const r = await fetch(API_URL + '/music/song/' + songId);
+    const s = await r.json();
+    if (!r.ok) throw new Error(s.error || 'Hata');
+
+    const year = s.created_at ? new Date(s.created_at).getFullYear() : new Date().getFullYear();
+    const lyricsHtml = s.lyrics ? `
+      <div style="margin-top:32px;padding:24px;background:rgba(255,255,255,0.05);border-radius:12px;">
+        <h3 style="font-size:14px;font-weight:700;color:#fff;margin:0 0 16px;text-transform:uppercase;letter-spacing:1px;">Şarkı Sözleri</h3>
+        <pre style="font-size:14px;line-height:1.8;color:rgba(255,255,255,0.85);white-space:pre-wrap;font-family:inherit;margin:0;">${s.lyrics.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+      </div>` : '';
+
+    pageContent.innerHTML = `
+      <div style="max-width:800px;margin:0 auto;padding:0 16px 120px;">
+        <!-- Geri -->
+        <button onclick="loadTSMusicPage()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;margin-bottom:20px;font-size:13px;display:flex;align-items:center;gap:6px;padding:0;">
+          <i class="fas fa-arrow-left"></i> Geri
+        </button>
+
+        <!-- Hero: Kapak + Bilgi -->
+        <div style="display:flex;gap:24px;align-items:flex-end;margin-bottom:28px;flex-wrap:wrap;">
+          <img src="${s.cover_url}" style="width:200px;height:200px;border-radius:8px;object-fit:cover;box-shadow:0 8px 32px rgba(0,0,0,0.5);flex-shrink:0;" onerror="this.src='logoteatube.png'" />
+          <div style="flex:1;min-width:0;">
+            <p style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--yt-spec-text-secondary);margin:0 0 8px;">Single</p>
+            <h1 style="font-size:clamp(24px,5vw,48px);font-weight:900;margin:0 0 12px;line-height:1.1;">${s.title || ''}</h1>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <img src="${s.profile_photo || 'logoteatube.png'}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;" onerror="this.src='logoteatube.png'" />
+              <span onclick="viewArtistPage(${s.artist_id})" style="font-size:13px;font-weight:700;cursor:pointer;color:#fff;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${s.artist_name || ''}</span>
+              <span style="color:var(--yt-spec-text-secondary);font-size:13px;">• ${year} • 1 şarkı</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kontroller -->
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:28px;">
+          <button onclick="playSong(${s.id})" style="width:52px;height:52px;border-radius:50%;background:#1db954;border:none;color:#000;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform=''">
+            <i class="fas fa-play" style="margin-left:3px;"></i>
+          </button>
+          <button onclick="addToPlaylistPrompt(${s.id})" style="background:none;border:2px solid rgba(255,255,255,0.3);color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,0.3)'" title="Playlist'e Ekle">
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+
+        <!-- Şarkı Listesi (tek şarkı) -->
+        <div style="border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:8px;margin-bottom:8px;">
+          <div style="display:grid;grid-template-columns:32px 1fr auto auto;align-items:center;gap:12px;padding:4px 8px;color:var(--yt-spec-text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">
+            <span style="text-align:center;">#</span>
+            <span>Başlık</span>
+            <span>Çalma</span>
+            <span><i class="fas fa-clock"></i></span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:32px 1fr auto auto;align-items:center;gap:12px;padding:8px;border-radius:6px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.07)'" onmouseout="this.style.background=''" onclick="playSong(${s.id})">
+          <span style="text-align:center;color:var(--yt-spec-text-secondary);font-size:14px;">1</span>
+          <div style="min-width:0;">
+            <p style="font-size:14px;font-weight:500;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.title || ''}</p>
+            <p style="font-size:12px;color:var(--yt-spec-text-secondary);margin:2px 0 0;display:flex;align-items:center;gap:4px;">${s.artist_name || ''}<i class="fas fa-check-circle" style="color:#1db954;font-size:10px;"></i></p>
+          </div>
+          <span style="font-size:13px;color:var(--yt-spec-text-secondary);">${s.show_play_count ? formatNumber(s.play_count || 0) : ''}</span>
+          <span style="font-size:13px;color:var(--yt-spec-text-secondary);">—</span>
+        </div>
+
+        <!-- Tarih + Copyright -->
+        <div style="margin-top:32px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);">
+          <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin:0 0 4px;">${year > 2000 ? new Date(s.created_at || Date.now()).toLocaleDateString('tr-TR', {day:'numeric',month:'long',year:'numeric'}) : ''}</p>
+          ${s.company_name ? `
+            <p style="font-size:12px;color:var(--yt-spec-text-secondary);margin:2px 0;">© ${year} ${s.company_name}</p>
+            <p style="font-size:12px;color:var(--yt-spec-text-secondary);margin:2px 0;">℗ ${year} ${s.company_name}</p>
+          ` : ''}
+        </div>
+
+        <!-- Şarkı Sözleri -->
+        ${lyricsHtml}
+      </div>`;
+  } catch(e) {
+    pageContent.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:20px;">Şarkı yüklenemedi</p>';
+  }
 }
 
 async function showMyPlaylists() {
@@ -7807,6 +7890,7 @@ function showUploadSongModal() {
     <h3 style="margin-bottom:16px">Şarkı Yükle</h3>
     <div class="yt-form-group"><label class="yt-form-label">Şarkı Adı *</label><input id="songTitle" class="yt-input" placeholder="Şarkı adı" /></div>
     <div class="yt-form-group"><label class="yt-form-label">Tür</label><input id="songGenre" class="yt-input" placeholder="Pop, Rock, Hip-Hop..." /></div>
+    <div class="yt-form-group"><label class="yt-form-label">Company Name (opsiyonel)</label><input id="songCompany" class="yt-input" placeholder="Mamba Music, Universal..." /></div>
     <div class="yt-form-group"><label class="yt-form-label">Ses Dosyası * (MP3, WAV)</label><input type="file" id="songAudio" class="yt-input" accept="audio/*" /></div>
     <div class="yt-form-group"><label class="yt-form-label">Kapak Fotoğrafı *</label><input type="file" id="songCover" class="yt-input" accept="image/*" /></div>
     <div class="yt-form-group"><label class="yt-form-label">Şarkı Sözleri (opsiyonel)</label><textarea id="songLyrics" class="yt-input" style="height:80px;resize:vertical" placeholder="Şarkı sözleri..."></textarea></div>
@@ -7816,6 +7900,7 @@ function showUploadSongModal() {
 async function uploadTSSong() {
   const title = document.getElementById('songTitle')?.value.trim();
   const genre = document.getElementById('songGenre')?.value.trim();
+  const company = document.getElementById('songCompany')?.value.trim();
   const audio = document.getElementById('songAudio')?.files[0];
   const cover = document.getElementById('songCover')?.files[0];
   const lyrics = document.getElementById('songLyrics')?.value.trim();
@@ -7825,6 +7910,7 @@ async function uploadTSSong() {
   formData.append('title', title);
   if (genre) formData.append('genre', genre);
   if (lyrics) formData.append('lyrics', lyrics);
+  if (company) formData.append('companyName', company);
   formData.append('audio', audio);
   formData.append('cover', cover);
   closeModal();

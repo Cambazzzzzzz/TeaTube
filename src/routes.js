@@ -421,7 +421,7 @@ router.put('/follow-request/:id/:action', (req, res) => {
       const receiver = db.prepare('SELECT nickname FROM users WHERE id = ?').get(req_.receiver_id);
       if (receiver) {
         db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-          .run(req_.sender_id, 'friend_accepted', `${receiver.nickname} takip isteÄŸini kabul etti`, req_.receiver_id);
+          .run(req_.sender_id, 'friend_accepted', `${receiver.nickname} takip isteğini kabul etti`, req_.receiver_id);
       }
     } else {
       db.prepare('DELETE FROM follow_requests WHERE id = ?').run(id);
@@ -495,14 +495,14 @@ router.delete('/search-history/:userId', (req, res) => {
   }
 });
 
-// Ä°zleme geÃ§miÅŸini temizle
+// zleme geçmişini temizle
 router.delete('/watch-history/:userId', (req, res) => {
   try {
     db.prepare('DELETE FROM watch_history WHERE user_id = ?').run(req.params.userId);
     res.json({ success: true });
   } catch (error) {
-    console.error('Ä°zleme geÃ§miÅŸi temizleme hatasÄ±:', error);
-    res.status(500).json({ error: 'Ä°zleme geÃ§miÅŸi temizlenemedi' });
+    console.error('zleme geçmişi temizleme hatasÄ±:', error);
+    res.status(500).json({ error: 'zleme geçmişi temizlenemedi' });
   }
 });
 
@@ -893,7 +893,7 @@ router.get('/search-history/:userId', (req, res) => {
   }
 });
 
-// Ä°zleme geÃ§miÅŸi - tÃ¼m kayÄ±tlar (GeÃ§miÅŸ sayfasÄ± iÃ§in)
+// zleme geçmişi - tÃ¼m kayÄ±tlar (GeÃ§miÅŸ sayfasÄ± iÃ§in)
 router.get('/watch-history/:userId', (req, res) => {
   try {
     const history = db.prepare(`
@@ -908,8 +908,8 @@ router.get('/watch-history/:userId', (req, res) => {
 
     res.json(history);
   } catch (error) {
-    console.error('Ä°zleme geÃ§miÅŸi hatasÄ±:', error);
-    res.status(500).json({ error: 'Ä°zleme geÃ§miÅŸi alÄ±namadÄ±' });
+    console.error('zleme geçmişi hatasÄ±:', error);
+    res.status(500).json({ error: 'zleme geçmişi alÄ±namadÄ±' });
   }
 });
 
@@ -936,7 +936,7 @@ router.get('/watched-unique/:userId', (req, res) => {
   }
 });
 
-// Ä°zleme geÃ§miÅŸine ekle
+// zleme geçmişine ekle
 router.post('/watch-history', (req, res) => {
   try {
     const { userId, videoId, watchDuration, totalDuration } = req.body;
@@ -988,8 +988,8 @@ router.post('/watch-history', (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Ä°zleme geÃ§miÅŸi ekleme hatasÄ±:', error);
-    res.status(500).json({ error: 'Ä°zleme geÃ§miÅŸi eklenemedi' });
+    console.error('zleme geçmişi ekleme hatasÄ±:', error);
+    res.status(500).json({ error: 'zleme geçmişi eklenemedi' });
   }
 });
 
@@ -1584,7 +1584,7 @@ router.put('/partner-respond', (req, res) => {
       const toCh = db.prepare('SELECT channel_name FROM channels WHERE id = ?').get(toChannelId);
       if (fromCh && toCh) {
         db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-          .run(fromCh.user_id, 'supporter_accepted', `${toCh.channel_name} partner isteÄŸinizi kabul etti`, toChannelId);
+          .run(fromCh.user_id, 'supporter_accepted', `${toCh.channel_name} partner isteğinizi kabul etti`, toChannelId);
       }
     } else {
       db.prepare('DELETE FROM supporter_channels WHERE id = ?').run(request.id);
@@ -1612,9 +1612,9 @@ router.put('/supporter-channel/:id/accept', (req, res) => {
       const supporterChannel = db.prepare('SELECT channel_name FROM channels WHERE id = ?').get(supporter.supporter_channel_id);
       if (channel && supporterChannel) {
         db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-          .run(channel.user_id, 'supporter_accepted', `${supporterChannel.channel_name} partner isteÄŸinizi kabul etti`, supporter.supporter_channel_id);
+          .run(channel.user_id, 'supporter_accepted', `${supporterChannel.channel_name} partner isteğinizi kabul etti`, supporter.supporter_channel_id);
       }
-    } catch(notifErr) { console.error('Bildirim hatasÄ±:', notifErr); }
+    } catch(notifErr) { console.error('Bildirim hatası:', notifErr); }
 
     res.json({ success: true });
   } catch (error) {
@@ -1640,7 +1640,7 @@ router.put('/supporter-channel/:id/reject', (req, res) => {
         db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
           .run(channel.user_id, 'supporter_rejected', `${supporterChannel.channel_name} partner isteÄŸinizi reddetti`, supporter.supporter_channel_id);
       }
-    } catch(notifErr) { console.error('Bildirim hatasÄ±:', notifErr); }
+    } catch(notifErr) { console.error('Bildirim hatası:', notifErr); }
 
     res.json({ success: true });
   } catch (error) {
@@ -1810,7 +1810,7 @@ router.put('/friend-request/:id/accept', (req, res) => {
 
     const receiver = db.prepare('SELECT nickname FROM users WHERE id = ?').get(friendship.receiver_id);
     db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-      .run(friendship.sender_id, 'friend_accepted', `${receiver.nickname} arkadaÅŸlÄ±k isteÄŸinizi kabul etti`, friendship.receiver_id);
+      .run(friendship.sender_id, 'friend_accepted', `${receiver.nickname} arkadaÅŸlÄ±k isteğinizi kabul etti`, friendship.receiver_id);
 
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -2546,3 +2546,5 @@ router.delete('/announcement/:id', (req, res) => {
 });
 
 module.exports = router;
+
+

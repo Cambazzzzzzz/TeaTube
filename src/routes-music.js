@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const db = require('./database');
 const multer = require('multer');
@@ -17,10 +17,10 @@ const diskStorage = multer.diskStorage({
 const upload = multer({ storage: multer.memoryStorage() });
 const uploadDisk = multer({ storage: diskStorage });
 
-// ==================== ARTIST BAŞVURU ====================
+// ==================== ARTIST BAÅVURU ====================
 
-// Başvuru gönder
-// Başvuru gönder (örnek şarkı ile)
+// BaÅvuru gÃ¶nder
+// BaÅvuru gÃ¶nder (Ã¶rnek ÅarkÄ± ile)
 router.post('/music/apply', uploadDisk.single('sampleAudio'), async (req, res) => {
   const audioPath = req.file?.path;
   try {
@@ -29,13 +29,13 @@ router.post('/music/apply', uploadDisk.single('sampleAudio'), async (req, res) =
 
     // Zaten artist mi?
     const existing = db.prepare('SELECT id FROM music_artists WHERE user_id = ?').get(userId);
-    if (existing) return res.status(400).json({ error: 'Zaten artist hesabınız var' });
+    if (existing) return res.status(400).json({ error: 'Zaten artist hesabÄ±nÄ±z var' });
 
-    // Bekleyen başvuru var mı?
+    // Bekleyen baÅvuru var mÄ±?
     const pending = db.prepare("SELECT id FROM music_artist_applications WHERE user_id = ? AND status = 'pending'").get(userId);
-    if (pending) return res.status(400).json({ error: 'Bekleyen başvurunuz var' });
+    if (pending) return res.status(400).json({ error: 'Bekleyen baÅvurunuz var' });
 
-    // Örnek şarkı yükle
+    // Ãrnek ÅarkÄ± yÃ¼kle
     let sampleAudioUrl = null;
     if (req.file) {
       sampleAudioUrl = await new Promise((resolve, reject) => {
@@ -53,27 +53,27 @@ router.post('/music/apply', uploadDisk.single('sampleAudio'), async (req, res) =
 
     res.json({ success: true });
   } catch(e) {
-    console.error('Başvuru hatası:', e);
-    res.status(500).json({ error: 'Başvuru gönderilemedi: ' + e.message });
+    console.error('BaÅvuru hatasÄ±:', e);
+    res.status(500).json({ error: 'BaÅvuru gÃ¶nderilemedi: ' + e.message });
   } finally {
     try { if (audioPath && fs.existsSync(audioPath)) fs.unlinkSync(audioPath); } catch(e) {}
   }
 });
 
-// Başvuru durumunu getir
+// BaÅvuru durumunu getir
 router.get('/music/apply/status/:userId', (req, res) => {
   try {
     const app = db.prepare('SELECT * FROM music_artist_applications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1').get(req.params.userId);
     const artist = db.prepare('SELECT * FROM music_artists WHERE user_id = ?').get(req.params.userId);
     res.json({ application: app || null, artist: artist || null });
   } catch(e) {
-    res.status(500).json({ error: 'Durum alınamadı' });
+    res.status(500).json({ error: 'Durum alÄ±namadÄ±' });
   }
 });
 
-// ==================== ŞARKI YÜKLEME ====================
+// ==================== ÅARKI YÃKLEME ====================
 
-// Şarkı yükle (artist)
+// ÅarkÄ± yÃ¼kle (artist)
 router.post('/music/song', uploadDisk.fields([{ name: 'audio' }, { name: 'cover' }]), async (req, res) => {
   const audioPath = req.files?.audio?.[0]?.path;
   const coverPath = req.files?.cover?.[0]?.path;
@@ -82,12 +82,12 @@ router.post('/music/song', uploadDisk.fields([{ name: 'audio' }, { name: 'cover'
     if (!userId || !title) return res.status(400).json({ error: 'Eksik bilgi' });
 
     const artist = db.prepare('SELECT * FROM music_artists WHERE user_id = ?').get(userId);
-    if (!artist) return res.status(403).json({ error: 'Artist hesabınız yok' });
-    if (artist.is_suspended) return res.status(403).json({ error: 'Hesabınız askıya alınmış' });
+    if (!artist) return res.status(403).json({ error: 'Artist hesabÄ±nÄ±z yok' });
+    if (artist.is_suspended) return res.status(403).json({ error: 'HesabÄ±nÄ±z askÄ±ya alÄ±nmÄ±Å' });
 
     if (!req.files?.audio || !req.files?.cover) return res.status(400).json({ error: 'Ses ve kapak gerekli' });
 
-    // Kapak yükle
+    // Kapak yÃ¼kle
     const coverBuffer = fs.readFileSync(coverPath);
     const coverUrl = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
@@ -97,7 +97,7 @@ router.post('/music/song', uploadDisk.fields([{ name: 'audio' }, { name: 'cover'
       stream.end(coverBuffer);
     });
 
-    // Ses yükle
+    // Ses yÃ¼kle
     const audioUrl = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload(audioPath, {
         resource_type: 'video', // Cloudinary'de audio = video resource_type
@@ -107,22 +107,22 @@ router.post('/music/song', uploadDisk.fields([{ name: 'audio' }, { name: 'cover'
       }, (err, result) => err ? reject(err) : resolve(result.secure_url));
     });
 
-    const result = db.prepare('INSERT INTO songs (artist_id, title, genre, lyrics, audio_url, cover_url) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(artist.id, title, genre || null, lyrics || null, audioUrl, coverUrl);
+    const result = db.prepare('INSERT INTO songs (artist_id, title, genre, lyrics, audio_url, cover_url, company_name) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(artist.id, title, genre || null, lyrics || null, audioUrl, coverUrl, req.body.companyName || null);
 
     res.json({ success: true, songId: result.lastInsertRowid });
   } catch(e) {
-    console.error('Şarkı yükleme hatası:', e);
-    res.status(500).json({ error: 'Şarkı yüklenemedi: ' + e.message });
+    console.error('ÅarkÄ± yÃ¼kleme hatasÄ±:', e);
+    res.status(500).json({ error: 'ÅarkÄ± yÃ¼klenemedi: ' + e.message });
   } finally {
     try { if (audioPath && fs.existsSync(audioPath)) fs.unlinkSync(audioPath); } catch(e) {}
     try { if (coverPath && fs.existsSync(coverPath)) fs.unlinkSync(coverPath); } catch(e) {}
   }
 });
 
-// ==================== ŞARKI LİSTELEME ====================
+// ==================== ÅARKI LÄ°STELEME ====================
 
-// Anasayfa - yeni şarkılar + yeni artistler
+// Anasayfa - yeni ÅarkÄ±lar + yeni artistler
 router.get('/music/home', (req, res) => {
   try {
     const newSongs = db.prepare(`
@@ -149,11 +149,11 @@ router.get('/music/home', (req, res) => {
 
     res.json({ newSongs, newArtists, popularSongs });
   } catch(e) {
-    res.status(500).json({ error: 'Veriler alınamadı' });
+    res.status(500).json({ error: 'Veriler alÄ±namadÄ±' });
   }
 });
 
-// Şarkı arama (başlık, sözler, artist)
+// ÅarkÄ± arama (baÅlÄ±k, sÃ¶zler, artist)
 router.get('/music/search', (req, res) => {
   try {
     const { q } = req.query;
@@ -177,7 +177,7 @@ router.get('/music/search', (req, res) => {
 
     res.json({ songs, artists });
   } catch(e) {
-    res.status(500).json({ error: 'Arama başarısız' });
+    res.status(500).json({ error: 'Arama baÅarÄ±sÄ±z' });
   }
 });
 
@@ -190,16 +190,16 @@ router.get('/music/artist/:artistId', (req, res) => {
       FROM music_artists a JOIN users u ON a.user_id = u.id
       WHERE a.id = ?
     `).get(req.params.artistId);
-    if (!artist) return res.status(404).json({ error: 'Artist bulunamadı' });
+    if (!artist) return res.status(404).json({ error: 'Artist bulunamadÄ±' });
 
     const songs = db.prepare('SELECT * FROM songs WHERE artist_id = ? AND is_suspended = 0 ORDER BY created_at DESC').all(req.params.artistId);
     res.json({ artist, songs });
   } catch(e) {
-    res.status(500).json({ error: 'Artist alınamadı' });
+    res.status(500).json({ error: 'Artist alÄ±namadÄ±' });
   }
 });
 
-// Şarkı detayı + dinlenme sayısı artır
+// ÅarkÄ± detayÄ± + dinlenme sayÄ±sÄ± artÄ±r
 router.get('/music/song/:songId', (req, res) => {
   try {
     const song = db.prepare(`
@@ -207,19 +207,19 @@ router.get('/music/song/:songId', (req, res) => {
       FROM songs s JOIN music_artists a ON s.artist_id = a.id
       WHERE s.id = ?
     `).get(req.params.songId);
-    if (!song) return res.status(404).json({ error: 'Şarkı bulunamadı' });
-    // Dinlenme artır
+    if (!song) return res.status(404).json({ error: 'ÅarkÄ± bulunamadÄ±' });
+    // Dinlenme artÄ±r
     db.prepare('UPDATE songs SET play_count = play_count + 1 WHERE id = ?').run(req.params.songId);
     song.play_count += 1;
     res.json(song);
   } catch(e) {
-    res.status(500).json({ error: 'Şarkı alınamadı' });
+    res.status(500).json({ error: 'ÅarkÄ± alÄ±namadÄ±' });
   }
 });
 
-// ==================== PLAYLİST ====================
+// ==================== PLAYLÄ°ST ====================
 
-// Playlist oluştur
+// Playlist oluÅtur
 router.post('/music/playlist', (req, res) => {
   try {
     const { userId, name, isPublic } = req.body;
@@ -227,11 +227,11 @@ router.post('/music/playlist', (req, res) => {
       .run(userId, name, isPublic !== false ? 1 : 0);
     res.json({ success: true, playlistId: result.lastInsertRowid });
   } catch(e) {
-    res.status(500).json({ error: 'Playlist oluşturulamadı' });
+    res.status(500).json({ error: 'Playlist oluÅturulamadÄ±' });
   }
 });
 
-// Kullanıcının playlistleri
+// KullanÄ±cÄ±nÄ±n playlistleri
 router.get('/music/playlists/:userId', (req, res) => {
   try {
     const playlists = db.prepare(`
@@ -240,15 +240,15 @@ router.get('/music/playlists/:userId', (req, res) => {
     `).all(req.params.userId);
     res.json(playlists);
   } catch(e) {
-    res.status(500).json({ error: 'Playlistler alınamadı' });
+    res.status(500).json({ error: 'Playlistler alÄ±namadÄ±' });
   }
 });
 
-// Playlist detayı
+// Playlist detayÄ±
 router.get('/music/playlist/:playlistId', (req, res) => {
   try {
     const playlist = db.prepare('SELECT * FROM playlists WHERE id = ?').get(req.params.playlistId);
-    if (!playlist) return res.status(404).json({ error: 'Playlist bulunamadı' });
+    if (!playlist) return res.status(404).json({ error: 'Playlist bulunamadÄ±' });
     const songs = db.prepare(`
       SELECT s.*, a.artist_name, a.show_play_count
       FROM playlist_songs ps
@@ -259,28 +259,28 @@ router.get('/music/playlist/:playlistId', (req, res) => {
     `).all(req.params.playlistId);
     res.json({ playlist, songs });
   } catch(e) {
-    res.status(500).json({ error: 'Playlist alınamadı' });
+    res.status(500).json({ error: 'Playlist alÄ±namadÄ±' });
   }
 });
 
-// Playlist'e şarkı ekle
+// Playlist'e ÅarkÄ± ekle
 router.post('/music/playlist/:playlistId/song', (req, res) => {
   try {
     const { songId } = req.body;
     db.prepare('INSERT OR IGNORE INTO playlist_songs (playlist_id, song_id) VALUES (?, ?)').run(req.params.playlistId, songId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Şarkı eklenemedi' });
+    res.status(500).json({ error: 'ÅarkÄ± eklenemedi' });
   }
 });
 
-// Playlist'ten şarkı çıkar
+// Playlist'ten ÅarkÄ± Ã§Ä±kar
 router.delete('/music/playlist/:playlistId/song/:songId', (req, res) => {
   try {
     db.prepare('DELETE FROM playlist_songs WHERE playlist_id = ? AND song_id = ?').run(req.params.playlistId, req.params.songId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Şarkı çıkarılamadı' });
+    res.status(500).json({ error: 'ÅarkÄ± Ã§Ä±karÄ±lamadÄ±' });
   }
 });
 
@@ -294,7 +294,7 @@ router.delete('/music/playlist/:playlistId', (req, res) => {
   }
 });
 
-// ==================== ŞARKI BEĞENİ ====================
+// ==================== ÅARKI BEÄENÄ° ====================
 
 router.post('/music/song/:songId/like', (req, res) => {
   try {
@@ -308,11 +308,11 @@ router.post('/music/song/:songId/like', (req, res) => {
       res.json({ liked: true });
     }
   } catch(e) {
-    res.status(500).json({ error: 'İşlem başarısız' });
+    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
   }
 });
 
-// Beğenilen şarkılar
+// BeÄenilen ÅarkÄ±lar
 router.get('/music/liked/:userId', (req, res) => {
   try {
     const songs = db.prepare(`
@@ -325,18 +325,18 @@ router.get('/music/liked/:userId', (req, res) => {
     `).all(req.params.userId);
     res.json(songs);
   } catch(e) {
-    res.status(500).json({ error: 'Beğeniler alınamadı' });
+    res.status(500).json({ error: 'BeÄeniler alÄ±namadÄ±' });
   }
 });
 
-// Artist ayarları (dinlenme sayısı göster/gizle)
+// Artist ayarlarÄ± (dinlenme sayÄ±sÄ± gÃ¶ster/gizle)
 router.put('/music/artist/settings', (req, res) => {
   try {
     const { userId, showPlayCount } = req.body;
     db.prepare('UPDATE music_artists SET show_play_count = ? WHERE user_id = ?').run(showPlayCount ? 1 : 0, userId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Ayarlar güncellenemedi' });
+    res.status(500).json({ error: 'Ayarlar gÃ¼ncellenemedi' });
   }
 });
 
@@ -346,11 +346,11 @@ router.get('/music/artist-status/:userId', (req, res) => {
     const artist = db.prepare('SELECT * FROM music_artists WHERE user_id = ?').get(req.params.userId);
     res.json({ isArtist: !!artist, artist: artist || null });
   } catch(e) {
-    res.status(500).json({ error: 'Kontrol yapılamadı' });
+    res.status(500).json({ error: 'Kontrol yapÄ±lamadÄ±' });
   }
 });
 
-// Kendi şarkılarım
+// Kendi ÅarkÄ±larÄ±m
 router.get('/music/my-songs/:userId', (req, res) => {
   try {
     const artist = db.prepare('SELECT id FROM music_artists WHERE user_id = ?').get(req.params.userId);
@@ -358,11 +358,11 @@ router.get('/music/my-songs/:userId', (req, res) => {
     const songs = db.prepare('SELECT * FROM songs WHERE artist_id = ? ORDER BY created_at DESC').all(artist.id);
     res.json(songs);
   } catch(e) {
-    res.status(500).json({ error: 'Şarkılar alınamadı' });
+    res.status(500).json({ error: 'ÅarkÄ±lar alÄ±namadÄ±' });
   }
 });
 
-// Şarkı güncelle (dinlenme sayısı sıfırlanmaz)
+// ÅarkÄ± gÃ¼ncelle (dinlenme sayÄ±sÄ± sÄ±fÄ±rlanmaz)
 router.put('/music/song/:songId', upload.single('cover'), async (req, res) => {
   try {
     const { title, genre, lyrics } = req.body;
@@ -386,11 +386,11 @@ router.put('/music/song/:songId', upload.single('cover'), async (req, res) => {
     db.prepare(updateQuery).run(...params);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Güncellenemedi: ' + e.message });
+    res.status(500).json({ error: 'GÃ¼ncellenemedi: ' + e.message });
   }
 });
 
-// Şarkı sil
+// ÅarkÄ± sil
 router.delete('/music/song/:songId', (req, res) => {
   try {
     db.prepare('DELETE FROM songs WHERE id = ?').run(req.params.songId);
@@ -403,16 +403,16 @@ router.delete('/music/song/:songId', (req, res) => {
 
 module.exports = router;
 
-// ==================== ŞARKI YAZ ====================
+// ==================== ÅARKI YAZ ====================
 
-// Şarkı yaz (artist - beat + lyrics)
+// ÅarkÄ± yaz (artist - beat + lyrics)
 router.post('/music/writing', upload.single('beat'), async (req, res) => {
   try {
     const { userId, title, lyrics, genre, beatName } = req.body;
-    if (!userId || !title || !lyrics) return res.status(400).json({ error: 'Başlık ve şarkı sözü gerekli' });
+    if (!userId || !title || !lyrics) return res.status(400).json({ error: 'BaÅlÄ±k ve ÅarkÄ± sÃ¶zÃ¼ gerekli' });
 
     const artist = db.prepare('SELECT * FROM music_artists WHERE user_id = ?').get(userId);
-    if (!artist) return res.status(403).json({ error: 'Artist hesabınız yok' });
+    if (!artist) return res.status(403).json({ error: 'Artist hesabÄ±nÄ±z yok' });
 
     let beatUrl = null;
     if (req.file) {
@@ -431,12 +431,12 @@ router.post('/music/writing', upload.single('beat'), async (req, res) => {
 
     res.json({ success: true, writingId: result.lastInsertRowid });
   } catch(e) {
-    console.error('Şarkı yazma hatası:', e);
+    console.error('ÅarkÄ± yazma hatasÄ±:', e);
     res.status(500).json({ error: 'Kaydedilemedi: ' + e.message });
   }
 });
 
-// Tüm yazılan şarkılar (keşfet)
+// TÃ¼m yazÄ±lan ÅarkÄ±lar (keÅfet)
 router.get('/music/writings', (req, res) => {
   try {
     const { userId } = req.query;
@@ -459,7 +459,7 @@ router.get('/music/writings', (req, res) => {
       LIMIT 50
     `).all();
 
-    // Kullanıcının kendi puanlarını ekle
+    // KullanÄ±cÄ±nÄ±n kendi puanlarÄ±nÄ± ekle
     if (userId) {
       const myRatings = db.prepare('SELECT * FROM song_writing_ratings WHERE user_id = ?').all(userId);
       const ratingMap = {};
@@ -469,11 +469,11 @@ router.get('/music/writings', (req, res) => {
 
     res.json(writings);
   } catch(e) {
-    res.status(500).json({ error: 'Veriler alınamadı' });
+    res.status(500).json({ error: 'Veriler alÄ±namadÄ±' });
   }
 });
 
-// Artist'in kendi yazıları
+// Artist'in kendi yazÄ±larÄ±
 router.get('/music/writings/my/:userId', (req, res) => {
   try {
     const artist = db.prepare('SELECT id FROM music_artists WHERE user_id = ?').get(req.params.userId);
@@ -495,11 +495,11 @@ router.get('/music/writings/my/:userId', (req, res) => {
 
     res.json(writings);
   } catch(e) {
-    res.status(500).json({ error: 'Veriler alınamadı' });
+    res.status(500).json({ error: 'Veriler alÄ±namadÄ±' });
   }
 });
 
-// Şarkı yazısı detayı
+// ÅarkÄ± yazÄ±sÄ± detayÄ±
 router.get('/music/writing/:id', (req, res) => {
   try {
     const { userId } = req.query;
@@ -520,7 +520,7 @@ router.get('/music/writing/:id', (req, res) => {
       GROUP BY sw.id
     `).get(req.params.id);
 
-    if (!writing) return res.status(404).json({ error: 'Bulunamadı' });
+    if (!writing) return res.status(404).json({ error: 'BulunamadÄ±' });
 
     const comments = db.prepare(`
       SELECT swc.*, u.nickname, u.profile_photo
@@ -537,20 +537,20 @@ router.get('/music/writing/:id', (req, res) => {
 
     res.json({ writing, comments, myRating });
   } catch(e) {
-    res.status(500).json({ error: 'Veri alınamadı' });
+    res.status(500).json({ error: 'Veri alÄ±namadÄ±' });
   }
 });
 
-// Puanla (beat + lyrics ayrı)
+// Puanla (beat + lyrics ayrÄ±)
 router.post('/music/writing/:id/rate', (req, res) => {
   try {
     const { userId, beatRating, lyricsRating } = req.body;
-    if (!userId) return res.status(400).json({ error: 'Kullanıcı gerekli' });
+    if (!userId) return res.status(400).json({ error: 'KullanÄ±cÄ± gerekli' });
 
-    // allow_rating kontrolü
+    // allow_rating kontrolÃ¼
     const writing = db.prepare('SELECT allow_rating FROM song_writings WHERE id = ?').get(req.params.id);
     if (writing && writing.allow_rating === 0) {
-      return res.status(403).json({ error: 'Bu şarkı için puanlama kapalı' });
+      return res.status(403).json({ error: 'Bu ÅarkÄ± iÃ§in puanlama kapalÄ±' });
     }
 
     const existing = db.prepare('SELECT id FROM song_writing_ratings WHERE writing_id = ? AND user_id = ?').get(req.params.id, userId);
@@ -562,11 +562,11 @@ router.post('/music/writing/:id/rate', (req, res) => {
         .run(req.params.id, userId, beatRating || null, lyricsRating || null);
     }
 
-    // Güncel ortalamalar
+    // GÃ¼ncel ortalamalar
     const avgs = db.prepare('SELECT ROUND(AVG(beat_rating),1) as avg_beat, ROUND(AVG(lyrics_rating),1) as avg_lyrics, COUNT(*) as cnt FROM song_writing_ratings WHERE writing_id = ?').get(req.params.id);
     res.json({ success: true, ...avgs });
   } catch(e) {
-    res.status(500).json({ error: 'Puanlama başarısız' });
+    res.status(500).json({ error: 'Puanlama baÅarÄ±sÄ±z' });
   }
 });
 
@@ -597,7 +597,7 @@ router.delete('/music/writing/comment/:commentId', (req, res) => {
   try {
     const { userId } = req.body;
     const comment = db.prepare('SELECT * FROM song_writing_comments WHERE id = ?').get(req.params.commentId);
-    if (!comment) return res.status(404).json({ error: 'Yorum bulunamadı' });
+    if (!comment) return res.status(404).json({ error: 'Yorum bulunamadÄ±' });
     // Sadece yorum sahibi silebilir
     if (comment.user_id != userId) return res.status(403).json({ error: 'Yetkisiz' });
     db.prepare('DELETE FROM song_writing_comments WHERE id = ?').run(req.params.commentId);
@@ -607,14 +607,14 @@ router.delete('/music/writing/comment/:commentId', (req, res) => {
   }
 });
 
-// Şarkı yazısı sil (artist)
+// ÅarkÄ± yazÄ±sÄ± sil (artist)
 router.delete('/music/writing/:id', (req, res) => {
   try {
     const { userId } = req.body;
     const artist = db.prepare('SELECT id FROM music_artists WHERE user_id = ?').get(userId);
     if (!artist) return res.status(403).json({ error: 'Yetkisiz' });
     const writing = db.prepare('SELECT * FROM song_writings WHERE id = ? AND artist_id = ?').get(req.params.id, artist.id);
-    if (!writing) return res.status(404).json({ error: 'Bulunamadı' });
+    if (!writing) return res.status(404).json({ error: 'BulunamadÄ±' });
     db.prepare('DELETE FROM song_writings WHERE id = ?').run(req.params.id);
     res.json({ success: true });
   } catch(e) {

@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const db = require('./database');
 const multer = require('multer');
@@ -7,7 +7,7 @@ const cloudinary = cloudinaryModule.cloudinary;
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// ==================== GRUP OLUŞTUR ====================
+// ==================== GRUP OLUÅTUR ====================
 router.post('/groups', upload.single('photo'), async (req, res) => {
   try {
     const { userId, name, description, isPrivate } = req.body;
@@ -24,8 +24,8 @@ router.post('/groups', upload.single('photo'), async (req, res) => {
           stream.end(req.file.buffer);
         });
       } catch(e) {
-        console.error('Grup fotoğrafı yüklenemedi:', e.message);
-        // Fotoğraf yüklenemese de grup oluştur
+        console.error('Grup fotoÄrafÄ± yÃ¼klenemedi:', e.message);
+        // FotoÄraf yÃ¼klenemese de grup oluÅtur
       }
     }
 
@@ -37,12 +37,12 @@ router.post('/groups', upload.single('photo'), async (req, res) => {
 
     res.json({ success: true, groupId: result.lastInsertRowid });
   } catch(e) {
-    console.error('Grup oluşturma hatası:', e);
-    res.status(500).json({ error: 'Grup oluşturulamadı: ' + e.message });
+    console.error('Grup oluÅturma hatasÄ±:', e);
+    res.status(500).json({ error: 'Grup oluÅturulamadÄ±: ' + e.message });
   }
 });
 
-// Kullanıcının gönderdiği bekleyen istekler
+// KullanÄ±cÄ±nÄ±n gÃ¶nderdiÄi bekleyen istekler
 router.get('/groups/my-requests/:userId', (req, res) => {
   try {
     const requests = db.prepare(`
@@ -53,11 +53,11 @@ router.get('/groups/my-requests/:userId', (req, res) => {
     `).all(req.params.userId);
     res.json(requests);
   } catch(e) {
-    res.status(500).json({ error: 'İstekler alınamadı' });
+    res.status(500).json({ error: 'Ä°stekler alÄ±namadÄ±' });
   }
 });
 
-// Yöneticinin gruplarındaki tüm bekleyen istekler
+// YÃ¶neticinin gruplarÄ±ndaki tÃ¼m bekleyen istekler
 router.get('/groups/pending-requests/:userId', (req, res) => {
   try {
     const requests = db.prepare(`
@@ -72,11 +72,11 @@ router.get('/groups/pending-requests/:userId', (req, res) => {
     `).all(req.params.userId);
     res.json(requests);
   } catch(e) {
-    res.status(500).json({ error: 'İstekler alınamadı' });
+    res.status(500).json({ error: 'Ä°stekler alÄ±namadÄ±' });
   }
 });
 
-// Tüm açık gruplar (keşfet)
+// TÃ¼m aÃ§Ä±k gruplar (keÅfet)
 router.get('/groups/all', (req, res) => {
   try {
     const { userId } = req.query;
@@ -90,11 +90,11 @@ router.get('/groups/all', (req, res) => {
     `).all(userId || 0);
     res.json(groups);
   } catch(e) {
-    res.status(500).json({ error: 'Gruplar alınamadı' });
+    res.status(500).json({ error: 'Gruplar alÄ±namadÄ±' });
   }
 });
 
-// Kullanıcının grupları
+// KullanÄ±cÄ±nÄ±n gruplarÄ±
 router.get('/groups/user/:userId', (req, res) => {
   try {
     const groups = db.prepare(`
@@ -107,7 +107,7 @@ router.get('/groups/user/:userId', (req, res) => {
     `).all(req.params.userId);
     res.json(groups);
   } catch(e) {
-    res.status(500).json({ error: 'Gruplar alınamadı' });
+    res.status(500).json({ error: 'Gruplar alÄ±namadÄ±' });
   }
 });
 
@@ -125,11 +125,11 @@ router.get('/groups/search', (req, res) => {
     `).all(userId || 0, `%${q}%`);
     res.json(groups);
   } catch(e) {
-    res.status(500).json({ error: 'Arama başarısız' });
+    res.status(500).json({ error: 'Arama baÅarÄ±sÄ±z' });
   }
 });
 
-// Grup detayı
+// Grup detayÄ±
 router.get('/groups/:groupId', (req, res) => {
   try {
     const { userId } = req.query;
@@ -140,14 +140,14 @@ router.get('/groups/:groupId', (req, res) => {
              (SELECT is_banned FROM group_members WHERE group_id = g.id AND user_id = ?) as is_banned
       FROM groups g WHERE g.id = ?
     `).get(userId || 0, userId || 0, req.params.groupId);
-    if (!group) return res.status(404).json({ error: 'Grup bulunamadı' });
+    if (!group) return res.status(404).json({ error: 'Grup bulunamadÄ±' });
     res.json(group);
   } catch(e) {
-    res.status(500).json({ error: 'Grup alınamadı' });
+    res.status(500).json({ error: 'Grup alÄ±namadÄ±' });
   }
 });
 
-// Grup üyeleri
+// Grup Ã¼yeleri
 router.get('/groups/:groupId/members', (req, res) => {
   try {
     const members = db.prepare(`
@@ -159,50 +159,50 @@ router.get('/groups/:groupId/members', (req, res) => {
     `).all(req.params.groupId);
     res.json(members);
   } catch(e) {
-    res.status(500).json({ error: 'Üyeler alınamadı' });
+    res.status(500).json({ error: 'Ãyeler alÄ±namadÄ±' });
   }
 });
 
-// Gruba katıl / istek gönder
+// Gruba katÄ±l / istek gÃ¶nder
 router.post('/groups/:groupId/join', (req, res) => {
   try {
     const { userId } = req.body;
     const group = db.prepare('SELECT * FROM groups WHERE id = ?').get(req.params.groupId);
-    if (!group) return res.status(404).json({ error: 'Grup bulunamadı' });
+    if (!group) return res.status(404).json({ error: 'Grup bulunamadÄ±' });
 
-    // Zaten üye mi?
+    // Zaten Ã¼ye mi?
     const existing = db.prepare('SELECT * FROM group_members WHERE group_id = ? AND user_id = ?').get(req.params.groupId, userId);
-    if (existing) return res.status(400).json({ error: 'Zaten üyesiniz' });
+    if (existing) return res.status(400).json({ error: 'Zaten Ã¼yesiniz' });
 
     if (group.is_private) {
-      // Özel grup - istek gönder
+      // Ãzel grup - istek gÃ¶nder
       db.prepare('INSERT OR IGNORE INTO group_join_requests (group_id, user_id) VALUES (?, ?)').run(req.params.groupId, userId);
       // Sahibine bildirim
       db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-        .run(group.owner_id, 'group_join_request', `Grubunuza katılma isteği var: ${group.name}`, group.id);
+        .run(group.owner_id, 'group_join_request', `Grubunuza katÄ±lma isteÄi var: ${group.name}`, group.id);
       res.json({ success: true, pending: true });
     } else {
-      // Açık grup - direkt katıl
+      // AÃ§Ä±k grup - direkt katÄ±l
       db.prepare('INSERT INTO group_members (group_id, user_id, role) VALUES (?, ?, ?)').run(req.params.groupId, userId, 'member');
       res.json({ success: true, pending: false });
     }
   } catch(e) {
-    res.status(500).json({ error: 'Katılma başarısız' });
+    res.status(500).json({ error: 'KatÄ±lma baÅarÄ±sÄ±z' });
   }
 });
 
-// Gruptan ayrıl
+// Gruptan ayrÄ±l
 router.delete('/groups/:groupId/leave', (req, res) => {
   try {
     const { userId } = req.body;
     db.prepare('DELETE FROM group_members WHERE group_id = ? AND user_id = ?').run(req.params.groupId, userId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Ayrılma başarısız' });
+    res.status(500).json({ error: 'AyrÄ±lma baÅarÄ±sÄ±z' });
   }
 });
 
-// Katılma isteklerini getir (owner/mod)
+// KatÄ±lma isteklerini getir (owner/mod)
 router.get('/groups/:groupId/requests', (req, res) => {
   try {
     const requests = db.prepare(`
@@ -214,11 +214,11 @@ router.get('/groups/:groupId/requests', (req, res) => {
     `).all(req.params.groupId);
     res.json(requests);
   } catch(e) {
-    res.status(500).json({ error: 'İstekler alınamadı' });
+    res.status(500).json({ error: 'Ä°stekler alÄ±namadÄ±' });
   }
 });
 
-// Katılma isteğini kabul/red et
+// KatÄ±lma isteÄini kabul/red et
 router.put('/groups/:groupId/requests/:requestId', (req, res) => {
   try {
     const { action, adminId } = req.body;
@@ -228,9 +228,9 @@ router.put('/groups/:groupId/requests/:requestId', (req, res) => {
       // user_id ile dene
       request = db.prepare('SELECT * FROM group_join_requests WHERE user_id = ? AND group_id = ? AND status = "pending"').get(req.params.requestId, req.params.groupId);
     }
-    if (!request) return res.status(404).json({ error: 'İstek bulunamadı: ' + req.params.requestId });
+    if (!request) return res.status(404).json({ error: 'Ä°stek bulunamadÄ±: ' + req.params.requestId });
 
-    // Yetki kontrolü - adminId yoksa group owner'ı bul
+    // Yetki kontrolÃ¼ - adminId yoksa group owner'Ä± bul
     let hasPermission = false;
     if (adminId) {
       const member = db.prepare('SELECT role FROM group_members WHERE group_id = ? AND user_id = ?').get(req.params.groupId, adminId);
@@ -245,82 +245,82 @@ router.put('/groups/:groupId/requests/:requestId', (req, res) => {
       try {
         const group = db.prepare('SELECT name FROM groups WHERE id = ?').get(req.params.groupId);
         db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-          .run(request.user_id, 'group_accepted', `"${group?.name}" grubuna katılma isteğiniz kabul edildi!`, req.params.groupId);
+          .run(request.user_id, 'group_accepted', `"${group?.name}" grubuna katÄ±lma isteÄiniz kabul edildi!`, req.params.groupId);
       } catch(ne) {}
     }
 
     res.json({ success: true });
   } catch(e) {
     console.error('Group request error:', e);
-    res.status(500).json({ error: 'İşlem başarısız: ' + e.message });
+    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z: ' + e.message });
   }
 });
 
-// Grup ayarlarını güncelle
+// Grup ayarlarÄ±nÄ± gÃ¼ncelle
 router.put('/groups/:groupId/settings', (req, res) => {
   try {
     const { userId, name, description, isPrivate, allowMemberMessages, allowMemberPhotos } = req.body;
     const member = db.prepare('SELECT role FROM group_members WHERE group_id = ? AND user_id = ?').get(req.params.groupId, userId);
-    if (!member || member.role !== 'owner') return res.status(403).json({ error: 'Sadece yönetici ayar değiştirebilir' });
+    if (!member || member.role !== 'owner') return res.status(403).json({ error: 'Sadece yÃ¶netici ayar deÄiÅtirebilir' });
 
     db.prepare('UPDATE groups SET name = ?, description = ?, is_private = ?, allow_member_messages = ?, allow_member_photos = ? WHERE id = ?')
       .run(name, description, isPrivate ? 1 : 0, allowMemberMessages ? 1 : 0, allowMemberPhotos ? 1 : 0, req.params.groupId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Ayarlar güncellenemedi' });
+    res.status(500).json({ error: 'Ayarlar gÃ¼ncellenemedi' });
   }
 });
 
-// Moderatör ata / yetkilerini güncelle
+// ModeratÃ¶r ata / yetkilerini gÃ¼ncelle
 router.put('/groups/:groupId/members/:memberId/role', (req, res) => {
   try {
     const { userId, role, permissions } = req.body;
     const requester = db.prepare('SELECT role FROM group_members WHERE group_id = ? AND user_id = ?').get(req.params.groupId, userId);
-    if (!requester || requester.role !== 'owner') return res.status(403).json({ error: 'Sadece yönetici rol değiştirebilir' });
+    if (!requester || requester.role !== 'owner') return res.status(403).json({ error: 'Sadece yÃ¶netici rol deÄiÅtirebilir' });
 
     db.prepare('UPDATE group_members SET role = ?, permissions = ? WHERE group_id = ? AND user_id = ?')
       .run(role, JSON.stringify(permissions || {}), req.params.groupId, req.params.memberId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Rol güncellenemedi' });
+    res.status(500).json({ error: 'Rol gÃ¼ncellenemedi' });
   }
 });
 
-// Yöneticilik devret
+// YÃ¶neticilik devret
 router.put('/groups/:groupId/transfer', (req, res) => {
   try {
     const { userId, newOwnerId } = req.body;
     const group = db.prepare('SELECT * FROM groups WHERE id = ?').get(req.params.groupId);
-    if (!group || group.owner_id !== userId) return res.status(403).json({ error: 'Sadece yönetici devredebilir' });
+    if (!group || group.owner_id !== userId) return res.status(403).json({ error: 'Sadece yÃ¶netici devredebilir' });
 
     db.prepare('UPDATE groups SET owner_id = ? WHERE id = ?').run(newOwnerId, req.params.groupId);
     db.prepare('UPDATE group_members SET role = ? WHERE group_id = ? AND user_id = ?').run('member', req.params.groupId, userId);
     db.prepare('UPDATE group_members SET role = ? WHERE group_id = ? AND user_id = ?').run('owner', req.params.groupId, newOwnerId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Devir başarısız' });
+    res.status(500).json({ error: 'Devir baÅarÄ±sÄ±z' });
   }
 });
 
-// Üyeyi sus (süreli/sınırsız)
+// Ãyeyi sus (sÃ¼reli/sÄ±nÄ±rsÄ±z)
 router.put('/groups/:groupId/members/:memberId/mute', (req, res) => {
   try {
-    const { userId, mutedUntil } = req.body; // mutedUntil = null → sınırsız
+    const { userId, mutedUntil } = req.body; // mutedUntil = null â sÄ±nÄ±rsÄ±z
     const requester = db.prepare('SELECT role, permissions FROM group_members WHERE group_id = ? AND user_id = ?').get(req.params.groupId, userId);
     if (!requester || requester.role === 'member') return res.status(403).json({ error: 'Yetkisiz' });
     if (requester.role === 'moderator') {
       const perms = JSON.parse(requester.permissions || '{}');
-      if (!perms.can_mute) return res.status(403).json({ error: 'Bu yetkiye sahip değilsiniz' });
+      if (!perms.can_mute) return res.status(403).json({ error: 'Bu yetkiye sahip deÄilsiniz' });
     }
     db.prepare('UPDATE group_members SET is_muted = 1, muted_until = ? WHERE group_id = ? AND user_id = ?')
       .run(mutedUntil || null, req.params.groupId, req.params.memberId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'İşlem başarısız' });
+    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
   }
 });
 
-// Üyeyi ban (süreli/sınırsız)
+// Ãyeyi ban (sÃ¼reli/sÄ±nÄ±rsÄ±z)
 router.put('/groups/:groupId/members/:memberId/ban', (req, res) => {
   try {
     const { userId, bannedUntil } = req.body;
@@ -328,17 +328,17 @@ router.put('/groups/:groupId/members/:memberId/ban', (req, res) => {
     if (!requester || requester.role === 'member') return res.status(403).json({ error: 'Yetkisiz' });
     if (requester.role === 'moderator') {
       const perms = JSON.parse(requester.permissions || '{}');
-      if (!perms.can_ban) return res.status(403).json({ error: 'Bu yetkiye sahip değilsiniz' });
+      if (!perms.can_ban) return res.status(403).json({ error: 'Bu yetkiye sahip deÄilsiniz' });
     }
     db.prepare('UPDATE group_members SET is_banned = 1, banned_until = ? WHERE group_id = ? AND user_id = ?')
       .run(bannedUntil || null, req.params.groupId, req.params.memberId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'İşlem başarısız' });
+    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
   }
 });
 
-// Üyeyi gruptan at
+// Ãyeyi gruptan at
 router.delete('/groups/:groupId/members/:memberId', (req, res) => {
   try {
     const { userId } = req.body;
@@ -346,12 +346,12 @@ router.delete('/groups/:groupId/members/:memberId', (req, res) => {
     if (!requester || requester.role === 'member') return res.status(403).json({ error: 'Yetkisiz' });
     if (requester.role === 'moderator') {
       const perms = JSON.parse(requester.permissions || '{}');
-      if (!perms.can_kick) return res.status(403).json({ error: 'Bu yetkiye sahip değilsiniz' });
+      if (!perms.can_kick) return res.status(403).json({ error: 'Bu yetkiye sahip deÄilsiniz' });
     }
     db.prepare('DELETE FROM group_members WHERE group_id = ? AND user_id = ?').run(req.params.groupId, req.params.memberId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'İşlem başarısız' });
+    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
   }
 });
 
@@ -360,7 +360,7 @@ router.delete('/groups/:groupId', (req, res) => {
   try {
     const { userId } = req.body;
     const group = db.prepare('SELECT * FROM groups WHERE id = ?').get(req.params.groupId);
-    if (!group || group.owner_id !== userId) return res.status(403).json({ error: 'Sadece yönetici silebilir' });
+    if (!group || group.owner_id !== userId) return res.status(403).json({ error: 'Sadece yÃ¶netici silebilir' });
     db.prepare('DELETE FROM groups WHERE id = ?').run(req.params.groupId);
     res.json({ success: true });
   } catch(e) {
@@ -368,13 +368,13 @@ router.delete('/groups/:groupId', (req, res) => {
   }
 });
 
-// Grup katılma isteğini iptal et
+// Grup katÄ±lma isteÄini iptal et
 router.delete('/groups/request/:requestId', (req, res) => {
   try {
     db.prepare('DELETE FROM group_join_requests WHERE id = ?').run(req.params.requestId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'İstek iptal edilemedi' });
+    res.status(500).json({ error: 'Ä°stek iptal edilemedi' });
   }
 });
 
