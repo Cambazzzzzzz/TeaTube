@@ -2890,21 +2890,6 @@ async function loadMobileHomePage() {
 
     pageContent.innerHTML = `
       <div class="mobile-feed">
-        <!-- Reals Stories Bar -->
-        ${realsItems.length > 0 ? `
-          <div class="mobile-stories-bar">
-            ${realsItems.map(v => {
-              return `
-              <div class="mobile-story" data-id="${v.id}">
-                <div class="mobile-story-ring" onclick="openShortFromHomeAndMark(${v.id})">
-                  <img src="${getProfilePhotoUrl(v.profile_photo)}" onerror="onProfilePhotoError(this)" />
-                </div>
-                <p onclick="viewChannel(${v.channel_id})" style="cursor:pointer;">${v.channel_name?.split(' ')[0] || 'Tea'}</p>
-              </div>`;
-            }).join('')}
-          </div>
-        ` : ''}
-
         <!-- Günlük Şarkı Önerileri -->
         ${dailySongs.length > 0 ? `
           <div style="padding:12px 16px 4px;">
@@ -3256,23 +3241,6 @@ function openShortFromHome(videoId) {
         showPage('reals');
       });
   }
-}
-
-function openShortFromHomeAndMark(videoId) {
-  // İzlendi olarak işaretle
-  const watched = JSON.parse(localStorage.getItem('Tea_watched_stories') || '[]');
-  if (!watched.includes(videoId)) {
-    watched.push(videoId);
-    // Max 100 izleme tut
-    if (watched.length > 100) watched.shift();
-    localStorage.setItem('Tea_watched_stories', JSON.stringify(watched));
-  }
-  
-  // Story çemberini anında gri yap
-  const storyEl = document.querySelector(`.mobile-story[data-id="${videoId}"] .mobile-story-ring`);
-  if (storyEl) storyEl.classList.add('watched');
-  
-  openShortFromHome(videoId);
 }
 
 function displayVideos(videos, containerId) {
