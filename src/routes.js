@@ -918,8 +918,8 @@ router.get('/watched-unique/:userId', (req, res) => {
   try {
     const history = db.prepare(`
       SELECT wh.video_id, MAX(wh.watched_at) as watched_at, wh.watch_duration, wh.total_duration,
-             v.title, v.banner_url, v.video_url, v.views, v.likes, v.dislikes,
-             c.channel_name, u.nickname, u.profile_photo
+             v.title, v.banner_url, v.video_url, v.views, v.likes, v.dislikes, v.is_short,
+             c.channel_name, c.id as channel_id, u.nickname, u.profile_photo
       FROM watch_history wh
       JOIN videos v ON wh.video_id = v.id
       JOIN channels c ON v.channel_id = c.id
@@ -931,8 +931,8 @@ router.get('/watched-unique/:userId', (req, res) => {
 
     res.json(history);
   } catch (error) {
-    console.error('Ä°zlenenler hatasÄ±:', error);
-    res.status(500).json({ error: 'Ä°zlenenler alÄ±namadÄ±' });
+    console.error('İzlenenler hatası:', error);
+    res.status(500).json({ error: 'İzlenenler alınamadı' });
   }
 });
 

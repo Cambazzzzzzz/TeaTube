@@ -4680,32 +4680,85 @@ async function loadWatchedPage() {
     const history = await response.json();
 
     const pageContent = document.getElementById('pageContent');
-    pageContent.innerHTML = `
-      <h2 class="section-header">İzlenenler</h2>
-      <div id="watchedVideos" class="video-grid"></div>
-    `;
 
     if (history.length === 0) {
-      document.getElementById('watchedVideos').innerHTML = '<p style="color: var(--yt-spec-text-secondary);">Henüz izlenen video yok</p>';
+      pageContent.innerHTML = `
+        <h2 class="section-header">İzlenenler</h2>
+        <p style="color:var(--yt-spec-text-secondary);">Henüz izlenen video yok</p>`;
       return;
     }
 
-    const videos = history.map(h => ({
-      id: h.video_id,
-      title: h.title,
-      banner_url: h.banner_url,
-      video_url: h.video_url,
-      channel_name: h.channel_name,
-      nickname: h.nickname,
-      profile_photo: h.profile_photo,
-      views: h.views || 0,
-      likes: h.likes || 0
-    }));
+    // Reals ve normal videoları ayır
+    const reals = history.filter(h => h.is_short === 1);
+    const normalVideos = history.filter(h => h.is_short !== 1);
 
-    displayVideos(videos, 'watchedVideos');
+    let html = '<h2 class="section-header">İzlenenler</h2>';
+
+    // Reals bölümü - grid
+    if (reals.length > 0) {
+      html += `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><i class="fas fa-film" style="color:var(--yt-spec-brand-background-solid)"></i>Reals</h3>
+        <div class="shorts-grid" style="margin-bottom:28px;">
+          ${reals.map(h => `
+            <div class="short-card" onclick="openWatchedShort(${h.video_id}, ${JSON.stringify(reals.map(r => r.video_id)).replace(/"/g,"'")})">
+              <div class="short-card-thumb">
+                <img src="${h.banner_url}" alt="${h.title}" loading="lazy" />
+                <div class="short-badge"><i class="fas fa-film"></i> Reals</div>
+                <div class="short-duration-overlay"><i class="fas fa-play" style="font-size:20px;color:white;opacity:0.9;"></i></div>
+              </div>
+              <div class="short-card-info">
+                <p class="short-card-title">${h.title}</p>
+                <p class="short-card-meta">${h.channel_name}</p>
+              </div>
+            </div>`).join('')}
+        </div>`;
+    }
+
+    // Normal videolar
+    if (normalVideos.length > 0) {
+      html += `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><i class="fas fa-video" style="color:var(--yt-spec-brand-background-solid)"></i>Videolar</h3>
+        <div id="watchedNormalVideos" class="video-grid"></div>`;
+    }
+
+    pageContent.innerHTML = html;
+
+    if (normalVideos.length > 0) {
+      displayVideos(normalVideos.map(h => ({
+        id: h.video_id,
+        title: h.title,
+        banner_url: h.banner_url,
+        video_url: h.video_url,
+        channel_name: h.channel_name,
+        channel_id: h.channel_id,
+        nickname: h.nickname,
+        profile_photo: h.profile_photo,
+        views: h.views || 0,
+        likes: h.likes || 0
+      })), 'watchedNormalVideos');
+    }
   } catch (error) {
     console.error('İzlenenler yükleme hatası:', error);
   }
+}
+
+function openWatchedShort(videoId, allIds) {
+  // Tüm izlenen Reals'ları shortsVideos'a yükle, tıklananı başa al
+  fetch(`${API_URL}/shorts?order=recent&userId=${currentUser?.id || ''}`)
+    .then(r => r.json())
+    .then(shorts => {
+      const idx = shorts.findIndex(v => v.id === videoId);
+      if (idx !== -1) {
+        const t = shorts.splice(idx, 1)[0];
+        shortsVideos = [t, ...shorts];
+      } else {
+        // Listede yoksa direkt fetch et
+        fetch(`${API_URL}/videos/${videoId}?userId=${currentUser?.id || ''}`)
+          .then(r => r.json())
+          .then(v => { shortsVideos = [v, ...shorts]; });
+      }
+      currentShortIndex = 0;
+      showPage('reals');
+    })
+    .catch(() => openShortFromHome(videoId));
 }
 
 // Geçmiş sayfası
