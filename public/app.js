@@ -2744,9 +2744,10 @@ async function loadMobileHomePage() {
   pageContent.innerHTML = `<div class="yt-loading"><div class="yt-spinner"></div></div>`;
 
   try {
-    const [allVideos, reals] = await Promise.all([
+    const [allVideos, reals, songs] = await Promise.all([
       fetch(`${API_URL}/videos?limit=60`).then(r => r.json()).catch(() => []),
-      fetch(`${API_URL}/shorts?order=recent&userId=${currentUser?.id || ''}`).then(r => r.json()).catch(() => [])
+      fetch(`${API_URL}/shorts?order=recent&userId=${currentUser?.id || ''}`).then(r => r.json()).catch(() => []),
+      fetch(`${API_URL}/music/home`).then(r => r.json()).catch(() => ({ newSongs:[], popularSongs:[] }))
     ]);
 
     const photoItems = allVideos.filter(v => v.video_type === 'Fotoğraf');
@@ -2755,24 +2756,32 @@ async function loadMobileHomePage() {
     // İzlenen story'leri localStorage'dan al
     const watchedStories = JSON.parse(localStorage.getItem('Tea_watched_stories') || '[]');
     
-    // Reals'ları kullanıcı bazında tekil yap - her kullanıcıdan en son videoyu al
-    // Reals zaten created_at DESC sıralı geliyor, ilk gelen her kullanıcının en yeni videosu
+    // Reals'ları kullanıcı bazında tekil yap
     const uniqueReals = [];
     const seenUsers = new Set();
-    
     for (const real of reals) {
       const uid = real.channel_id || real.user_id || real.id;
-      if (!seenUsers.has(uid)) {
-        uniqueReals.push(real);
-        seenUsers.add(uid);
-      }
+      if (!seenUsers.has(uid)) { uniqueReals.push(real); seenUsers.add(uid); }
     }
-    // Zaten created_at DESC sıralı, en son video atan kullanıcı en başta
-    
-    // Yeni (izlenmemiş) önce, izlenenler sona - max 15
-    const unwatched = uniqueReals.filter(v => !watchedStories.includes(v.id));
-    const watched = uniqueReals.filter(v => watchedStories.includes(v.id));
-    const realsItems = [...unwatched, ...watched].slice(0, 15);
+
+    // Reals'ları her girmede karışık sırala (Fisher-Yates)
+    for (let i = uniqueReals.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [uniqueReals[i], uniqueReals[j]] = [uniqueReals[j], uniqueReals[i]];
+    }
+    const realsItems = uniqueReals.slice(0, 15);
+
+    // Günlük şarkı önerileri - seed olarak günün tarihi kullan
+    const today = new Date().toDateString();
+    const allSongs = [...(songs.popularSongs || []), ...(songs.newSongs || [])];
+    const uniqueSongs = allSongs.filter((s, i, arr) => arr.findIndex(x => x.id === s.id) === i);
+    // Günlük seed ile karıştır
+    const seedNum = today.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+    const dailySongs = [...uniqueSongs].sort((a, b) => {
+      const ha = (a.id * seedNum) % 997;
+      const hb = (b.id * seedNum) % 997;
+      return ha - hb;
+    }).slice(0, 8);
 
     pageContent.innerHTML = `
       <div class="mobile-feed">
@@ -2788,6 +2797,32 @@ async function loadMobileHomePage() {
                 <p onclick="viewChannel(${v.channel_id})" style="cursor:pointer;">${v.channel_name?.split(' ')[0] || 'Tea'}</p>
               </div>`;
             }).join('')}
+          </div>
+        ` : ''}
+
+        <!-- Günlük Şarkı Önerileri -->
+        ${dailySongs.length > 0 ? `
+          <div style="padding:12px 16px 4px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <p style="font-size:13px;font-weight:700;margin:0;display:flex;align-items:center;gap:6px;">
+                <i class="fas fa-music" style="color:#1db954;font-size:12px;"></i>Bugünün Önerileri
+              </p>
+              <button onclick="showPage('ts-music')" style="background:none;border:none;color:#1db954;cursor:pointer;font-size:12px;font-weight:600;">Tümü →</button>
+            </div>
+            <div style="display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;">
+              ${dailySongs.map(s => `
+                <div onclick="playSong(${s.id})" style="flex-shrink:0;width:80px;cursor:pointer;-webkit-tap-highlight-color:transparent;" title="${s.title}">
+                  <div style="position:relative;width:80px;height:80px;border-radius:10px;overflow:hidden;margin-bottom:5px;box-shadow:0 2px 8px rgba(0,0,0,0.4);">
+                    <img src="${s.cover_url}" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.src='logoteatube.png'" />
+                    <div style="position:absolute;inset:0;background:rgba(0,0,0,0);transition:background 0.15s;display:flex;align-items:center;justify-content:center;">
+                      <i class="fas fa-play" style="color:#fff;font-size:20px;opacity:0;transition:opacity 0.15s;"></i>
+                    </div>
+                  </div>
+                  <p style="font-size:11px;font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.title || ''}</p>
+                  <p style="font-size:10px;color:#1db954;margin:1px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.artist_name || ''}</p>
+                </div>
+              `).join('')}
+            </div>
           </div>
         ` : ''}
 
