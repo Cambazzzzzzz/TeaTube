@@ -1193,3 +1193,64 @@ router.delete('/admin/badges/:badgeId/remove/:userId', (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+// ==================== YAŞ SINIRI AYARLARI ====================
+
+// Yaş sınırı ayarını getir
+router.get('/admin/age-settings', (req, res) => {
+  try {
+    const minAge = db.prepare("SELECT value FROM admin_settings WHERE key = 'min_age'").get();
+    const warning = db.prepare("SELECT value FROM admin_settings WHERE key = 'min_age_warning'").get();
+    res.json({ min_age: parseInt(minAge?.value || '15'), warning: warning?.value || '' });
+  } catch(e) { res.status(500).json({ error: 'Alinamadi' }); }
+});
+
+// Yaş sınırı ayarını güncelle
+router.put('/admin/age-settings', (req, res) => {
+  try {
+    const { min_age, warning } = req.body;
+    if (min_age !== undefined) db.prepare("INSERT OR REPLACE INTO admin_settings (key, value) VALUES ('min_age', ?)").run(String(min_age));
+    if (warning !== undefined) db.prepare("INSERT OR REPLACE INTO admin_settings (key, value) VALUES ('min_age_warning', ?)").run(warning);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: 'Guncellenemedi' }); }
+});
+
+// Kullanıcı doğum tarihini güncelle (admin)
+router.put('/admin/user/:userId/birth-date', (req, res) => {
+  try {
+    const { birth_date } = req.body;
+    db.prepare('UPDATE users SET birth_date = ? WHERE id = ?').run(birth_date, req.params.userId);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: 'Guncellenemedi' }); }
+});
+
+// Sarki detayli duzenleme (admin - override)
+router.put('/admin/music/song/:songId/detail', (req, res) => {
+  try {
+    const { title, genre, play_count, artist_name, cover_url, show_play_count } = req.body;
+    let sets = [];
+    let params = [];
+
+    if (title !== undefined) { sets.push('title = ?'); params.push(title); }
+    if (genre !== undefined) { sets.push('genre = ?'); params.push(genre || null); }
+    if (play_count !== undefined && play_count !== '') { sets.push('play_count = ?'); params.push(parseInt(play_count) || 0); }
+    if (cover_url !== undefined) { sets.push('cover_url = ?'); params.push(cover_url); }
+    if (show_play_count !== undefined) { sets.push('show_play_count = ?'); params.push(parseInt(show_play_count)); }
+
+    if (sets.length > 0) {
+      params.push(req.params.songId);
+      db.prepare(`UPDATE songs SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+    }
+
+    if (artist_name) {
+      const song = db.prepare('SELECT artist_id FROM songs WHERE id = ?').get(req.params.songId);
+      if (song && song.artist_id) {
+        db.prepare('UPDATE music_artists SET artist_name = ? WHERE id = ?').run(artist_name, song.artist_id);
+      }
+    }
+
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Sarki duzenlenemedi: ' + e.message });
+  }
+});

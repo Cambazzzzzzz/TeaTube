@@ -2392,3 +2392,38 @@ input[type="checkbox"]:checked::after {
 #uploadPlusBtn {
   display: none;
 }
+
+/* desktop-only / mobile-only yardımcı sınıflar */
+.desktop-only { display: flex !important; }
+.mobile-only { display: none !important; }
+
+@media (max-width: 768px) {
+  .desktop-only { display: none !important; }
+  .mobile-only { display: flex !important; }
+}
+
+/* Genel overflow düzeltmeleri - taşma önleme */
+.yt-modal-content, .settings-card, .video-card, .insta-post-card {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.video-title, .watch-title, .ts-song-title, .channel-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Mobil'de yatay taşma önle */
+@media (max-width: 768px) {
+  #pageContent { overflow-x: hidden; max-width: 100vw; }
+  .settings-card { overflow-x: hidden; }
+  .yt-modal-content { max-width: 95vw; overflow-x: hidden; }
+  .watch-page { flex-direction: column; }
+  .watch-primary, .watch-secondary { max-width: 100%; overflow-x: hidden; }
+  table { display: block; overflow-x: auto; max-width: 100%; }
+}
+
+/* Rozet isim rengi - heryerde */
+[data-badge-color] { color: attr(data-badge-color); }

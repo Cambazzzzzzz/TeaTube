@@ -866,3 +866,17 @@ try { db.prepare('ALTER TABLE song_writings ADD COLUMN allow_rating INTEGER DEFA
 
 // songs tablosuna company_name kolonu ekle
 try { db.prepare('ALTER TABLE songs ADD COLUMN company_name TEXT').run(); } catch(e) {}
+
+// Doğum tarihi kolonu ekle (yoksa)
+try { db.prepare('ALTER TABLE users ADD COLUMN birth_date TEXT').run(); } catch(e) {}
+
+// Yaş sınırı ayarlarını ekle (varsayılan 15)
+try {
+  db.prepare("INSERT OR IGNORE INTO admin_settings (key, value) VALUES ('min_age', '15')").run();
+  db.prepare("INSERT OR IGNORE INTO admin_settings (key, value) VALUES ('min_age_warning', 'Bu platformu kullanmak için 15 yaş ve üstü olmanız gerekir.')").run();
+} catch(e) {}
+
+// Demlikçi rozeti encoding düzeltmesi - isim güncelle
+try {
+  db.prepare("UPDATE badges SET name = 'Demlikçi', description = 'TeaTube üyesi' WHERE is_system = 1 AND (name LIKE '%Demlik%' OR name LIKE '%DemlikÃ%')").run();
+} catch(e) {}

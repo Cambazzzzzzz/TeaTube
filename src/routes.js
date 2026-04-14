@@ -59,14 +59,34 @@ function addIPBlock(ip) {
 // KayÄ±t
 router.post('/register', upload.single('profile_photo'), async (req, res) => {
   try {
-    const { username, nickname, password, agreed } = req.body;
+    const { username, nickname, password, agreed, birth_date } = req.body;
 
     if (!agreed || agreed !== 'true') {
-      return res.status(400).json({ error: 'KullanÄ±m sÃ¶zleÅŸmesini kabul etmelisiniz' });
+      return res.status(400).json({ error: 'Kullanım sözleşmesini kabul etmelisiniz' });
     }
 
     if (!username || !nickname || !password) {
-      return res.status(400).json({ error: 'TÃ¼m alanlarÄ± doldurun' });
+      return res.status(400).json({ error: 'Tüm alanları doldurun' });
+    }
+
+    // Yaş kontrolü
+    if (birth_date) {
+      const minAgeSetting = db.prepare("SELECT value FROM admin_settings WHERE key = 'min_age'").get();
+      const minAge = parseInt(minAgeSetting?.value || '15');
+      const warningSetting = db.prepare("SELECT value FROM admin_settings WHERE key = 'min_age_warning'").get();
+      const warningMsg = warningSetting?.value || `Bu platformu kullanmak için ${minAge} yaş ve üstü olmanız gerekir.`;
+
+      const birth = new Date(birth_date);
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      const m = today.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+
+      if (age < minAge) {
+        return res.status(400).json({ error: warningMsg });
+      }
+    } else {
+      return res.status(400).json({ error: 'Doğum tarihi gereklidir' });
     }
 
     const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
@@ -90,8 +110,8 @@ router.post('/register', upload.single('profile_photo'), async (req, res) => {
     const randomTheme = themes[Math.floor(Math.random() * themes.length)];
 
     const result = db.prepare(
-      'INSERT INTO users (username, nickname, password, profile_photo, theme) VALUES (?, ?, ?, ?, ?)'
-    ).run(username, nickname, hashedPassword, profilePhoto, randomTheme);
+      'INSERT INTO users (username, nickname, password, profile_photo, theme, birth_date) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(username, nickname, hashedPassword, profilePhoto, randomTheme, birth_date);
 
     db.prepare('INSERT INTO user_settings (user_id) VALUES (?)').run(result.lastInsertRowid);
 

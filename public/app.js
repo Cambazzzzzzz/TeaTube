@@ -316,6 +316,9 @@ function showRegister() {
 
 function showAgreement() {
   const agreementText = `
+    <div style="background:rgba(255,0,51,0.12);border:1px solid rgba(255,0,51,0.4);border-radius:10px;padding:12px 16px;margin-bottom:20px;">
+      <p style="color:#ff4444;font-weight:700;font-size:15px;margin:0;"><i class="fas fa-exclamation-triangle" style="margin-right:8px;"></i>Bu platformu kullanmak için 15 yaş ve üstü olmanız gerekir.</p>
+    </div>
     <h2>Tea KVKK Açıklama Metni</h2>
     <h3>Kişisel Verilerin Korunması ve İşlenmesine İlişkin Açıklama</h3>
     <p>Tea uygulamasına üye olarak veya giriş yaparak, aşağıdaki kişisel veri işleme yöntemlerini ve haklarınızı kabul etmiş olursunuz.</p>
@@ -371,9 +374,28 @@ async function register() {
   const password = document.getElementById('regPassword').value;
   const photoFile = document.getElementById('regPhoto').files[0];
   const agreed = document.getElementById('regAgreed').checked;
+  const birth_date = document.getElementById('regBirthDate')?.value;
 
   if (!username || !nickname || !password) {
     alert('Lütfen tüm alanları doldurun');
+    return;
+  }
+
+  if (!birth_date) {
+    const errEl = document.getElementById('ageError');
+    if (errEl) { errEl.textContent = 'Doğum tarihi gereklidir'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  // Frontend yaş kontrolü
+  const birth = new Date(birth_date);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  if (age < 15) {
+    const errEl = document.getElementById('ageError');
+    if (errEl) { errEl.textContent = 'Bu platformu kullanmak için 15 yaş ve üstü olmanız gerekir.'; errEl.style.display = 'block'; }
     return;
   }
 
@@ -382,6 +404,7 @@ async function register() {
   formData.append('nickname', nickname);
   formData.append('password', password);
   formData.append('agreed', 'true');
+  formData.append('birth_date', birth_date);
   if (photoFile) {
     formData.append('profile_photo', photoFile);
   }
@@ -3039,12 +3062,13 @@ async function loadHomeVideos(category) {
 
     // Tümü: normal videolar üstte, shorts altta
     if (!category || category === '') {
-      const [recent, popular, subs, rec, shorts] = await Promise.all([
+      const [recent, popular, subs, rec, shorts, songs] = await Promise.all([
         fetch(`${API_URL}/videos/recent?limit=8`).then(r => r.json()).catch(() => []),
         fetch(`${API_URL}/videos/popular?limit=8`).then(r => r.json()).catch(() => []),
         fetch(`${API_URL}/videos/subscriptions/${currentUser.id}?limit=8`).then(r => r.json()).catch(() => []),
         fetch(`${API_URL}/videos/recommended/${currentUser.id}?limit=8`).then(r => r.json()).catch(() => []),
-        fetch(`${API_URL}/shorts`).then(r => r.json()).catch(() => [])
+        fetch(`${API_URL}/shorts`).then(r => r.json()).catch(() => []),
+        fetch(`${API_URL}/music/home`).then(r => r.json()).catch(() => ({ popularSongs:[], newSongs:[] }))
       ]);
 
       // Normal videolar (is_short = 0)
@@ -3052,15 +3076,43 @@ async function loadHomeVideos(category) {
       const seen = new Set();
       const normalVideos = allNormal.filter(v => { if (seen.has(v.id)) return false; seen.add(v.id); return true; });
 
+      // Günlük şarkı önerileri
+      const today = new Date().toDateString();
+      const allSongs = [...(songs.popularSongs || []), ...(songs.newSongs || [])];
+      const uniqueSongs = allSongs.filter((s, i, arr) => arr.findIndex(x => x.id === s.id) === i);
+      const seedNum = today.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+      const dailySongs = [...uniqueSongs].sort((a, b) => ((a.id * seedNum) % 997) - ((b.id * seedNum) % 997)).slice(0, 8);
+
       if (loading) loading.style.display = 'none';
 
       container.innerHTML = `
+        ${dailySongs.length > 0 ? `
+          <div style="margin-bottom:28px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <h2 class="section-header" style="margin:0;font-size:16px;">
+                <i class="fas fa-music" style="color:#1db954;margin-right:8px;"></i>Bugünün Müzik Önerileri
+              </h2>
+              <button onclick="showPage('ts-music')" style="background:none;border:none;color:#1db954;cursor:pointer;font-size:13px;font-weight:600">Tümü →</button>
+            </div>
+            <div style="display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;">
+              ${dailySongs.map(s => `
+                <div onclick="playSongFromHome(${s.id})" style="flex-shrink:0;width:90px;cursor:pointer;" title="${s.title}">
+                  <div style="width:90px;height:90px;border-radius:10px;overflow:hidden;margin-bottom:6px;box-shadow:0 2px 8px rgba(0,0,0,0.4);">
+                    <img src="${s.cover_url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='logoteatube.png'" />
+                  </div>
+                  <p style="font-size:12px;font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.title || ''}</p>
+                  <p style="font-size:11px;color:#1db954;margin:2px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.artist_name || ''}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
         <div id="normalVideosGrid" class="video-grid"></div>
         ${shorts.length > 0 ? `
           <div style="margin-top:40px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
               <h2 class="section-header" style="margin:0;">
-                <i class="fas fa-film" style="color:var(--yt-spec-brand-background-solid); margin-right:8px;"></i>Reals
+                <i class="fas fa-film" style="color:var(--yt-spec-brand-background-solid); margin-right:8px;"></i>Reals Önerileri
               </h2>
               ${shorts.length > 4 ? `<button onclick="showPage('reals')" style="background:none;border:none;color:var(--yt-spec-brand-background-solid);cursor:pointer;font-size:13px;font-weight:600">Tümünü Gör <i class="fas fa-chevron-right"></i></button>` : ''}
             </div>
@@ -3324,10 +3376,10 @@ function getProfilePhotoUrl(photo) {
   return photo;
 }
 
-// Kırmızı tik HTML'i döndür
+// Kırmızı tik HTML'i döndür - fa-check-circle kullan
 function redVerifiedBadge(isRedVerified, size = 14) {
   if (!isRedVerified) return '';
-  return `<i class="fas fa-certificate" style="color:#ff0033;font-size:${size}px;margin-left:3px;flex-shrink:0;" title="Kırmızı Tik"></i>`;
+  return `<i class="fas fa-check-circle" style="color:#ff0033;font-size:${size}px;margin-left:3px;flex-shrink:0;" title="Kırmızı Tik"></i>`;
 }
 
 // Profil fotoğrafı yükleme hatası için fallback
@@ -3340,14 +3392,21 @@ function onProfilePhotoError(img) {
 // Rozet HTML'i oluştur
 function renderBadge(badge, size = 14) {
   if (!badge) return '';
-  return `<i class="fas ${badge.icon}" style="color:${badge.color};font-size:${size}px;margin-left:4px" title="${badge.name}"></i>`;
+  return `<i class="fas ${badge.icon}" style="color:${badge.color};font-size:${size}px;margin-left:4px;flex-shrink:0;" title="${badge.name}"></i>`;
 }
 
-// Kullanıcı adını rozet rengiyle render et
-function renderUsername(nickname, badge) {
-  const color = badge?.name_color || '#ffffff';
-  const badgeHtml = badge ? renderBadge(badge) : '';
-  return `<span style="color:${color}">${nickname}</span>${badgeHtml}`;
+// Kullanıcı adını rozet rengiyle render et - rozet varsa isim rozet renginde, kırmızı tik varsa rozet gider
+function renderUsername(nickname, badge, isRedVerified = false) {
+  if (isRedVerified) {
+    // Kırmızı tik aktifse rozet gösterme, isim normal renkte
+    return `<span>${nickname}</span><i class="fas fa-check-circle" style="color:#ff0033;font-size:13px;margin-left:3px;flex-shrink:0;" title="Kırmızı Tik"></i>`;
+  }
+  if (badge) {
+    const color = badge.name_color || '#ffffff';
+    const badgeHtml = renderBadge(badge);
+    return `<span style="color:${color}">${nickname}</span>${badgeHtml}`;
+  }
+  return `<span>${nickname}</span>`;
 }
 
 // Video oynatma
@@ -3413,7 +3472,7 @@ async function showPhotoPage(video) {
                 <button class="yt-btn" onclick="addComment(${video.id})" style="height:36px; padding:0 14px; font-size:13px;">Gönder</button>
               </div>
             </div>
-            <div id="commentsList"></div>
+            <div id="commentsList" data-owner-id="${video.user_id || ''}"></div>
           </div>
         ` : '<p style="color:var(--yt-spec-text-secondary); font-size:13px;">Yorumlar kapalı</p>'}
       </div>
@@ -3529,7 +3588,7 @@ async function playVideo(videoId) {
                   <button class="yt-btn" onclick="addComment(${video.id})">Gönder</button>
                 </div>
               </div>
-              <div id="commentsList"></div>
+              <div id="commentsList" data-owner-id="${video.user_id || ''}"></div>
             </div>
           ` : '<p style="color: var(--yt-spec-text-secondary); padding: 20px 0;">Yorumlar kapalı</p>'}
         </div>
@@ -3819,6 +3878,11 @@ async function loadComments(videoId, videoOwnerId = null) {
     const commentsList = document.getElementById('commentsList');
     if (!commentsList) return;
 
+    // data-owner-id'den al (parametre yoksa)
+    if (!videoOwnerId && commentsList.dataset.ownerId) {
+      videoOwnerId = parseInt(commentsList.dataset.ownerId) || null;
+    }
+
     if (!response.ok) {
       commentsList.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:8px 0;font-size:13px;">Yorumlar yüklenemedi</p>';
       return;
@@ -3829,7 +3893,6 @@ async function loadComments(videoId, videoOwnerId = null) {
       return;
     }
 
-    // Sabitlenen yorumu en üste al
     const pinnedComments = comments.filter(c => c.is_pinned === 1);
     const regularComments = comments.filter(c => c.is_pinned !== 1);
     const sortedComments = [...pinnedComments, ...regularComments];
@@ -3845,7 +3908,9 @@ async function loadComments(videoId, videoOwnerId = null) {
 function renderComment(c, videoId, isReply = false, videoOwnerId = null) {
   const likeActive = c.user_like === 1 ? 'color:#4caf50;' : '';
   const dislikeActive = c.user_like === -1 ? 'color:#f44336;' : '';
-  const isOwner = videoOwnerId && currentUser && currentUser.id === videoOwnerId;
+  // == kullan (string/number karışıklığı için)
+  const isOwner = videoOwnerId != null && currentUser && currentUser.id == videoOwnerId;
+  const isCommentOwner = currentUser && currentUser.id == c.user_id;
   const isPinned = c.is_pinned === 1;
   const isHidden = c.is_hidden === 1;
   const likedByOwner = c.liked_by_owner === 1;
@@ -3878,13 +3943,21 @@ function renderComment(c, videoId, isReply = false, videoOwnerId = null) {
           ${!isReply && c.reply_count > 0 ? `<button onclick="loadReplies(${c.id}, ${videoId}, ${videoOwnerId})" id="repliesBtn_${c.id}" style="background:none; border:none; cursor:pointer; font-size:13px; color:var(--yt-spec-call-to-action);">
             <i class="fas fa-chevron-down"></i> ${c.reply_count} yanıt
           </button>` : ''}
+          ${isCommentOwner ? `
+            <button onclick="editComment(${c.id})" style="background:none; border:none; cursor:pointer; font-size:13px; color:var(--yt-spec-text-secondary);" title="Düzenle">
+              <i class="fas fa-pen"></i>
+            </button>
+            <button onclick="deleteMyComment(${c.id}, ${videoId})" style="background:none; border:none; cursor:pointer; font-size:13px; color:#f44336;" title="Sil">
+              <i class="fas fa-trash"></i>
+            </button>
+          ` : ''}
           ${isOwner && !isReply ? `
             <button onclick="showCommentMenu(${c.id}, ${videoId}, ${isPinned}, ${isHidden}, ${likedByOwner})" style="background:none; border:none; cursor:pointer; font-size:13px; color:var(--yt-spec-text-secondary);">
               <i class="fas fa-ellipsis-v"></i>
             </button>
           ` : ''}
-          ${currentUser && c.user_id !== currentUser.id ? `
-            <button onclick="blockUserFromComment(${c.user_id}, '${c.nickname}')" style="background:none; border:none; cursor:pointer; font-size:13px; color:var(--yt-spec-text-secondary);">
+          ${currentUser && !isCommentOwner ? `
+            <button onclick="blockUserFromComment(${c.user_id}, '${c.nickname}')" style="background:none; border:none; cursor:pointer; font-size:13px; color:var(--yt-spec-text-secondary);" title="Engelle">
               <i class="fas fa-ban"></i>
             </button>
           ` : ''}
@@ -3900,6 +3973,16 @@ function renderComment(c, videoId, isReply = false, videoOwnerId = null) {
       </div>
     </div>
   `;
+}
+
+async function deleteMyComment(commentId, videoId) {
+  if (!confirm('Yorumu silmek istediğine emin misin?')) return;
+  try {
+    await fetch(`${API_URL}/comment/${commentId}`, { method: 'DELETE' });
+    const ownerEl = document.getElementById('commentsList');
+    const ownerId = ownerEl?.dataset?.ownerId ? parseInt(ownerEl.dataset.ownerId) : null;
+    loadComments(videoId, ownerId);
+  } catch(e) { showToast('Silinemedi', 'error'); }
 }
 
 function toggleReplyBox(commentId, videoId) {
@@ -3971,7 +4054,10 @@ async function addComment(videoId) {
     const data = await res.json();
     if (!res.ok) { showToast(data.error || 'Yorum eklenemedi', 'error'); return; }
     commentInput.value = '';
-    loadComments(videoId);
+    // videoOwnerId'yi data-owner attribute'undan al
+    const ownerEl = document.getElementById('commentsList');
+    const ownerId = ownerEl?.dataset?.ownerId ? parseInt(ownerEl.dataset.ownerId) : null;
+    loadComments(videoId, ownerId);
   } catch (error) {
     console.error('Yorum ekleme hatası:', error);
     showToast('Yorum eklenemedi', 'error');
@@ -5079,6 +5165,15 @@ async function loadSettingsPage() {
           <input type="password" id="newPassword" class="yt-input" placeholder="Yeni şifre" />
           <button class="yt-btn"  onclick="changePassword()">Şifreyi Değiştir</button>
         </div>
+
+        <div class="yt-form-group">
+          <label class="yt-form-label">Doğum Tarihi</label>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;font-size:14px;color:var(--yt-spec-text-secondary);">
+            <i class="fas fa-birthday-cake" style="margin-right:8px;color:var(--yt-spec-brand-background-solid);"></i>
+            ${currentUser.birth_date ? new Date(currentUser.birth_date).toLocaleDateString('tr-TR', {day:'numeric',month:'long',year:'numeric'}) : 'Belirtilmemiş'}
+          </div>
+          <p style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;">Doğum tarihi değiştirilemez.</p>
+        </div>
       </div>
       
       <div class="settings-card">
@@ -5154,17 +5249,22 @@ async function loadSettingsPage() {
         </div>
       </div>
 
-      ${myBadges.length > 0 ? `
+      ${myBadges.length > 0 || currentUser.is_red_verified ? `
       <div class="settings-card">
-        <h3 class="settings-card-title"><i class="fas fa-certificate" style="margin-right:8px;color:var(--yt-spec-brand-background-solid)"></i>Rozetlerim</h3>
-        <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:16px">Profilinde göstermek istediğin rozeti seç</p>
+        <h3 class="settings-card-title"><i class="fas fa-check-circle" style="margin-right:8px;color:var(--yt-spec-brand-background-solid)"></i>Rozetlerim</h3>
+        <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:16px">Profilinde göstermek istediğin rozeti seç. Kırmızı tik seçilirse rozet gizlenir.</p>
         <div style="display:flex;flex-wrap:wrap;gap:10px">
-          <div onclick="setActiveBadge(null)" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;cursor:pointer;border:2px solid ${!currentUser.active_badge_id ? 'var(--yt-spec-brand-background-solid)' : 'rgba(255,255,255,0.1)'};background:var(--yt-spec-raised-background)">
+          <div onclick="setActiveBadge(null)" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;cursor:pointer;border:2px solid ${!currentUser.active_badge_id && !currentUser.is_red_verified ? 'var(--yt-spec-brand-background-solid)' : 'rgba(255,255,255,0.1)'};background:var(--yt-spec-raised-background)">
             <i class="fas fa-times" style="font-size:16px;color:#888"></i>
             <span style="font-size:13px">Rozet Yok</span>
           </div>
+          ${currentUser.is_red_verified ? `
+          <div onclick="setRedVerifiedActive()" id="redTickOption" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;cursor:pointer;border:2px solid ${currentUser.active_red_tick ? 'var(--yt-spec-brand-background-solid)' : 'rgba(255,255,255,0.1)'};background:var(--yt-spec-raised-background)">
+            <i class="fas fa-check-circle" style="font-size:18px;color:#ff0033"></i>
+            <span style="font-size:13px;color:#ff0033">Kırmızı Tik</span>
+          </div>` : ''}
           ${myBadges.map(b => `
-            <div onclick="setActiveBadge(${b.id})" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;cursor:pointer;border:2px solid ${currentUser.active_badge_id === b.id ? 'var(--yt-spec-brand-background-solid)' : 'rgba(255,255,255,0.1)'};background:var(--yt-spec-raised-background)">
+            <div onclick="setActiveBadge(${b.id})" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;cursor:pointer;border:2px solid ${currentUser.active_badge_id === b.id && !currentUser.active_red_tick ? 'var(--yt-spec-brand-background-solid)' : 'rgba(255,255,255,0.1)'};background:var(--yt-spec-raised-background)">
               <i class="fas ${b.icon}" style="font-size:18px;color:${b.color}"></i>
               <span style="font-size:13px;color:${b.name_color}">${b.name}</span>
             </div>`).join('')}
@@ -7350,15 +7450,19 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
   }
 
   const popularHtml = (data.popularSongs || []).length
-    ? `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px">Popüler</h3><div style="display:flex;flex-direction:column;gap:4px;margin-bottom:24px">${(data.popularSongs || []).map(s => renderTSSongRow(s)).join('')}</div>`
+    ? `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px">Popüler</h3><div style="display:flex;flex-direction:column;gap:4px;margin-bottom:24px">${(data.popularSongs || []).map((s,i) => { window[`_tsQ_pop_${s.id}`] = {q:data.popularSongs,i}; return renderTSSongRow(s); }).join('')}</div>`
     : '';
 
   const artistsHtml = (data.newArtists || []).length
     ? `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px">Yeni Sanatçılar</h3><div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;margin-bottom:24px">${(data.newArtists || []).map(a => renderTSArtistCard(a)).join('')}</div>`
     : '';
 
+  // Queue'ları global olarak sakla
+  window._tsMusicNewQueue = data.newSongs || [];
+  window._tsMusicPopQueue = data.popularSongs || [];
+
   const newSongsHtml = (data.newSongs || []).length
-    ? (data.newSongs || []).map(s => renderTSSongRow(s)).join('')
+    ? (data.newSongs || []).map((s,i) => renderTSSongRow(s)).join('')
     : '<p style="color:var(--yt-spec-text-secondary)">Henüz şarkı yok</p>';
 
   pageContent.innerHTML = `
@@ -7407,10 +7511,11 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
     }).catch(() => {});
 }
 
-function renderTSSongRow(s) {
+function renderTSSongRow(s, queue = null, index = -1) {
   const playCount = s.show_play_count ? `<span class="song-play-count" style="font-size:11px;color:var(--yt-spec-text-secondary)">${formatNumber(s.play_count || 0)} dinlenme</span>` : '';
+  const queueParam = queue ? `window._tsMusicQueue_${s.id}` : 'null';
   return `
-    <div data-song-id="${s.id}" onclick="playSong(${s.id})" style="display:flex;align-items:center;gap:12px;padding:8px;border-radius:10px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+    <div data-song-id="${s.id}" onclick="playSongFromHome(${s.id})" style="display:flex;align-items:center;gap:12px;padding:8px;border-radius:10px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
       <img src="${s.cover_url}" onclick="event.stopPropagation();openSongDetailPage(${s.id})" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=48 height=48%3E%3Crect width=48 height=48 fill=%23333/%3E%3C/svg%3E'" />
       <div style="flex:1;min-width:0">
         <p style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title || ''}</p>
@@ -7431,23 +7536,87 @@ function renderTSArtistCard(a) {
     </div>`;
 }
 
-async function playSong(songId) {
+// TS Music global queue (anasayfa için)
+let tsMusicHomeQueue = [];
+let tsMusicHomeIndex = -1;
+let tsMusicHomeShuffle = false;
+
+async function playSong(songId, queue = null, index = -1) {
   try {
     const r = await fetch(API_URL + '/music/song/' + songId);
     const song = await r.json();
     if (!r.ok) return;
     if (tsMusicAudio) { tsMusicAudio.pause(); tsMusicAudio = null; }
     tsMusicCurrentSong = song;
+
+    // Queue güncelle
+    if (queue) {
+      tsMusicHomeQueue = queue;
+      tsMusicHomeIndex = index >= 0 ? index : queue.findIndex(s => s.id === songId);
+    } else if (tsMusicHomeQueue.length === 0) {
+      // Anasayfadaki listeyi queue olarak al
+      tsMusicHomeQueue = Array.from(document.querySelectorAll('[data-song-id]'))
+        .map(el => ({ id: parseInt(el.dataset.songId) }))
+        .filter(s => s.id);
+      tsMusicHomeIndex = tsMusicHomeQueue.findIndex(s => s.id === songId);
+    } else {
+      tsMusicHomeIndex = tsMusicHomeQueue.findIndex(s => s.id === songId);
+    }
+
     tsMusicAudio = new Audio(song.audio_url);
     tsMusicAudio.play();
     tsMusicIsPlaying = true;
-    tsMusicAudio.onended = () => { tsMusicIsPlaying = false; updateTSMiniPlayer(); };
+
+    tsMusicAudio.onended = () => {
+      tsMusicIsPlaying = false;
+      _playNextTSMusicSong();
+    };
+
     updateTSMiniPlayer();
-    // Dinlenme sayısını UI'da güncelle
     document.querySelectorAll(`[data-song-id="${songId}"] .song-play-count`).forEach(el => {
       el.textContent = (parseInt(el.textContent) || 0) + 1 + ' dinlenme';
     });
   } catch(e) { showToast('Şarkı yüklenemedi', 'error'); }
+}
+
+function playSongFromHome(songId) {
+  // Hangi listede olduğunu bul (yeni çıkanlar veya popüler)
+  const newQ = window._tsMusicNewQueue || [];
+  const popQ = window._tsMusicPopQueue || [];
+  let queue = newQ;
+  let idx = newQ.findIndex(s => s.id === songId);
+  if (idx === -1) {
+    idx = popQ.findIndex(s => s.id === songId);
+    if (idx !== -1) queue = popQ;
+  }
+  if (idx === -1) { queue = []; idx = 0; }
+  playSong(songId, queue.length ? queue : null, idx);
+}
+
+function _playNextTSMusicSong() {
+  if (!tsMusicHomeQueue.length) { updateTSMiniPlayer(); return; }
+
+  let nextIndex;
+  if (tsMusicHomeShuffle) {
+    nextIndex = Math.floor(Math.random() * tsMusicHomeQueue.length);
+  } else {
+    nextIndex = tsMusicHomeIndex + 1;
+    if (nextIndex >= tsMusicHomeQueue.length) { updateTSMiniPlayer(); return; }
+  }
+
+  tsMusicHomeIndex = nextIndex;
+  const nextSong = tsMusicHomeQueue[nextIndex];
+  if (nextSong) playSong(nextSong.id);
+}
+
+function toggleTSHomeShuffle() {
+  tsMusicHomeShuffle = !tsMusicHomeShuffle;
+  const btn = document.getElementById('tsMiniShuffleBtn');
+  if (btn) {
+    btn.style.color = tsMusicHomeShuffle ? '#ff0033' : 'var(--yt-spec-text-secondary)';
+    btn.title = tsMusicHomeShuffle ? 'Karışık: Açık' : 'Karışık: Kapalı';
+  }
+  showToast(tsMusicHomeShuffle ? 'Karışık çal açık' : 'Karışık çal kapalı', 'success');
 }
 
 function updateTSMiniPlayer() {
@@ -7478,6 +7647,9 @@ function updateTSMiniPlayer() {
       </div>
       <button onclick="toggleTSMusicPlay()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:20px;padding:4px 6px;flex-shrink:0">
         <i class="fas ${tsMusicIsPlaying ? 'fa-pause' : 'fa-play'}"></i>
+      </button>
+      <button id="tsMiniShuffleBtn" onclick="toggleTSHomeShuffle()" style="background:none;border:none;color:${tsMusicHomeShuffle ? '#ff0033' : 'var(--yt-spec-text-secondary)'};cursor:pointer;font-size:14px;padding:4px 6px;flex-shrink:0" title="${tsMusicHomeShuffle ? 'Karışık: Açık' : 'Karışık: Kapalı'}">
+        <i class="fas fa-random"></i>
       </button>
       <button onclick="closeTSMiniPlayer()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:16px;padding:4px 6px;flex-shrink:0">
         <i class="fas fa-times"></i>
@@ -8844,10 +9016,27 @@ async function setActiveBadge(badgeId) {
     });
     if (r.ok) {
       currentUser.active_badge_id = badgeId;
+      currentUser.active_red_tick = false; // rozet seçilince kırmızı tik gider
       localStorage.setItem('Tea_user', JSON.stringify(currentUser));
       showToast('Rozet güncellendi', 'success');
       loadSettingsPage();
     }
+  } catch(e) { showToast('Hata', 'error'); }
+}
+
+async function setRedVerifiedActive() {
+  // Kırmızı tik seçilince rozet gider
+  try {
+    await fetch(`${API_URL}/user/${currentUser.id}/active-badge`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ badgeId: null })
+    });
+    currentUser.active_badge_id = null;
+    currentUser.active_red_tick = true;
+    localStorage.setItem('Tea_user', JSON.stringify(currentUser));
+    showToast('Kırmızı tik aktif edildi', 'success');
+    loadSettingsPage();
   } catch(e) { showToast('Hata', 'error'); }
 }
 

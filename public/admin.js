@@ -201,7 +201,12 @@ async function showUserDetail(userId) {
         <input id="newPwInput" class="a-input" type="password" placeholder="Yeni sifre" style="flex:1">
         <button class="a-btn" onclick="changeUserPassword(${u.id})">Degistir</button>
       </div>
-      <h4>Ban Ekle</h4>
+      <h4>Dogum Tarihi</h4>
+      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+        <span style="font-size:13px;color:#888;flex:1">${u.birth_date ? new Date(u.birth_date).toLocaleDateString('tr-TR') : 'Belirtilmemis'}</span>
+        <input id="birthDateInput" class="a-input" type="date" value="${u.birth_date||''}" style="flex:1">
+        <button class="a-btn" onclick="changeUserBirthDate(${u.id})">Degistir</button>
+      </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
         <input id="banReason" class="a-input" placeholder="Sebep" style="flex:1;min-width:120px">
         <input id="banExpires" class="a-input" type="date" style="width:140px">
@@ -281,6 +286,18 @@ async function changeUserPassword(userId) {
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast('Sifre degistirildi');
     closeModal();
+  } catch(e) { showToast('Baglanti hatasi', false); }
+}
+
+async function changeUserBirthDate(userId) {
+  const birth_date = document.getElementById('birthDateInput')?.value;
+  if (!birth_date) { showToast('Tarih secin', false); return; }
+  try {
+    const r = await fetch(API+'/admin/user/'+userId+'/birth-date', {method:'PUT', headers:{'Content-Type':'application/json','x-admin-token':adminData?.token||''}, body:JSON.stringify({birth_date})});
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error||'Hata', false); return; }
+    showToast('Dogum tarihi guncellendi');
+    showUserDetail(userId);
   } catch(e) { showToast('Baglanti hatasi', false); }
 }
 
@@ -662,28 +679,64 @@ function editSongTitle(songId, currentTitle) {
       <input id="editSongTitleInput" class="a-input" value="${esc(currentTitle)}" style="width:100%;margin-bottom:12px">
     </div>
     <div class="a-form-group">
+      <label>Sanatci Adi</label>
+      <input id="editSongArtistInput" class="a-input" placeholder="Sanatci adi" style="width:100%;margin-bottom:12px">
+    </div>
+    <div class="a-form-group">
+      <label>Tur / Genre</label>
+      <input id="editSongGenreInput" class="a-input" placeholder="Pop, Rock, Hip-Hop..." style="width:100%;margin-bottom:12px">
+    </div>
+    <div class="a-form-group">
       <label>Dinlenme Sayisi</label>
       <input id="editSongPlaysInput" class="a-input" type="number" min="0" placeholder="Dinlenme sayisi" style="width:100%;margin-bottom:12px">
     </div>
+    <div class="a-form-group">
+      <label>Kapak Gorseli URL</label>
+      <input id="editSongCoverInput" class="a-input" placeholder="https://..." style="width:100%;margin-bottom:12px">
+    </div>
+    <div class="a-form-group">
+      <label>Sarkiyi Goster (Dinlenme Sayisi)</label>
+      <select id="editSongShowPlays" class="a-input" style="width:100%;margin-bottom:12px">
+        <option value="1">Goster</option>
+        <option value="0">Gizle</option>
+      </select>
+    </div>
     <button class="a-btn" style="width:100%" onclick="saveSongTitle(${songId})">Kaydet</button>
   `);
-  // Mevcut dinlenme sayısını yükle
+  // Mevcut verileri yükle
   fetch(API+'/admin/music/songs').then(r=>r.json()).then(d=>{
     const songs = d.songs || d;
     const s = songs.find(s => s.id === songId);
+    if (!s) return;
     const inp = document.getElementById('editSongPlaysInput');
-    if (inp && s) inp.value = s.play_count ?? 0;
+    const artist = document.getElementById('editSongArtistInput');
+    const genre = document.getElementById('editSongGenreInput');
+    const cover = document.getElementById('editSongCoverInput');
+    const showPlays = document.getElementById('editSongShowPlays');
+    if (inp) inp.value = s.play_count ?? 0;
+    if (artist) artist.value = s.artist_name || '';
+    if (genre) genre.value = s.genre || '';
+    if (cover) cover.value = s.cover_url || '';
+    if (showPlays) showPlays.value = s.show_play_count ? '1' : '0';
   }).catch(()=>{});
 }
 
 async function saveSongTitle(songId) {
   const title = document.getElementById('editSongTitleInput')?.value.trim();
   const plays = document.getElementById('editSongPlaysInput')?.value;
+  const artist_name = document.getElementById('editSongArtistInput')?.value.trim();
+  const genre = document.getElementById('editSongGenreInput')?.value.trim();
+  const cover_url = document.getElementById('editSongCoverInput')?.value.trim();
+  const show_play_count = document.getElementById('editSongShowPlays')?.value;
   if (!title) { showToast('Baslik bos olamaz', false); return; }
   try {
     const body = { title };
     if (plays !== undefined && plays !== '') body.play_count = parseInt(plays) || 0;
-    const r = await fetch(API+'/admin/music/song/'+songId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if (artist_name) body.artist_name = artist_name;
+    if (genre) body.genre = genre;
+    if (cover_url) body.cover_url = cover_url;
+    if (show_play_count !== undefined) body.show_play_count = parseInt(show_play_count);
+    const r = await fetch(API+'/admin/music/song/'+songId+'/detail', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast('Sarki guncellendi');
@@ -716,11 +769,17 @@ async function loadAdminSettings() {
     bypassPw = bd.password || '';
   } catch(e) {}
 
+  // Yaş sınırı ayarlarını yükle
+  let ageSettings = { min_age: 15, warning: '' };
+  try {
+    const ar = await fetch(API+'/admin/age-settings', {headers:{'x-admin-token':adminData?.token||''}});
+    ageSettings = await ar.json();
+  } catch(e) {}
+
   try {
     const r = await fetch(API+'/admin/settings', {headers:{'x-admin-token':adminData?.token||''}});
     const d = await r.json();
     const settings = d.settings || d;
-    const hashDisplay = settings?.password_hash ? settings.password_hash.slice(0,20)+'...' : '(gizli)';
     c.innerHTML = `
       <h2>Admin Ayarlari</h2>
       <div style="background:#1a1a1a;border-radius:8px;padding:20px;max-width:480px;margin-bottom:20px">
@@ -730,15 +789,44 @@ async function loadAdminSettings() {
         <input id="adminNewPwConfirm" class="a-input" type="password" placeholder="Yeni sifre (tekrar)" style="width:100%;margin-bottom:12px">
         <button class="a-btn" style="width:100%" onclick="saveAdminPassword()">Sifreyi Degistir</button>
       </div>
-      <div style="background:#1a1a1a;border-radius:8px;padding:20px;max-width:480px">
+      <div style="background:#1a1a1a;border-radius:8px;padding:20px;max-width:480px;margin-bottom:20px">
         <h4 style="margin:0 0 6px">Kullanici Hesabi Bypass Sifresi</h4>
-        <p style="font-size:12px;color:#888;margin:0 0 12px">Bu sifre ile herhangi bir kullanicinin hesabina girebilirsiniz. Kullanici adi + bu sifre.</p>
+        <p style="font-size:12px;color:#888;margin:0 0 12px">Bu sifre ile herhangi bir kullanicinin hesabina girebilirsiniz.</p>
         <div style="display:flex;gap:8px;margin-bottom:8px">
           <input id="bypassPwInput" class="a-input" type="text" value="${esc(bypassPw)}" placeholder="Bypass sifresi" style="flex:1">
           <button class="a-btn" onclick="saveBypassPassword()">Kaydet</button>
         </div>
         <p style="font-size:11px;color:#666">Mevcut: <code style="background:#111;padding:2px 6px;border-radius:4px">${bypassPw ? bypassPw.slice(0,6)+'...' : '(yok)'}</code></p>
+      </div>
+      <div style="background:#1a1a1a;border-radius:8px;padding:20px;max-width:480px">
+        <h4 style="margin:0 0 6px;display:flex;align-items:center;gap:8px;"><i class="fas fa-birthday-cake" style="color:#ff0033"></i> Yas Siniri Ayarlari</h4>
+        <p style="font-size:12px;color:#888;margin:0 0 12px">Kayit icin minimum yas siniri ve uyari mesajini ayarla.</p>
+        <div style="margin-bottom:10px">
+          <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Minimum Yas</label>
+          <input id="minAgeInput" class="a-input" type="number" min="1" max="99" value="${ageSettings.min_age}" style="width:100px">
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Yas Siniri Uyari Mesaji</label>
+          <input id="ageWarningInput" class="a-input" type="text" value="${esc(ageSettings.warning)}" placeholder="Uyari mesaji..." style="width:100%">
+        </div>
+        <button class="a-btn" onclick="saveAgeSettings()">Kaydet</button>
       </div>`;
+  } catch(e) {
+    c.innerHTML = `<h2>Admin Ayarlari</h2><p style="color:#ff4466">Hata: ${e.message}</p>`;
+  }
+}
+
+async function saveAgeSettings() {
+  const min_age = parseInt(document.getElementById('minAgeInput')?.value);
+  const warning = document.getElementById('ageWarningInput')?.value?.trim();
+  if (!min_age || min_age < 1) { showToast('Gecersiz yas', false); return; }
+  try {
+    const r = await fetch(API+'/admin/age-settings', {method:'PUT', headers:{'Content-Type':'application/json','x-admin-token':adminData?.token||''}, body:JSON.stringify({min_age, warning})});
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error||'Hata', false); return; }
+    showToast('Yas siniri guncellendi');
+  } catch(e) { showToast('Baglanti hatasi', false); }
+}
   } catch(e) {
     c.innerHTML = `
       <h2>Admin Ayarlari</h2>
