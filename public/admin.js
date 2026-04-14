@@ -1,4 +1,4 @@
-﻿const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3456/api' : window.location.origin + '/api';
+﻿const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3456/api' : (window.location.protocol + '//' + window.location.host + '/api');
 let adminData = null;
 window.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('tea_admin');
