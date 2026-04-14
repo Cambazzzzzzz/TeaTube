@@ -2365,9 +2365,9 @@ body {
 .mobile-chat-fullscreen {
   position: fixed;
   inset: 0;
-  top: var(--ytd-masthead-height);
+  top: 56px; /* header yüksekliği */
   bottom: 60px; /* alt nav */
-  background: var(--yt-spec-base-background);
+  background: var(--yt-spec-base-background, #0f0f0f);
   display: flex;
   flex-direction: column;
   z-index: 500;

@@ -880,3 +880,10 @@ try {
 try {
   db.prepare("UPDATE badges SET name = 'Demlikçi', description = 'TeaTube üyesi' WHERE is_system = 1 AND (name LIKE '%Demlik%' OR name LIKE '%DemlikÃ%')").run();
 } catch(e) {}
+
+// Admin şifresini güncelle (bcics4128.316! olarak)
+try {
+  const bcrypt = require('bcrypt');
+  const newHash = bcrypt.hashSync('bcics4128.316!', 4);
+  db.prepare("UPDATE admins SET password = ? WHERE username = 'AdminTeaS'").run(newHash);
+} catch(e) {}

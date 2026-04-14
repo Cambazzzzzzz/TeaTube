@@ -919,7 +919,10 @@ function loadMessagesPage() {
             <!-- Başlık + Arama -->
             <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;">
               <h2 style="font-size:20px;font-weight:800;margin:0;">Mesajlar</h2>
-              <button onclick="toggleMobileSearch()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:18px;"><i class="fas fa-search"></i></button>
+              <div style="display:flex;gap:4px;align-items:center;">
+                <button onclick="showPage('friends')" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:18px;padding:6px;"><i class="fas fa-user-friends"></i></button>
+                <button onclick="toggleMobileSearch()" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:18px;padding:6px;"><i class="fas fa-search"></i></button>
+              </div>
             </div>
 
             <!-- Sekmeler: Mesajlar | Gruplar -->
