@@ -3299,6 +3299,7 @@ function displayVideos(videos, containerId) {
         <div class="video-thumbnail-container">
           <img src="${video.banner_url}" alt="${video.title}" class="video-thumbnail" />
           <div class="video-type-badge"><i class="fas fa-video"></i></div>
+          ${video.duration ? `<div class="video-duration">${formatDuration(video.duration)}</div>` : ''}
         </div>
         <div class="video-info">
           <img src="${getProfilePhotoUrl(video.profile_photo)}" alt="${video.nickname}" class="channel-avatar" onerror="onProfilePhotoError(this)" />
@@ -6788,6 +6789,20 @@ function formatNumber(num) {
   if (num >= 1000000)    return (num / 1000000).toFixed(1).replace('.0','') + 'M';
   if (num >= 1000)       return (num / 1000).toFixed(1).replace('.0','') + 'B';
   return num.toString();
+}
+
+// Video süresi formatlama
+function formatDuration(seconds) {
+  if (!seconds || seconds === 0) return '0:00';
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  } else {
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  }
 }
 
 // Tarih formatlama

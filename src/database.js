@@ -60,10 +60,18 @@ db.exec(`
     views INTEGER DEFAULT 0,
     likes INTEGER DEFAULT 0,
     dislikes INTEGER DEFAULT 0,
+    duration INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
   )
 `);
+
+// Duration alanını ekle (eğer yoksa)
+try {
+  db.exec(`ALTER TABLE videos ADD COLUMN duration INTEGER DEFAULT 0`);
+} catch(e) {
+  // Alan zaten varsa hata vermez
+}
 
 // Abonelikler tablosu
 db.exec(`
