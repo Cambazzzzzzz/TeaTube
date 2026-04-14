@@ -133,17 +133,10 @@
         </div>
         
         <div id="end">
-          <!-- Masaüstü: arkadaşlar, gruplar, bildirimler, profil -->
-          <button class="yt-icon-button desktop-only" onclick="showPage('friends')" title="Arkadaşlar" style="position:relative;">
-            <i class="fas fa-user-friends"></i>
-          </button>
+          <!-- Masaüstü: gruplar, bildirimler -->
           <button class="yt-icon-button desktop-only" onclick="showPage('groups')" title="Gruplar" style="position:relative;">
             <i class="fas fa-layer-group"></i>
             <span id="groupNavBadge" class="badge" style="display:none;"></span>
-          </button>
-          <!-- Mobil: arkadaşlar butonu (büyüteç yanında) -->
-          <button class="yt-icon-button mobile-only" onclick="showPage('friends')" title="Arkadaşlar" style="position:relative;">
-            <i class="fas fa-user-friends"></i>
           </button>
           <!-- Mobil: arama butonu -->
           <button class="yt-icon-button mobile-only" onclick="toggleMobileSearch()" title="Ara">
@@ -153,10 +146,6 @@
           <button class="yt-icon-button" onclick="showPage('notifications')" style="position:relative;">
             <i class="fas fa-bell"></i>
             <span id="notifBadge" class="badge" style="display: none;"></span>
-          </button>
-          <!-- Profil - sadece masaüstünde -->
-          <button class="yt-icon-button desktop-only" id="headerProfileBtn" onclick="showMobileProfileSheet()" style="padding:0;">
-            <img id="headerProfilePhoto" src="logoteatube.png" style="width:32px; height:32px; border-radius:50%; object-fit:cover;" onerror="this.src='logoteatube.png'" />
           </button>
         </div>
       </div>
@@ -297,8 +286,8 @@
         <i class="fas fa-search"></i>
       </button>
       <!-- Profil - menü açar -->
-      <button class="mbb-btn" onclick="showMobileProfileSheet()" id="mbb-profile" style="padding:0;display:flex;align-items:center;justify-content:center;">
-        <img id="mbbProfilePhoto" src="logoteatube.png" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.2);" onerror="this.src='logoteatube.png'" />
+      <button class="mbb-btn" onclick="showMobileProfileSheet()" id="mbb-profile">
+        <i class="fas fa-user"></i>
       </button>
     </nav>
   </div>

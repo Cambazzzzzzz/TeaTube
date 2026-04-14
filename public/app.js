@@ -152,16 +152,9 @@ function showMobileProfileSheet() {
   document.body.appendChild(sheet);
 }
 
-// Mobil profil fotosu güncelle
+// Mobil profil fotosu güncelle (artık kullanılmıyor)
 function updateMobileProfilePhoto() {
-  const mobilePhoto = document.getElementById('mobileProfilePhoto');
-  const headerPhoto = document.getElementById('headerProfilePhoto');
-  if (mobilePhoto && currentUser?.profile_photo && currentUser.profile_photo !== '?') {
-    mobilePhoto.src = currentUser.profile_photo;
-  }
-  if (headerPhoto && currentUser?.profile_photo && currentUser.profile_photo !== '?') {
-    headerPhoto.src = currentUser.profile_photo;
-  }
+  // Profil fotoğrafları kaldırıldı, bu fonksiyon artık boş
 }
 
 async function searchFriendsInMessages() {
@@ -570,11 +563,7 @@ function showPage(page) {
   document.querySelectorAll('.mbb-btn').forEach(b => b.classList.remove('active'));
   if (navMap[page]) document.getElementById(navMap[page])?.classList.add('active');
 
-  // Profil fotoğrafını bottom nav'a yansıt
-  const mbbPhoto = document.getElementById('mbbProfilePhoto');
-  if (mbbPhoto && currentUser?.profile_photo && currentUser.profile_photo !== '?') {
-    mbbPhoto.src = getProfilePhotoUrl(currentUser.profile_photo);
-  }
+  // Profil fotoğrafı artık yok, bu kod kaldırıldı
   
   // Özel sayfaları gizle (song-writings, my-writings, writing-detail)
   ['song-writings-page','my-writings-page','writing-detail-page'].forEach(id => {
