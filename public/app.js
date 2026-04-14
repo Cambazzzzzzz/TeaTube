@@ -5238,7 +5238,7 @@ async function loadSettingsPage() {
       <!-- İmza -->
       <div style="margin-top:32px;padding:16px;border-top:1px solid rgba(255,255,255,0.06);text-align:center;">
         <p style="font-size:11px;color:rgba(255,255,255,0.2);margin:0 0 4px;letter-spacing:0.5px;">Created by <span style="color:rgba(255,255,255,0.35);font-weight:600;">CMS Team</span></p>
-        <p style="font-size:11px;color:rgba(255,255,255,0.15);margin:0;letter-spacing:0.5px;">Created by <span style="color:rgba(255,255,255,0.25);font-weight:600;">İ.D</span></p>
+        <p style="font-size:11px;color:rgba(255,255,255,0.15);margin:0;letter-spacing:0.5px;">Created by <span style="color:rgba(255,255,255,0.25);font-weight:600;">İsmail DEMİRCAN</span></p>
       </div>
     `;
     
@@ -7455,7 +7455,7 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
       <!-- İmza -->
       <div style="margin-top:40px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.05);text-align:center;">
         <p style="font-size:11px;color:rgba(255,255,255,0.18);margin:0 0 3px;letter-spacing:0.5px;">Created by <span style="color:rgba(255,255,255,0.3);font-weight:600;">CMS Team</span></p>
-        <p style="font-size:11px;color:rgba(255,255,255,0.12);margin:0;letter-spacing:0.5px;">Created by <span style="color:rgba(255,255,255,0.22);font-weight:600;">İ.D</span></p>
+        <p style="font-size:11px;color:rgba(255,255,255,0.12);margin:0;letter-spacing:0.5px;">Created by <span style="color:rgba(255,255,255,0.22);font-weight:600;">İsmail DEMİRCAN</span></p>
       </div>
     </div>
   `;
@@ -7478,7 +7478,7 @@ function renderTSSongRow(s, queue = null, index = -1) {
     <div data-song-id="${s.id}" onclick="playSongFromHome(${s.id})" style="display:flex;align-items:center;gap:12px;padding:8px;border-radius:10px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
       <img src="${s.cover_url}" onclick="event.stopPropagation();openSongDetailPage(${s.id})" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=48 height=48%3E%3Crect width=48 height=48 fill=%23333/%3E%3C/svg%3E'" />
       <div style="flex:1;min-width:0">
-        <p style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title || ''}</p>
+        <p onclick="event.stopPropagation();openSongDetailPage(${s.id})" style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${s.title || ''}</p>
         <p onclick="event.stopPropagation();viewArtistPage(${s.artist_id})" style="font-size:12px;color:#1db954;display:flex;align-items:center;gap:3px;cursor:pointer;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${s.artist_name || ''}<i class="fas fa-check-circle" style="color:#1db954;font-size:10px"></i></p>
       </div>
       ${playCount}
@@ -7902,7 +7902,7 @@ async function openSongDetailPage(songId) {
         ${lyricsHtml}
       </div>`;
   } catch(e) {
-    pageContent.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:20px;">Şarkı yüklenemedi</p>';
+    pageContent.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:20px;">Şarkı yüklenemedi: ' + e.message + '</p>';
   }
 }
 
