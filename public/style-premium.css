@@ -2903,6 +2903,7 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 100;
+  /* Sadece Reals sayfasında aktif - diğer sayfalarda pageContent temizlenir */
 }
 .shorts-player-wrap {
   position: relative;
@@ -3284,10 +3285,11 @@ body {
 
 /* ── Smooth page transitions ─────────────────────────────────── */
 #pageContent {
-  animation: pageIn 0.2s ease;
+  animation: pageIn 0.15s ease;
+  animation-fill-mode: both;
 }
 @keyframes pageIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0.3; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 

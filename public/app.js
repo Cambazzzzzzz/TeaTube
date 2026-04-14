@@ -533,6 +533,12 @@ function logout() {
 function showPage(page) {
   currentPage = page;
 
+  // Reals player'ı temizle (fixed position olduğu için diğer sayfaları engelleyebilir)
+  if (page !== 'reals' && page !== 'shorts') {
+    const shortsContainer = document.getElementById('shortsContainer');
+    if (shortsContainer) shortsContainer.remove();
+  }
+
   // Bottom nav aktif durumu güncelle
   const navMap = { home:'mbb-home', reals:'mbb-reals', messages:'mbb-messages', 'my-channel':'mbb-profile' };
   document.querySelectorAll('.mbb-btn').forEach(b => b.classList.remove('active'));
