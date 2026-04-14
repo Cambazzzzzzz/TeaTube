@@ -537,6 +537,9 @@ function showPage(page) {
   if (page !== 'reals' && page !== 'shorts') {
     const shortsContainer = document.getElementById('shortsContainer');
     if (shortsContainer) shortsContainer.remove();
+    // Animasyonu geri aç
+    const pc = document.getElementById('pageContent');
+    if (pc) { pc.style.animation = ''; void pc.offsetWidth; pc.style.animation = null; }
   }
 
   // Bottom nav aktif durumu güncelle
@@ -589,9 +592,11 @@ function showPage(page) {
       loadGroupsPage();
       break;
     case 'shorts':
+      document.getElementById('pageContent').style.animation = 'none';
       loadShortsPage();
       break;
     case 'reals':
+      document.getElementById('pageContent').style.animation = 'none';
       loadShortsPage();
       break;
     case 'home':
