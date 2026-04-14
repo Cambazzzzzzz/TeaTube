@@ -557,10 +557,18 @@ db.exec(`
     is_verified INTEGER DEFAULT 0,
     is_suspended INTEGER DEFAULT 0,
     show_play_count INTEGER DEFAULT 1,
+    monthly_plays INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   )
 `);
+
+// Aylık dinlenme alanını ekle (eğer yoksa)
+try {
+  db.exec(`ALTER TABLE music_artists ADD COLUMN monthly_plays INTEGER DEFAULT 0`);
+} catch(e) {
+  // Alan zaten varsa hata vermez
+}
 
 // ÅarkÄ±lar
 db.exec(`

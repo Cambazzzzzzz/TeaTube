@@ -7410,7 +7410,16 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
   }
 
   const popularHtml = (data.popularSongs || []).length
-    ? `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px">Popüler</h3><div style="display:flex;flex-direction:column;gap:4px;margin-bottom:24px">${(data.popularSongs || []).map((s,i) => { window[`_tsQ_pop_${s.id}`] = {q:data.popularSongs,i}; return renderTSSongRow(s); }).join('')}</div>`
+    ? `<h3 style="font-size:15px;font-weight:600;margin-bottom:12px">Popüler</h3>
+       <div style="border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:8px;margin-bottom:8px;">
+         <div style="display:grid;grid-template-columns:32px 1fr auto auto;align-items:center;gap:12px;padding:4px 12px;color:var(--yt-spec-text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">
+           <span style="text-align:center;">#</span>
+           <span>Başlık</span>
+           <span>Çalma</span>
+           <span><i class="fas fa-clock"></i></span>
+         </div>
+       </div>
+       <div style="margin-bottom:24px">${(data.popularSongs || []).map((s,i) => { window[`_tsQ_pop_${s.id}`] = {q:data.popularSongs,i}; return renderTSSongRow(s, null, i); }).join('')}</div>`
     : '';
 
   const artistsHtml = (data.newArtists || []).length
@@ -7422,7 +7431,15 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
   window._tsMusicPopQueue = data.popularSongs || [];
 
   const newSongsHtml = (data.newSongs || []).length
-    ? (data.newSongs || []).map((s,i) => renderTSSongRow(s)).join('')
+    ? `<div style="border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:8px;margin-bottom:8px;">
+         <div style="display:grid;grid-template-columns:32px 1fr auto auto;align-items:center;gap:12px;padding:4px 12px;color:var(--yt-spec-text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">
+           <span style="text-align:center;">#</span>
+           <span>Başlık</span>
+           <span>Çalma</span>
+           <span><i class="fas fa-clock"></i></span>
+         </div>
+       </div>
+       ${(data.newSongs || []).map((s,i) => renderTSSongRow(s, null, i)).join('')}`
     : '<p style="color:var(--yt-spec-text-secondary)">Henüz şarkı yok</p>';
 
   pageContent.innerHTML = `
@@ -7472,17 +7489,40 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
 }
 
 function renderTSSongRow(s, queue = null, index = -1) {
-  const playCount = s.show_play_count ? `<span class="song-play-count" style="font-size:11px;color:var(--yt-spec-text-secondary)">${formatNumber(s.play_count || 0)} dinlenme</span>` : '';
+  const playCount = s.show_play_count ? formatNumber(s.play_count || 0) : '—';
   const queueParam = queue ? `window._tsMusicQueue_${s.id}` : 'null';
+  const rowIndex = index >= 0 ? index + 1 : '♪';
+  
   return `
-    <div data-song-id="${s.id}" onclick="playSongFromHome(${s.id})" style="display:flex;align-items:center;gap:12px;padding:8px;border-radius:10px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
-      <img src="${s.cover_url}" onclick="event.stopPropagation();openSongDetailPage(${s.id})" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=48 height=48%3E%3Crect width=48 height=48 fill=%23333/%3E%3C/svg%3E'" />
-      <div style="flex:1;min-width:0">
-        <p onclick="event.stopPropagation();openSongDetailPage(${s.id})" style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${s.title || ''}</p>
-        <p onclick="event.stopPropagation();viewArtistPage(${s.artist_id})" style="font-size:12px;color:#1db954;display:flex;align-items:center;gap:3px;cursor:pointer;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${s.artist_name || ''}<i class="fas fa-check-circle" style="color:#1db954;font-size:10px"></i></p>
+    <div data-song-id="${s.id}" style="display:grid;grid-template-columns:32px 1fr auto auto;align-items:center;gap:12px;padding:8px 12px;border-radius:6px;cursor:pointer;transition:all 0.15s;group" onmouseover="this.style.background='rgba(255,255,255,0.07)';this.querySelector('.play-btn').style.opacity='1'" onmouseout="this.style.background='transparent';this.querySelector('.play-btn').style.opacity='0'">
+      
+      <!-- Index/Play Button -->
+      <div style="position:relative;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">
+        <span class="track-number" style="font-size:14px;color:var(--yt-spec-text-secondary);font-weight:500;">${rowIndex}</span>
+        <button class="play-btn" onclick="event.stopPropagation();playSongFromHome(${s.id})" style="position:absolute;width:32px;height:32px;border-radius:50%;background:#1db954;border:none;color:#000;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:all 0.15s;transform:scale(0.9)" onmouseover="this.style.transform='scale(1)'" onmouseout="this.style.transform='scale(0.9)'" data-song-id="${s.id}">
+          <i class="fas fa-play" style="margin-left:2px;"></i>
+        </button>
       </div>
-      ${playCount}
-      <button onclick="event.stopPropagation();addToPlaylistPrompt(${s.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:4px 8px"><i class="fas fa-plus"></i></button>
+
+      <!-- Song Info -->
+      <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+        <img src="${s.cover_url}" onclick="event.stopPropagation();openSongDetailPage(${s.id})" style="width:40px;height:40px;border-radius:4px;object-fit:cover;flex-shrink:0;cursor:pointer" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=40 height=40%3E%3Crect width=40 height=40 fill=%23333/%3E%3C/svg%3E'" />
+        <div style="min-width:0;flex:1;">
+          <p onclick="event.stopPropagation();openSongDetailPage(${s.id})" style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;margin:0 0 2px;color:#fff" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${s.title || ''}</p>
+          <p onclick="event.stopPropagation();viewArtistPage(${s.artist_id})" style="font-size:12px;color:var(--yt-spec-text-secondary);cursor:pointer;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" onmouseover="this.style.color='#fff';this.style.textDecoration='underline'" onmouseout="this.style.color='var(--yt-spec-text-secondary)';this.style.textDecoration='none'">${s.artist_name || ''}</p>
+        </div>
+      </div>
+
+      <!-- Play Count -->
+      <span style="font-size:13px;color:var(--yt-spec-text-secondary);text-align:right;min-width:60px;">${playCount}</span>
+
+      <!-- Actions -->
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button onclick="event.stopPropagation();addToPlaylistPrompt(${s.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:6px;border-radius:50%;transition:all 0.15s;opacity:0.7" onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,0.1);this.style.opacity='1'" onmouseout="this.style.color='var(--yt-spec-text-secondary)';this.style.background='transparent';this.style.opacity='0.7'" title="Playlist'e Ekle">
+          <i class="fas fa-plus"></i>
+        </button>
+        <span style="font-size:13px;color:var(--yt-spec-text-secondary);min-width:35px;text-align:right;">3:24</span>
+      </div>
     </div>`;
 }
 
@@ -7524,6 +7564,13 @@ async function playSong(songId, queue = null, index = -1) {
     }
 
     tsMusicAudio = new Audio(song.audio_url);
+    
+    // Kaydedilmiş ses seviyesini uygula
+    const savedVolume = parseFloat(localStorage.getItem('tea_volume') ?? '1');
+    const savedMuted = localStorage.getItem('tea_muted') === 'true';
+    tsMusicAudio.volume = savedVolume;
+    tsMusicAudio.muted = savedMuted;
+    
     tsMusicAudio.play();
     tsMusicIsPlaying = true;
 
@@ -7540,6 +7587,12 @@ async function playSong(songId, queue = null, index = -1) {
 }
 
 function playSongFromHome(songId) {
+  // Eğer aynı şarkı çalıyorsa pause/play yap
+  if (tsMusicCurrentSong && tsMusicCurrentSong.id == songId) {
+    toggleTSMusicPlay();
+    return;
+  }
+  
   // Hangi listede olduğunu bul (yeni çıkanlar veya popüler)
   const newQ = window._tsMusicNewQueue || [];
   const popQ = window._tsMusicPopQueue || [];
@@ -7558,7 +7611,10 @@ function _playNextTSMusicSong() {
 
   let nextIndex;
   if (tsMusicHomeShuffle) {
-    nextIndex = Math.floor(Math.random() * tsMusicHomeQueue.length);
+    // Gerçek karışık çalma - mevcut şarkı hariç rastgele seç
+    const availableIndices = tsMusicHomeQueue.map((_, i) => i).filter(i => i !== tsMusicHomeIndex);
+    if (availableIndices.length === 0) { updateTSMiniPlayer(); return; }
+    nextIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
   } else {
     nextIndex = tsMusicHomeIndex + 1;
     if (nextIndex >= tsMusicHomeQueue.length) { updateTSMiniPlayer(); return; }
@@ -7581,7 +7637,38 @@ function toggleTSHomeShuffle() {
 
 function updateTSMiniPlayer() {
   let player = document.getElementById('tsMiniPlayer');
-  if (!tsMusicCurrentSong) { if (player) player.remove(); return; }
+  if (!tsMusicCurrentSong) { 
+    if (player) player.remove(); 
+    // Tüm play butonlarını sıfırla
+    document.querySelectorAll('.play-btn').forEach(btn => {
+      btn.style.opacity = '0';
+      btn.innerHTML = '<i class="fas fa-play" style="margin-left:2px;"></i>';
+    });
+    document.querySelectorAll('.track-number').forEach(num => {
+      num.style.display = 'block';
+    });
+    return; 
+  }
+  
+  // Aktif şarkının play butonunu güncelle
+  const currentSongId = tsMusicCurrentSong.id;
+  document.querySelectorAll('.play-btn').forEach(btn => {
+    const songId = btn.getAttribute('data-song-id');
+    if (songId == currentSongId) {
+      btn.style.opacity = '1';
+      btn.innerHTML = `<i class="fas ${tsMusicIsPlaying ? 'fa-pause' : 'fa-play'}" style="margin-left:${tsMusicIsPlaying ? '0' : '2px'}px;"></i>`;
+      // Track number'ı gizle
+      const trackNumber = btn.parentElement.querySelector('.track-number');
+      if (trackNumber) trackNumber.style.display = 'none';
+    } else {
+      btn.style.opacity = '0';
+      btn.innerHTML = '<i class="fas fa-play" style="margin-left:2px;"></i>';
+      // Track number'ı göster
+      const trackNumber = btn.parentElement.querySelector('.track-number');
+      if (trackNumber) trackNumber.style.display = 'block';
+    }
+  });
+  
   if (!player) {
     player = document.createElement('div');
     player.id = 'tsMiniPlayer';
@@ -7640,7 +7727,14 @@ function seekTSMusic(val) {
 }
 
 function setTSVolume(val) {
-  if (tsMusicAudio) tsMusicAudio.volume = parseFloat(val) / 100;
+  const volume = parseFloat(val) / 100;
+  if (tsMusicAudio) {
+    tsMusicAudio.volume = volume;
+    tsMusicAudio.muted = volume === 0;
+  }
+  // Ses seviyesini kaydet
+  localStorage.setItem('tea_volume', volume);
+  localStorage.setItem('tea_muted', volume === 0);
 }
 
 function toggleTSMusicPlay() {
@@ -8105,6 +8199,13 @@ async function playTSPlaylistSong() {
     if (tsMusicAudio) { tsMusicAudio.pause(); tsMusicAudio = null; }
     tsMusicCurrentSong = fullSong;
     tsMusicAudio = new Audio(fullSong.audio_url);
+    
+    // Kaydedilmiş ses seviyesini uygula
+    const savedVolume = parseFloat(localStorage.getItem('tea_volume') ?? '1');
+    const savedMuted = localStorage.getItem('tea_muted') === 'true';
+    tsMusicAudio.volume = savedVolume;
+    tsMusicAudio.muted = savedMuted;
+    
     tsMusicAudio.play();
     tsMusicIsPlaying = true;
 

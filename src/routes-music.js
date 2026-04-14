@@ -186,16 +186,17 @@ router.get('/music/artist/:artistId', (req, res) => {
   try {
     const artist = db.prepare(`
       SELECT a.*, u.username, u.profile_photo,
-             (SELECT COUNT(*) FROM songs WHERE artist_id = a.id AND is_suspended = 0) as song_count
+             (SELECT COUNT(*) FROM songs WHERE artist_id = a.id AND is_suspended = 0) as song_count,
+             a.monthly_plays
       FROM music_artists a JOIN users u ON a.user_id = u.id
       WHERE a.id = ?
     `).get(req.params.artistId);
-    if (!artist) return res.status(404).json({ error: 'Artist bulunamadÄ±' });
+    if (!artist) return res.status(404).json({ error: 'Artist bulunamadı' });
 
     const songs = db.prepare('SELECT * FROM songs WHERE artist_id = ? AND is_suspended = 0 ORDER BY created_at DESC').all(req.params.artistId);
     res.json({ artist, songs });
   } catch(e) {
-    res.status(500).json({ error: 'Artist alÄ±namadÄ±' });
+    res.status(500).json({ error: 'Artist alınamadı' });
   }
 });
 
@@ -208,9 +209,13 @@ router.get('/music/song/:songId', (req, res) => {
       WHERE s.id = ?
     `).get(req.params.songId);
     if (!song) return res.status(404).json({ error: 'ÅarkÄ± bulunamadÄ±' });
-    // Dinlenme artÄ±r
+    // Dinlenme artır
     db.prepare('UPDATE songs SET play_count = play_count + 1 WHERE id = ?').run(req.params.songId);
     song.play_count += 1;
+    
+    // Sanatçının aylık dinlenme sayısını artır
+    db.prepare('UPDATE music_artists SET monthly_plays = monthly_plays + 1 WHERE id = ?').run(song.artist_id);
+    
     res.json(song);
   } catch(e) {
     res.status(500).json({ error: 'ÅarkÄ± alÄ±namadÄ±' });
