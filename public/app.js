@@ -761,7 +761,39 @@ async function loadFriendsPage() {
           </div>
         `).join('')}
       </div>
+      <div class="settings-card" style="margin-top:8px;" id="blockedUsersCard">
+        <h3 class="settings-card-title"><i class="fas fa-ban" style="margin-right:8px;color:#ff4444;"></i>Engellenenler</h3>
+        <div id="blockedUsersList"><div class="yt-loading" style="padding:12px 0;"><div class="yt-spinner" style="width:20px;height:20px;border-width:2px;"></div></div></div>
+      </div>
     `;
+
+    // Engellenenler listesini yükle
+    fetch(`${API_URL}/blocked-users/${currentUser.id}`)
+      .then(r => r.json())
+      .then(blocked => {
+        const el = document.getElementById('blockedUsersList');
+        if (!el) return;
+        if (!blocked.length) {
+          el.innerHTML = '<p style="font-size:13px;color:var(--yt-spec-text-secondary);">Engellenen kullanıcı yok</p>';
+          return;
+        }
+        el.innerHTML = blocked.map(b => `
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,68,68,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="fas fa-ban" style="color:#ff4444;font-size:18px;"></i>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <p style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.nickname}</p>
+              <p style="font-size:12px;color:#ff4444;">@${b.username} · Engellendi</p>
+            </div>
+            <button class="yt-btn yt-btn-secondary" onclick="unblockUser(${b.blocked_id},'${b.nickname}')" style="height:32px;padding:0 12px;font-size:12px;flex-shrink:0;">Kaldır</button>
+          </div>
+        `).join('');
+      })
+      .catch(() => {
+        const el = document.getElementById('blockedUsersList');
+        if (el) el.innerHTML = '<p style="font-size:13px;color:var(--yt-spec-text-secondary);">Yüklenemedi</p>';
+      });
   } catch(e) { console.error(e); }
 }
 
@@ -1014,6 +1046,21 @@ function openMobileChat(friendId, friendName, friendPhoto) {
     document.addEventListener('firebaseReady', () => openMobileChat(friendId, friendName, friendPhoto), { once: true });
     return;
   }
+
+  // Engel kontrolü
+  fetch(`${API_URL}/is-blocked/${currentUser.id}/${friendId}`)
+    .then(r => r.json())
+    .then(d => {
+      if (d.isBlocked) {
+        showBlockedChatWarning(friendId, friendName, friendPhoto, true);
+      } else {
+        _openMobileChatDirect(friendId, friendName, friendPhoto);
+      }
+    })
+    .catch(() => _openMobileChatDirect(friendId, friendName, friendPhoto));
+}
+
+function _openMobileChatDirect(friendId, friendName, friendPhoto) {
   const chatId = getChatId(currentUser.id, friendId);
   const pageContent = document.getElementById('pageContent');
   currentChatFriendId = friendId;
@@ -1275,7 +1322,50 @@ function openChat(friendId, friendName, friendPhoto) {
     return;
   }
 
-  // chatId'yi burada hesapla - HTML'de kullanılacak
+  // Engel kontrolü
+  fetch(`${API_URL}/is-blocked/${currentUser.id}/${friendId}`)
+    .then(r => r.json())
+    .then(d => {
+      if (d.isBlocked) {
+        showBlockedChatWarning(friendId, friendName, friendPhoto, false);
+      } else {
+        _openChatDirect(friendId, friendName, friendPhoto);
+      }
+    })
+    .catch(() => _openChatDirect(friendId, friendName, friendPhoto));
+}
+
+function showBlockedChatWarning(friendId, friendName, friendPhoto, isMobile) {
+  const overlay = document.createElement('div');
+  overlay.id = 'blockedChatOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML = `
+    <div style="background:var(--yt-spec-raised-background,#1f1f1f);border-radius:16px;padding:28px;width:100%;max-width:320px;text-align:center;">
+      <i class="fas fa-ban" style="font-size:44px;color:#ff4444;margin-bottom:14px;display:block;"></i>
+      <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Bu kişiyi engellediniz</div>
+      <div style="font-size:14px;color:var(--yt-spec-text-secondary,#aaa);margin-bottom:20px;">${friendName} adlı kullanıcıya mesaj atamazsınız.</div>
+      <input type="password" id="blockBypassInput" style="width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:10px 14px;color:#fff;font-size:14px;outline:none;margin-bottom:12px;" placeholder="Şifre ile devam et..." />
+      <div style="display:flex;gap:8px;">
+        <button onclick="checkBlockBypass(${friendId},'${friendName}','${friendPhoto}',${isMobile})" style="flex:1;background:#ff0033;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;">Devam</button>
+        <button onclick="document.getElementById('blockedChatOverlay').remove()" style="flex:1;background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:10px;padding:12px;font-size:14px;cursor:pointer;">İptal</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function checkBlockBypass(friendId, friendName, friendPhoto, isMobile) {
+  const val = document.getElementById('blockBypassInput')?.value;
+  if (val === 'engellersemengellerim394543') {
+    document.getElementById('blockedChatOverlay')?.remove();
+    if (isMobile) _openMobileChatDirect(friendId, friendName, friendPhoto);
+    else _openChatDirect(friendId, friendName, friendPhoto);
+  } else {
+    showToast('Yanlış şifre', 'error');
+  }
+}
+
+function _openChatDirect(friendId, friendName, friendPhoto) {
   const chatId = getChatId(currentUser.id, friendId);
 
   // Aktif arkadaşı işaretle
