@@ -3415,11 +3415,13 @@ body {
   #center { display: none !important; }
   #center-logo { display: flex !important; }
   .desktop-only { display: none !important; }
+  .mobile-only { display: flex !important; }
   #masthead-container { position: relative; }
 }
 @media (min-width: 769px) {
   #center-logo { display: none !important; }
   #center { visibility: visible !important; pointer-events: auto !important; }
+  .mobile-only { display: none !important; }
   #uploadPlusBtn { display: none !important; }
 }
 
