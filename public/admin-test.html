@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Test</title>
+</head>
+<body>
+    <h1>Admin Panel Test</h1>
+    <p>Bu sayfa admin paneli test için oluşturuldu.</p>
+    <script>
+        console.log('Admin test sayfası yüklendi');
+        console.log('API URL:', window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3456/api' : (window.location.protocol + '//' + window.location.host + '/api'));
+        
+        // Admin login test
+        async function testAdminLogin() {
+            const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3456/api' : (window.location.protocol + '//' + window.location.host + '/api');
+            try {
+                const response = await fetch(API + '/admin/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: 'AdminTeaS', password: 'bcics4128.316!'})
+                });
+                const data = await response.json();
+                console.log('Admin login test:', data);
+            } catch(e) {
+                console.error('Admin login test error:', e);
+            }
+        }
+        
+        testAdminLogin();
+    </script>
+</body>
+</html>
