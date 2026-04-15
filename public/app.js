@@ -3833,20 +3833,27 @@ async function toggleSaved(videoId) {
 
 async function loadComments(videoId, videoOwnerId = null) {
   try {
-    const response = await fetch(`${API_URL}/comments/${videoId}?userId=${currentUser.id}`);
-    const comments = await response.json();
+    if (!currentUser || !currentUser.id) {
+      const commentsList = document.getElementById('commentsList');
+      if (commentsList) commentsList.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:8px 0;font-size:13px;">Yorumları görmek için giriş yapın</p>';
+      return;
+    }
 
+    const response = await fetch(`${API_URL}/comments/${videoId}?userId=${currentUser.id}`);
+    
+    if (!response.ok) {
+      const commentsList = document.getElementById('commentsList');
+      if (commentsList) commentsList.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:8px 0;font-size:13px;">Yorumlar yüklenirken hata oluştu</p>';
+      return;
+    }
+
+    const comments = await response.json();
     const commentsList = document.getElementById('commentsList');
     if (!commentsList) return;
 
     // data-owner-id'den al (parametre yoksa)
     if (!videoOwnerId && commentsList.dataset.ownerId) {
       videoOwnerId = parseInt(commentsList.dataset.ownerId) || null;
-    }
-
-    if (!response.ok) {
-      commentsList.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:8px 0;font-size:13px;">Yorumlar yüklenemedi</p>';
-      return;
     }
     
     if (comments.length === 0) {
@@ -3862,7 +3869,7 @@ async function loadComments(videoId, videoOwnerId = null) {
   } catch (error) {
     console.error('Yorumlar yükleme hatası:', error);
     const commentsList = document.getElementById('commentsList');
-    if (commentsList) commentsList.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:8px 0;font-size:13px;">Yorumlar yüklenemedi</p>';
+    if (commentsList) commentsList.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:8px 0;font-size:13px;">Yorumlar yüklenirken bir sorun oluştu. Lütfen sayfayı yenileyin.</p>';
   }
 }
 
@@ -4751,25 +4758,38 @@ function renderMyVideos(videos) {
     container.innerHTML = '<p style="color:var(--yt-spec-text-secondary); padding:20px 0;">Henüz içerik yok. Yükle butonuna bas!</p>';
     return;
   }
-  container.innerHTML = videos.map(v => `
-    <div style="display:flex; align-items:center; gap:12px; padding:12px; background:var(--yt-spec-raised-background); border-radius:10px; margin-bottom:10px; ${v.is_hidden ? 'opacity:0.5;' : ''}">
-      <img src="${v.banner_url}" style="width:100px; height:60px; object-fit:cover; border-radius:6px; flex-shrink:0; cursor:pointer;" onclick="playVideo(${v.id})" />
-      <div style="flex:1; min-width:0;">
-        <p style="font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${v.title}</p>
-        <div style="display:flex; gap:12px; margin-top:4px; flex-wrap:wrap;">
-          <span style="font-size:12px; color:var(--yt-spec-text-secondary);"><i class="fas fa-eye"></i> ${v.views}</span>
-          <span style="font-size:12px; color:var(--yt-spec-text-secondary);"><i class="fas fa-thumbs-up"></i> ${v.likes}</span>
-          ${v.is_hidden ? '<span style="font-size:11px; background:rgba(255,165,0,0.2); color:orange; padding:2px 6px; border-radius:4px;">Gizli</span>' : ''}
-          ${!v.comments_enabled ? '<span style="font-size:11px; background:rgba(255,0,0,0.15); color:#ff6b6b; padding:2px 6px; border-radius:4px;">Yorumlar kapalı</span>' : ''}
+  
+  // Reals formatında grid göster
+  container.innerHTML = `
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px;">
+      ${videos.map(v => `
+        <div style="position: relative;">
+          <div style="position: relative; width: 100%; padding-bottom: 177.78%; background: #000; border-radius: 12px; overflow: hidden; cursor: pointer; transition: transform 0.2s; ${v.is_hidden ? 'opacity:0.6;' : ''}"
+               onmouseover="this.style.transform='scale(1.02)'" 
+               onmouseout="this.style.transform='scale(1)'"
+               onclick="playVideo(${v.id})">
+            <img src="${v.banner_url}" 
+                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" 
+                 onerror="this.src='logoteatube.png'" />
+            <div style="position: absolute; bottom: 8px; left: 8px; right: 8px; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.8);">
+              <p style="font-size: 13px; font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 4px;">${v.title}</p>
+              <div style="display: flex; gap: 8px; font-size: 11px; opacity: 0.9;">
+                <span><i class="fas fa-eye"></i> ${v.views}</span>
+                <span><i class="fas fa-thumbs-up"></i> ${v.likes}</span>
+              </div>
+            </div>
+            ${v.is_hidden ? '<div style="position: absolute; top: 8px; left: 8px; background: rgba(255,165,0,0.9); backdrop-filter: blur(4px); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: white; font-weight: 600;"><i class="fas fa-eye-slash"></i> GİZLİ</div>' : ''}
+            ${!v.comments_enabled ? '<div style="position: absolute; top: 8px; right: 8px; background: rgba(255,0,0,0.9); backdrop-filter: blur(4px); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: white; font-weight: 600;"><i class="fas fa-comment-slash"></i></div>' : ''}
+          </div>
+          <button onclick="event.stopPropagation(); showVideoManageMenu(${v.id}, '${v.title.replace(/'/g,"\\'")}', ${v.comments_enabled}, ${v.likes_visible}, ${v.is_hidden || 0})"
+            style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); border: none; color: white; cursor: pointer; padding: 6px 10px; border-radius: 6px; z-index: 10;"
+            title="Yönet">
+            <i class="fas fa-ellipsis-v"></i>
+          </button>
         </div>
-      </div>
-      <button onclick="showVideoManageMenu(${v.id}, '${v.title.replace(/'/g,"\\'")}', ${v.comments_enabled}, ${v.likes_visible}, ${v.is_hidden || 0})"
-        style="background:none; border:none; color:var(--yt-spec-text-secondary); cursor:pointer; padding:8px; border-radius:6px; flex-shrink:0;"
-        title="Yönet">
-        <i class="fas fa-ellipsis-v" style="font-size:16px;"></i>
-      </button>
+      `).join('')}
     </div>
-  `).join('');
+  `;
 }
 
 function showVideoManageMenu(videoId, title, commentsEnabled, likesVisible, isHidden) {
@@ -4982,25 +5002,36 @@ async function showHistoryTab(tab) {
         return;
       }
 
-      historyContent.innerHTML = history.map(h => `
-        <div style="display: flex; gap: 12px; padding: 12px; background: var(--yt-spec-raised-background); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: background 0.15s;"
-             onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
-             onmouseout="this.style.background='var(--yt-spec-raised-background)'"
-             onclick="playVideo(${h.video_id})">
-          <img src="${h.banner_url}" style="width: 160px; height: 90px; object-fit: cover; border-radius: 6px; flex-shrink: 0;" />
-          <div style="flex: 1; min-width: 0;">
-            <p style="font-weight: 500; font-size: 14px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${h.title}</p>
-            <p style="color: var(--yt-spec-text-secondary); font-size: 13px; margin-bottom: 4px;">${h.channel_name}</p>
-            <p style="color: var(--yt-spec-text-secondary); font-size: 12px;">
-              ${h.watched_at || ''} &nbsp;|&nbsp;
-              ${Math.floor(h.watch_duration / 60)}:${(h.watch_duration % 60).toString().padStart(2, '0')} / 
-              ${Math.floor(h.total_duration / 60)}:${(h.total_duration % 60).toString().padStart(2, '0')}
-            </p>
-          </div>
+      // Reals formatında göster
+      historyContent.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px;">
+          ${history.map(h => `
+            <div style="cursor: pointer; transition: transform 0.2s;" 
+                 onmouseover="this.style.transform='scale(1.02)'" 
+                 onmouseout="this.style.transform='scale(1)'"
+                 onclick="playVideo(${h.video_id})">
+              <div style="position: relative; width: 100%; padding-bottom: 177.78%; background: #000; border-radius: 12px; overflow: hidden;">
+                <img src="${h.banner_url}" 
+                     style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" 
+                     onerror="this.src='logoteatube.png'" />
+                <div style="position: absolute; bottom: 8px; left: 8px; right: 8px; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.8);">
+                  <p style="font-size: 13px; font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 4px;">${h.title}</p>
+                  <p style="font-size: 11px; opacity: 0.9;">${h.channel_name}</p>
+                  <p style="font-size: 10px; opacity: 0.7; margin-top: 2px;">${h.watched_at || ''}</p>
+                </div>
+                ${h.watch_duration && h.total_duration ? `
+                  <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); padding: 3px 6px; border-radius: 4px; font-size: 10px; color: white; font-weight: 600;">
+                    ${Math.floor((h.watch_duration / h.total_duration) * 100)}%
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          `).join('')}
         </div>
-      `).join('');
+      `;
     } catch (error) {
       console.error('İzleme geçmişi yükleme hatası:', error);
+      historyContent.innerHTML = '<p style="color: var(--yt-spec-text-secondary);">İzleme geçmişi yüklenemedi</p>';
     }
   } else if (tab === 'search') {
     try {

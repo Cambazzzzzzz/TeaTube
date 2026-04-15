@@ -14,18 +14,25 @@ window.addEventListener('DOMContentLoaded', () => {
 
 async function adminLogin() {
   console.log('Admin login başlatıldı');
-  const u = document.getElementById('adminUsername').value.trim();
   const p = document.getElementById('adminPassword').value;
   const err = document.getElementById('loginError');
-  console.log('Kullanıcı adı:', u, 'Şifre uzunluğu:', p.length);
+  console.log('Şifre uzunluğu:', p.length);
   err.style.display = 'none';
+  
+  if (!p) {
+    err.textContent='Şifre gerekli';
+    err.style.display='block';
+    return;
+  }
+  
   try {
     console.log('API URL:', API+'/admin/login');
-    const r = await fetch(API+'/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+    // Password-only login - backend will use default admin username
+    const r = await fetch(API+'/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'AdminTeaS',password:p})});
     console.log('Response status:', r.status);
     const d = await r.json();
     console.log('Response data:', d);
-    if (!r.ok) { err.textContent=d.error; err.style.display='block'; return; }
+    if (!r.ok) { err.textContent=d.error || 'Giriş başarısız'; err.style.display='block'; return; }
     adminData = d.admin;
     localStorage.setItem('tea_admin', JSON.stringify(adminData));
     document.getElementById('loginScreen').style.display='none';
@@ -35,7 +42,7 @@ async function adminLogin() {
     showSection('dashboard');
   } catch(e) { 
     console.error('Admin login error:', e);
-    err.textContent='Baglanti hatasi: ' + e.message; 
+    err.textContent='Bağlantı hatası: ' + e.message; 
     err.style.display='block'; 
   }
 }
