@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<title>Admin Panel Debug</title>
+<style>
+body { font-family: Arial; background: #111; color: #fff; padding: 20px; }
+.debug { background: #222; padding: 15px; margin: 10px 0; border-radius: 5px; }
+.success { color: #0f0; }
+.error { color: #f00; }
+</style>
+</head>
+<body>
+<h1>Admin Panel Debug</h1>
+
+<div class="debug">
+  <h3>1. API Test</h3>
+  <button onclick="testAPI()">Test API</button>
+  <div id="apiResult"></div>
+</div>
+
+<div class="debug">
+  <h3>2. Login Test</h3>
+  <input type="password" id="testPassword" placeholder="Şifre" value="bcics31622.4128">
+  <button onclick="testLogin()">Test Login</button>
+  <div id="loginResult"></div>
+</div>
+
+<div class="debug">
+  <h3>3. Console Logs</h3>
+  <div id="consoleLogs"></div>
+</div>
+
+<script>
+const API = 'http://localhost:3456/api';
+
+function log(msg, type = 'info') {
+  const div = document.getElementById('consoleLogs');
+  const p = document.createElement('p');
+  p.className = type;
+  p.textContent = new Date().toLocaleTimeString() + ': ' + msg;
+  div.appendChild(p);
+  console.log(msg);
+}
+
+async function testAPI() {
+  const result = document.getElementById('apiResult');
+  try {
+    log('API test başlatılıyor...');
+    const response = await fetch(API + '/admin/stats');
+    const data = await response.json();
+    
+    if (response.ok) {
+      result.innerHTML = '<span class="success">✅ API çalışıyor</span><br>' + JSON.stringify(data, null, 2);
+      log('API test başarılı', 'success');
+    } else {
+      result.innerHTML = '<span class="error">❌ API hatası: ' + data.error + '</span>';
+      log('API test başarısız: ' + data.error, 'error');
+    }
+  } catch (error) {
+    result.innerHTML = '<span class="error">❌ Bağlantı hatası: ' + error.message + '</span>';
+    log('API bağlantı hatası: ' + error.message, 'error');
+  }
+}
+
+async function testLogin() {
+  const result = document.getElementById('loginResult');
+  const password = document.getElementById('testPassword').value;
+  
+  try {
+    log('Login test başlatılıyor...');
+    const response = await fetch(API + '/admin/login-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.success) {
+      result.innerHTML = '<span class="success">✅ Login başarılı</span><br>Admin: ' + data.admin.username;
+      log('Login test başarılı: ' + data.admin.username, 'success');
+    } else {
+      result.innerHTML = '<span class="error">❌ Login başarısız: ' + data.error + '</span>';
+      log('Login test başarısız: ' + data.error, 'error');
+    }
+  } catch (error) {
+    result.innerHTML = '<span class="error">❌ Login hatası: ' + error.message + '</span>';
+    log('Login hatası: ' + error.message, 'error');
+  }
+}
+
+// Sayfa yüklendiğinde otomatik test
+window.addEventListener('DOMContentLoaded', () => {
+  log('Debug sayfası yüklendi');
+  testAPI();
+});
+</script>
+</body>
+</html>
