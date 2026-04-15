@@ -129,7 +129,7 @@ router.get('/music/home', (req, res) => {
       SELECT s.*, a.artist_name, a.show_play_count
       FROM songs s JOIN music_artists a ON s.artist_id = a.id
       WHERE s.is_suspended = 0 AND a.is_suspended = 0
-      ORDER BY s.created_at DESC LIMIT 20
+      ORDER BY RANDOM() LIMIT 20
     `).all();
 
     const newArtists = db.prepare(`
@@ -137,14 +137,14 @@ router.get('/music/home', (req, res) => {
              (SELECT COUNT(*) FROM songs WHERE artist_id = a.id AND is_suspended = 0) as song_count
       FROM music_artists a JOIN users u ON a.user_id = u.id
       WHERE a.is_suspended = 0
-      ORDER BY a.created_at DESC LIMIT 10
+      ORDER BY RANDOM() LIMIT 10
     `).all();
 
     const popularSongs = db.prepare(`
       SELECT s.*, a.artist_name, a.show_play_count
       FROM songs s JOIN music_artists a ON s.artist_id = a.id
       WHERE s.is_suspended = 0 AND a.is_suspended = 0
-      ORDER BY s.play_count DESC LIMIT 20
+      ORDER BY RANDOM() LIMIT 20
     `).all();
 
     res.json({ newSongs, newArtists, popularSongs });
