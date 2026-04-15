@@ -2640,7 +2640,7 @@ async function notInterestedShort(videoId, tags) {
     // Bu videoyu listeden çıkar ve sonrakine geç
     shortsVideos.splice(currentShortIndex, 1);
     if (currentShortIndex >= shortsVideos.length) currentShortIndex = Math.max(0, shortsVideos.length - 1);
-    showToast('Bu tür içerikler daha az gösterilecek', 'success');
+    showToast('İLGİLENMEDİN', 'info');
     if (shortsVideos.length > 0) renderShortsPlayer();
     else showPage('home');
   } catch(e) { showToast('Hata', 'error'); }
@@ -2658,7 +2658,7 @@ async function interestedShort(videoId, tags) {
         })
       ));
     }
-    showToast('Bu tür içerikler daha fazla gösterilecek', 'success');
+    showToast('İLGİLENDİN', 'success');
   } catch(e) {}
 }
 
