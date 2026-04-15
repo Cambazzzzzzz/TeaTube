@@ -6,9 +6,13 @@ const routes = require('./src/routes');
 const adminRoutes = require('./src/routes-admin');
 const musicRoutes = require('./src/routes-music');
 const groupRoutes = require('./src/routes-groups');
+const migrateAdminPassword = require('./migrate-admin-password');
 
 const app = express();
 const PORT = process.env.PORT || 3456;
+
+// Admin şifresini güncelle (sadece ilk başlatmada)
+migrateAdminPassword().catch(err => console.error('Migration error:', err));
 
 app.set('trust proxy', true);
 
