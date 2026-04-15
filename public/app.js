@@ -2297,13 +2297,29 @@ function renderShortsPlayer() {
   const container = document.getElementById('shortsContainer');
   if (container) {
     let scrollCooldown = false;
+    let scrollAccumulator = 0;
+    const SCROLL_THRESHOLD = 50; // Minimum scroll miktarı
+    const COOLDOWN_TIME = 1000; // Daha uzun cooldown (1 saniye)
+    
     container.addEventListener('wheel', (e) => {
       e.preventDefault();
       if (scrollCooldown) return;
-      scrollCooldown = true;
-      setTimeout(() => scrollCooldown = false, 600);
-      if (e.deltaY > 0) nextShort();
-      else prevShort();
+      
+      // Scroll miktarını biriktir
+      scrollAccumulator += Math.abs(e.deltaY);
+      
+      // Eşik değerine ulaşınca video değiştir
+      if (scrollAccumulator >= SCROLL_THRESHOLD) {
+        scrollCooldown = true;
+        scrollAccumulator = 0;
+        setTimeout(() => scrollCooldown = false, COOLDOWN_TIME);
+        
+        if (e.deltaY > 0) nextShort();
+        else prevShort();
+      }
+      
+      // Accumulator'ı sıfırla (500ms içinde yeterli scroll yoksa)
+      setTimeout(() => { scrollAccumulator = 0; }, 500);
     }, { passive: false });
 
     // Touch swipe (mobil)
