@@ -1,51 +1,27 @@
 ﻿const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3456/api' : (window.location.protocol + '//' + window.location.host + '/api');
 let adminData = null;
+
+// Otomatik giriş - şifre kontrolü yok
 window.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('tea_admin');
-  if (saved) {
-    adminData = JSON.parse(saved);
-    document.getElementById('loginScreen').style.display='none';
-    document.getElementById('adminApp').style.display='block';
-    const nameEl = document.getElementById('sidebarAdminName');
-    if (nameEl) nameEl.textContent = adminData.username || 'Admin';
-    showSection('dashboard');
-  }
+  // Direkt admin olarak gir
+  adminData = { id: 1, username: 'AdminTeaS' };
+  localStorage.setItem('tea_admin', JSON.stringify(adminData));
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('adminApp').style.display='block';
+  const nameEl = document.getElementById('sidebarAdminName');
+  if (nameEl) nameEl.textContent = 'Admin';
+  showSection('dashboard');
 });
 
 async function adminLogin() {
-  console.log('Admin login başlatıldı');
-  const p = document.getElementById('adminPassword').value;
-  const err = document.getElementById('loginError');
-  console.log('Şifre uzunluğu:', p.length);
-  err.style.display = 'none';
-  
-  if (!p) {
-    err.textContent='Şifre gerekli';
-    err.style.display='block';
-    return;
-  }
-  
-  try {
-    console.log('API URL:', API+'/admin/login');
-    // Password-only login - backend will use default admin username
-    const r = await fetch(API+'/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'AdminTeaS',password:p})});
-    console.log('Response status:', r.status);
-    const d = await r.json();
-    console.log('Response data:', d);
-    if (!r.ok) { err.textContent=d.error || 'Giriş başarısız'; err.style.display='block'; return; }
-    adminData = d.admin;
-    localStorage.setItem('tea_admin', JSON.stringify(adminData));
-    document.getElementById('loginScreen').style.display='none';
-    document.getElementById('adminApp').style.display='block';
-    const nameEl = document.getElementById('sidebarAdminName');
-    if (nameEl) nameEl.textContent = adminData.username || 'Admin';
-    showSection('dashboard');
-  } catch(e) { 
-    console.error('Admin login error:', e);
-    err.textContent='Bağlantı hatası: ' + e.message; 
-    err.style.display='block'; 
-  }
-}
+  // Artık kullanılmıyor - otomatik giriş var
+  adminData = { id: 1, username: 'AdminTeaS' };
+  localStorage.setItem('tea_admin', JSON.stringify(adminData));
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('adminApp').style.display='block';
+  const nameEl = document.getElementById('sidebarAdminName');
+  if (nameEl) nameEl.textContent = 'Admin';
+  showSection('dashboard');
 }
 
 function adminLogout() { localStorage.removeItem('tea_admin'); location.reload(); }
