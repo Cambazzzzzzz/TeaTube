@@ -3,14 +3,22 @@ let adminData = null;
 
 // Otomatik giriş - şifre kontrolü yok
 window.addEventListener('DOMContentLoaded', () => {
+  console.log('Admin panel yükleniyor...');
   // Direkt admin olarak gir
   adminData = { id: 1, username: 'AdminTeaS' };
   localStorage.setItem('tea_admin', JSON.stringify(adminData));
-  document.getElementById('loginScreen').style.display='none';
-  document.getElementById('adminApp').style.display='block';
+  
+  const loginScreen = document.getElementById('loginScreen');
+  const adminApp = document.getElementById('adminApp');
+  
+  if (loginScreen) loginScreen.style.display = 'none';
+  if (adminApp) adminApp.style.display = 'block';
+  
   const nameEl = document.getElementById('sidebarAdminName');
   if (nameEl) nameEl.textContent = 'Admin';
-  showSection('dashboard');
+  
+  console.log('Dashboard yükleniyor...');
+  setTimeout(() => showSection('dashboard'), 100);
 });
 
 async function adminLogin() {

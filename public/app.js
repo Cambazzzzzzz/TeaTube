@@ -4049,6 +4049,12 @@ async function search() {
   const query = document.getElementById('searchInput').value.trim();
   
   if (!query) {
+    showToast('Arama yapmak için bir şeyler yaz', 'error');
+    return;
+  }
+
+  if (!currentUser || !currentUser.id) {
+    showToast('Arama yapmak için giriş yapmalısın', 'error');
     return;
   }
 
@@ -4062,9 +4068,14 @@ async function search() {
       <div id="searchResults" class="video-grid"></div>
     `;
 
-    displayVideos(videos, 'searchResults');
+    if (videos.length === 0) {
+      document.getElementById('searchResults').innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:40px 0;text-align:center;">Sonuç bulunamadı</p>';
+    } else {
+      displayVideos(videos, 'searchResults');
+    }
   } catch (error) {
     console.error('Arama hatası:', error);
+    showToast('Arama yapılırken hata oluştu', 'error');
   }
 }
 
