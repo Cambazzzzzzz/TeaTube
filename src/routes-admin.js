@@ -1275,3 +1275,33 @@ router.put('/admin/music/song/:songId/detail', (req, res) => {
     res.status(500).json({ error: 'Sarki duzenlenemedi: ' + e.message });
   }
 });
+
+// Admin giriş (sadece şifre ile)
+router.post('/admin/login-password', async (req, res) => {
+  try {
+    const { password } = req.body;
+    
+    if (!password) {
+      return res.status(400).json({ error: 'Şifre gerekli' });
+    }
+    
+    // AdminTeaS kullanıcısını al
+    const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get('AdminTeaS');
+    if (!admin) {
+      return res.status(401).json({ error: 'Admin bulunamadı' });
+    }
+    
+    // Şifreyi kontrol et
+    const valid = await bcrypt.compare(password, admin.password);
+    if (!valid) {
+      return res.status(401).json({ error: 'Hatalı şifre' });
+    }
+    
+    // Başarılı giriş
+    const { password: _, ...adminData } = admin;
+    res.json({ success: true, admin: adminData });
+  } catch(e) {
+    console.error('Admin login error:', e);
+    res.status(500).json({ error: 'Giriş hatası' });
+  }
+});
