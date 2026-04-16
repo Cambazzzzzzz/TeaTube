@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TeaTube - Basit Giriş</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f0f0f;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      background: #1a1a1a;
+      padding: 40px;
+      border-radius: 12px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    h1 { color: #ff0033; margin-bottom: 10px; text-align: center; }
+    p { text-align: center; color: #888; margin-bottom: 30px; font-size: 14px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; font-size: 14px; color: #ccc; }
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #0f0f0f;
+      color: white;
+      font-size: 14px;
+    }
+    input:focus { outline: none; border-color: #ff0033; }
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      border: none;
+      background: #ff0033;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover { background: #cc0029; }
+    button:disabled { background: #666; cursor: not-allowed; }
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      background: #0f0f0f;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .tab.active { background: #ff0033; }
+    .form { display: none; }
+    .form.active { display: block; }
+    #message {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      display: none;
+      font-size: 14px;
+    }
+    #message.success { background: #1a4d1a; display: block; }
+    #message.error { background: #4d1a1a; display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔥 TeaTube</h1>
+    <p>Video Paylaşım Platformu</p>
+    
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('login')">Giriş Yap</div>
+      <div class="tab" onclick="showTab('register')">Kayıt Ol</div>
+    </div>
+    
+    <!-- GİRİŞ FORMU -->
+    <div id="loginForm" class="form active">
+      <div class="form-group">
+        <label>Kullanıcı Adı</label>
+        <input type="text" id="loginUsername" value="testuser">
+      </div>
+      <div class="form-group">
+        <label>Şifre</label>
+        <input type="password" id="loginPassword" value="test123">
+      </div>
+      <button onclick="doLogin()">Giriş Yap</button>
+    </div>
+    
+    <!-- KAYIT FORMU -->
+    <div id="registerForm" class="form">
+      <div class="form-group">
+        <label>Kullanıcı Adı</label>
+        <input type="text" id="regUsername">
+      </div>
+      <div class="form-group">
+        <label>Takma Ad</label>
+        <input type="text" id="regNickname">
+      </div>
+      <div class="form-group">
+        <label>Şifre</label>
+        <input type="password" id="regPassword">
+      </div>
+      <div class="form-group">
+        <label>Doğum Tarihi</label>
+        <input type="date" id="regBirthDate">
+      </div>
+      <button onclick="doRegister()">Kayıt Ol</button>
+    </div>
+    
+    <div id="message"></div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3456/api';
+    
+    function showTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.form').forEach(f => f.classList.remove('active'));
+      
+      if (tab === 'login') {
+        document.querySelectorAll('.tab')[0].classList.add('active');
+        document.getElementById('loginForm').classList.add('active');
+      } else {
+        document.querySelectorAll('.tab')[1].classList.add('active');
+        document.getElementById('registerForm').classList.add('active');
+      }
+      
+      document.getElementById('message').style.display = 'none';
+    }
+    
+    function showMessage(text, type) {
+      const msg = document.getElementById('message');
+      msg.textContent = text;
+      msg.className = type;
+    }
+    
+    async function doLogin() {
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      
+      if (!username || !password) {
+        showMessage('Kullanıcı adı ve şifre gerekli!', 'error');
+        return;
+      }
+      
+      try {
+        showMessage('Giriş yapılıyor...', 'success');
+        
+        const response = await fetch(`${API_URL}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          showMessage('✅ Giriş başarılı! Yönlendiriliyorsunuz...', 'success');
+          localStorage.setItem('Tea_user', JSON.stringify(data.user));
+          setTimeout(() => window.location.href = '/', 1000);
+        } else {
+          showMessage('❌ ' + (data.error || 'Giriş başarısız'), 'error');
+        }
+      } catch (error) {
+        showMessage('❌ Bağlantı hatası: ' + error.message, 'error');
+      }
+    }
+    
+    async function doRegister() {
+      const username = document.getElementById('regUsername').value.trim();
+      const nickname = document.getElementById('regNickname').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const birthDate = document.getElementById('regBirthDate').value;
+      
+      if (!username || !nickname || !password || !birthDate) {
+        showMessage('Tüm alanları doldurun!', 'error');
+        return;
+      }
+      
+      // Yaş kontrolü
+      const birth = new Date(birthDate);
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      const m = today.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+      
+      if (age < 15) {
+        showMessage('15 yaş ve üstü olmalısınız!', 'error');
+        return;
+      }
+      
+      try {
+        showMessage('Kayıt yapılıyor...', 'success');
+        
+        const formData = new FormData();
+        formData.append('username', username);
+        formData.append('nickname', nickname);
+        formData.append('password', password);
+        formData.append('birth_date', birthDate);
+        
+        const response = await fetch(`${API_URL}/register`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          showMessage('✅ Kayıt başarılı! Giriş yapabilirsiniz.', 'success');
+          setTimeout(() => showTab('login'), 2000);
+        } else {
+          showMessage('❌ ' + (data.error || 'Kayıt başarısız'), 'error');
+        }
+      } catch (error) {
+        showMessage('❌ Bağlantı hatası: ' + error.message, 'error');
+      }
+    }
+    
+    // Enter tuşu ile giriş
+    document.getElementById('loginPassword').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') doLogin();
+    });
+  </script>
+</body>
+</html>
