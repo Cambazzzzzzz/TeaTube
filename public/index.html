@@ -239,6 +239,10 @@
           <i class="fas fa-comment-dots"></i>
           <span>Mesajlar</span>
         </div>
+        <div class="guide-item" onclick="window.location.href='/dc'" style="background:linear-gradient(135deg,#5865f2,#7289da);color:#fff;font-weight:700;">
+          <div style="font-size:18px;font-weight:900;">DC</div>
+          <span>DemlikChat</span>
+        </div>
         <div class="guide-item" onclick="showPage('groups')" data-page="groups">
           <i class="fas fa-users"></i>
           <span>Gruplar</span>
@@ -287,6 +291,10 @@
       <button class="mbb-btn" onclick="showPage('messages')" id="mbb-messages" style="position:relative;">
         <i class="fas fa-paper-plane"></i>
         <span id="mobileNavMsgBadge" class="badge" style="display:none;position:absolute;top:4px;right:4px;"></span>
+      </button>
+      <!-- DC (DemlikChat) -->
+      <button class="mbb-btn" onclick="window.location.href='/dc'" id="mbb-dc" style="position:relative;">
+        <div style="font-weight:900;font-size:14px;color:#5865f2;">DC</div>
       </button>
       <!-- Arama -->
       <button class="mbb-btn" onclick="toggleMobileSearch()" id="mbb-search">
