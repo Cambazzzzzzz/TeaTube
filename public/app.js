@@ -69,16 +69,6 @@ function showMobileUploadMenu() {
   sheet.innerHTML = `
     <div style="width:100%; background:var(--yt-spec-raised-background); border-radius:20px 20px 0 0; padding:20px 16px 32px;">
       <div style="width:40px; height:4px; background:rgba(255,255,255,0.2); border-radius:2px; margin:0 auto 20px;"></div>
-      <button onclick="event.stopPropagation(); document.getElementById('mobileUploadSheet').remove(); setTimeout(showTextPostModal, 100);"
-        style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
-        <div style="width:44px; height:44px; background:rgba(29,155,240,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
-          <i class="fas fa-pen" style="color:#1d9bf0; font-size:18px;"></i>
-        </div>
-        <div style="text-align:left;">
-          <p style="font-weight:600; margin-bottom:2px;">Metin Paylaş</p>
-          <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Düşüncelerini paylaş</p>
-        </div>
-      </button>
       <button onclick="event.stopPropagation(); document.getElementById('mobileUploadSheet').remove(); setTimeout(() => { showUploadVideoModal(); setTimeout(() => switchUploadType('reals'), 50); }, 100);"
         style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
         <div style="width:44px; height:44px; background:rgba(255,0,51,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
@@ -1070,15 +1060,12 @@ function loadMessagesPage() {
   const pageContent = document.getElementById('pageContent');
   pageContent.innerHTML = `<div class="yt-loading"><div class="yt-spinner"></div></div>`;
 
-  if (!window.firebaseDB) {
-    document.addEventListener('firebaseReady', () => loadMessagesPage(), { once: true });
-    return;
-  }
-
-  Promise.all([
-    fetch(`${API_URL}/friends/${currentUser.id}`).then(r => r.json()).catch(() => []),
-    fetch(`${API_URL}/groups/user/${currentUser.id}`).then(r => r.json()).catch(() => [])
-  ]).then(([friends, groups]) => {
+  // Firebase bekleme - max 3 saniye, sonra devam et
+  const loadWithOrWithoutFirebase = () => {
+    Promise.all([
+      fetch(`${API_URL}/friends/${currentUser.id}`).then(r => r.json()).catch(() => []),
+      fetch(`${API_URL}/groups/user/${currentUser.id}`).then(r => r.json()).catch(() => [])
+    ]).then(([friends, groups]) => {
       const isMobile = window.innerWidth <= 768;
 
       if (isMobile) {
@@ -1215,6 +1202,23 @@ function loadMessagesPage() {
         listenFriendPresence(f.friend_id);
       });
     });
+  }; // loadWithOrWithoutFirebase sonu
+
+  if (window.firebaseDB) {
+    loadWithOrWithoutFirebase();
+  } else {
+    // Firebase olmadan hemen yükle, arka planda Firebase gelince listener'ları başlat
+    loadWithOrWithoutFirebase();
+    document.addEventListener('firebaseReady', () => {
+      // Sadece listener'ları başlat, sayfayı yeniden render etme
+      fetch(`${API_URL}/friends/${currentUser.id}`).then(r => r.json()).catch(() => []).then(friends => {
+        friends.forEach(f => {
+          listenLastMessage(f.friend_id, f.nickname);
+          listenFriendPresence(f.friend_id);
+        });
+      });
+    }, { once: true });
+  }
 }
 
 // Mesajlar sekme geçişi
@@ -2506,10 +2510,10 @@ function renderShortsPlayer() {
     container.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
     container.addEventListener('touchend', e => {
       const diff = touchStartY - e.changedTouches[0].clientY;
-      if (Math.abs(diff) > 100) { // 60'dan 100'e çıkardık - daha az hassas
-        if (scrollCooldown) return; // Cooldown kontrolü ekledik
+      if (Math.abs(diff) > 60) {
+        if (scrollCooldown) return;
         scrollCooldown = true;
-        setTimeout(() => scrollCooldown = false, COOLDOWN_TIME);
+        setTimeout(() => scrollCooldown = false, 400);
         if (diff > 0) nextShort(); else prevShort(); 
       }
     }, { passive: true });
@@ -2733,10 +2737,10 @@ function nextShort() {
   if (currentShortIndex < shortsVideos.length - 1) {
     const container = document.getElementById('shortsContainer');
     if (container) {
-      container.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.2s';
-      container.style.transform = 'translateY(-60px)';
+      container.style.transition = 'transform 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.18s';
+      container.style.transform = 'translateY(-80px)';
       container.style.opacity = '0';
-      setTimeout(() => { currentShortIndex++; renderShortsPlayer(); }, 200);
+      setTimeout(() => { currentShortIndex++; renderShortsPlayer(); }, 180);
     } else {
       currentShortIndex++; renderShortsPlayer();
     }
@@ -2746,10 +2750,10 @@ function prevShort() {
   if (currentShortIndex > 0) {
     const container = document.getElementById('shortsContainer');
     if (container) {
-      container.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.2s';
-      container.style.transform = 'translateY(60px)';
+      container.style.transition = 'transform 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.18s';
+      container.style.transform = 'translateY(80px)';
       container.style.opacity = '0';
-      setTimeout(() => { currentShortIndex--; renderShortsPlayer(); }, 200);
+      setTimeout(() => { currentShortIndex--; renderShortsPlayer(); }, 180);
     } else {
       currentShortIndex--; renderShortsPlayer();
     }
@@ -2812,7 +2816,7 @@ async function checkShortLikeStatus(videoId) {
     if (!v || !v.channel_id) return;
     // Kendi kanalı ise takip butonu gösterme
     if (v.channel_owner_id === currentUser.id) return;
-    const subRes = await fetch(`${API_URL}/is-subscribed/${v.channel_id}/${currentUser.id}`);
+    const subRes = await fetch(`${API_URL}/is-subscribed/${currentUser.id}/${v.channel_id}`);
     const subData = await subRes.json();
     const followBtn = document.getElementById('shortFollowBtn');
     if (followBtn) {
@@ -4258,11 +4262,16 @@ async function search() {
     return;
   }
 
+  // Önce home sayfasına geç ki pageContent görünür olsun
+  showPage('home');
+
+  const pageContent = document.getElementById('pageContent');
+  pageContent.innerHTML = `<div class="yt-loading"><div class="yt-spinner"></div></div>`;
+
   try {
     const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}&userId=${currentUser.id}`);
     const videos = await response.json();
 
-    const pageContent = document.getElementById('pageContent');
     pageContent.innerHTML = `
       <h2 class="section-header">Arama Sonuçları: "${query}"</h2>
       <div id="searchResults" class="video-grid"></div>

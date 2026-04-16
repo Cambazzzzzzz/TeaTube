@@ -1331,25 +1331,36 @@ router.post('/comment', (req, res) => {
 router.get('/comments/:videoId', (req, res) => {
   try {
     const { userId } = req.query;
+    
+    // Önce comments tablosunun sütunlarını kontrol et
+    let hasPinned = false, hasHidden = false, hasLikedByOwner = false;
+    try {
+      const cols = db.prepare("PRAGMA table_info(comments)").all();
+      const colNames = cols.map(c => c.name);
+      hasPinned = colNames.includes('is_pinned');
+      hasHidden = colNames.includes('is_hidden');
+      hasLikedByOwner = colNames.includes('liked_by_owner');
+    } catch(e) {}
+
     const comments = db.prepare(`
       SELECT c.*, u.nickname, u.profile_photo,
              (SELECT COUNT(*) FROM comments r WHERE r.parent_id = c.id) as reply_count,
              (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = 1) as likes,
              (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = -1) as dislikes,
              (SELECT like_type FROM comment_likes WHERE comment_id = c.id AND user_id = ?) as user_like,
-             COALESCE(c.is_pinned, 0) as is_pinned,
-             COALESCE(c.is_hidden, 0) as is_hidden,
-             COALESCE(c.liked_by_owner, 0) as liked_by_owner
+             ${hasPinned ? 'COALESCE(c.is_pinned, 0)' : '0'} as is_pinned,
+             ${hasHidden ? 'COALESCE(c.is_hidden, 0)' : '0'} as is_hidden,
+             ${hasLikedByOwner ? 'COALESCE(c.liked_by_owner, 0)' : '0'} as liked_by_owner
       FROM comments c
       JOIN users u ON c.user_id = u.id
       WHERE c.video_id = ? AND c.parent_id IS NULL
-      ORDER BY c.is_pinned DESC, c.created_at DESC
+      ORDER BY ${hasPinned ? 'c.is_pinned DESC,' : ''} c.created_at DESC
     `).all(userId || 0, req.params.videoId);
 
     res.json(comments);
   } catch (error) {
-    console.error('Yorumlar hatasÄ±:', error);
-    res.status(500).json({ error: 'Yorumlar alÄ±namadÄ±', details: error.message });
+    console.error('Yorumlar hatası:', error);
+    res.status(500).json({ error: 'Yorumlar alınamadı', details: error.message });
   }
 });
 
