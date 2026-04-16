@@ -347,6 +347,22 @@
   <script src="app.js"></script>
   <script src="song-writing.js"></script>
   <script>
+    // HATA KONTROLÜ
+    window.addEventListener('error', function(e) {
+      console.error('🔥 JAVASCRIPT HATASI:', e.message, e.filename, e.lineno);
+      alert('JavaScript Hatası: ' + e.message);
+    });
+    
+    // APP.JS YÜKLEME KONTROLÜ
+    setTimeout(() => {
+      if (typeof login === 'undefined') {
+        console.error('❌ app.js yüklenmedi! login fonksiyonu bulunamadı');
+        alert('HATA: app.js yüklenmedi! Sayfayı yenileyin.');
+      } else {
+        console.log('✅ app.js başarıyla yüklendi');
+      }
+    }, 1000);
+  </script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }

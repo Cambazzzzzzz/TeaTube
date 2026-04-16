@@ -2408,7 +2408,6 @@ function renderShortsPlayer() {
         if (diff > 0) nextShort(); else prevShort(); 
       }
     }, { passive: true });
-    }, { passive: true });
 
     // Giriş animasyonu
     container.style.opacity = '0';
