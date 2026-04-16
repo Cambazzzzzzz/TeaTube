@@ -470,13 +470,7 @@ async function login() {
 async function loadUserData() {
   try {
     console.log('loadUserData başladı...');
-    // Kullanıcı bilgilerini güncelle
-    const userResponse = await fetch(`${API_URL}/user/${currentUser.id}`);
-    const userData = await userResponse.json();
-    currentUser = { ...currentUser, ...userData };
-    localStorage.setItem('Tea_user', JSON.stringify(currentUser));
-    console.log('Kullanıcı bilgileri güncellendi');
-
+    
     // Temayı uygula
     document.body.setAttribute('data-theme', currentUser.theme || 'dark');
     applyTheme(currentUser.theme || 'dark');
@@ -490,90 +484,70 @@ async function loadUserData() {
     }
     console.log('Profil fotoğrafı ayarlandı');
 
-    // Kanalı kontrol et - yoksa otomatik oluştur
-    console.log('Kanal kontrol ediliyor...');
-    const channelResponse = await fetch(`${API_URL}/channel/user/${currentUser.id}`);
-    currentChannel = await channelResponse.json();
-    console.log('Kanal bilgisi alındı:', currentChannel ? 'var' : 'yok');
-
-    // Kanal yoksa otomatik oluştur (kullanıcı adıyla)
-    if (!currentChannel) {
-      console.log('Kanal oluşturuluyor...');
-      const formData = new FormData();
-      formData.append('userId', currentUser.id);
-      formData.append('channelName', currentUser.nickname || currentUser.username);
-      formData.append('about', '');
-      formData.append('agreed', 'true');
-      const createRes = await fetch(`${API_URL}/channel`, { method: 'POST', body: formData });
-      if (createRes.ok) {
-        const chRes = await fetch(`${API_URL}/channel/user/${currentUser.id}`);
-        currentChannel = await chRes.json();
-        console.log('Kanal oluşturuldu');
-      }
-    }
-
-    // Bildirimleri yükle (geçici olarak devre dışı)
-    console.log('Bildirimler yükleniyor...');
-    try {
-      loadNotifications();
-      console.log('Bildirimler yüklendi');
-    } catch (e) {
-      console.error('Bildirim yükleme hatası:', e);
-    }
-
-    // Grup okunmamış mesajlarını dinle (geçici olarak devre dışı)
-    console.log('Grup mesajları kontrol ediliyor...');
-    try {
-      fetch(`${API_URL}/groups/user/${currentUser.id}`)
-        .then(r => r.json())
-        .then(groups => { 
-          console.log('Gruplar alındı:', groups.length);
-          if (groups.length > 0) watchGroupUnreadBadges(groups.map(g => g.id)); 
-        })
-        .catch((e) => console.error('Grup mesaj hatası:', e));
-    } catch (e) {
-      console.error('Grup kontrol hatası:', e);
-    }
-
-    // Duyuruları yükle (geçici olarak devre dışı)
-    console.log('Duyurular yükleniyor...');
-    try {
-      loadActiveAnnouncements();
-      console.log('Duyurular yüklendi');
-    } catch (e) {
-      console.error('Duyuru yükleme hatası:', e);
-    }
-
-    // Online durumunu ayarla (geçici olarak devre dışı)
-    console.log('Online durumu ayarlanıyor...');
-    try {
-      initOnlinePresence();
-      console.log('Online durumu ayarlandı');
-    } catch (e) {
-      console.error('Online durumu hatası:', e);
-    }
-
-    // Ana ekranı göster
+    // Ana ekranı göster - DİREKT GÖSTER
     console.log('Ana ekran gösteriliyor...');
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     showPage('home');
     updateMobileProfilePhoto();
-    console.log('Ana ekran gösterildi');
+    console.log('Ana ekran gösterildi - GİRİŞ TAMAMLANDI!');
 
-    // Artist mi kontrol et - Şarkılarım menüsünü göster/gizle
-    console.log('Artist durumu kontrol ediliyor...');
-    fetch(`${API_URL}/music/artist-status/${currentUser.id}`)
-      .then(r => r.json())
-      .then(s => {
-        const mySongsItem = document.getElementById('mySongsMenuItem');
-        if (mySongsItem) mySongsItem.style.display = s.isArtist ? 'flex' : 'none';
-        console.log('Artist durumu:', s.isArtist ? 'artist' : 'normal');
-      }).catch(() => {});
+    // Diğer işlemleri arka planda yap
+    setTimeout(async () => {
+      try {
+        // Kullanıcı bilgilerini güncelle
+        const userResponse = await fetch(`${API_URL}/user/${currentUser.id}`);
+        const userData = await userResponse.json();
+        currentUser = { ...currentUser, ...userData };
+        localStorage.setItem('Tea_user', JSON.stringify(currentUser));
+        console.log('Kullanıcı bilgileri güncellendi (arka plan)');
+
+        // Kanalı kontrol et
+        const channelResponse = await fetch(`${API_URL}/channel/user/${currentUser.id}`);
+        currentChannel = await channelResponse.json();
+        
+        if (!currentChannel) {
+          const formData = new FormData();
+          formData.append('userId', currentUser.id);
+          formData.append('channelName', currentUser.nickname || currentUser.username);
+          formData.append('about', '');
+          formData.append('agreed', 'true');
+          const createRes = await fetch(`${API_URL}/channel`, { method: 'POST', body: formData });
+          if (createRes.ok) {
+            const chRes = await fetch(`${API_URL}/channel/user/${currentUser.id}`);
+            currentChannel = await chRes.json();
+          }
+        }
+        
+        // Diğer işlemler
+        loadNotifications().catch(() => {});
+        loadActiveAnnouncements().catch(() => {});
+        
+        fetch(`${API_URL}/groups/user/${currentUser.id}`)
+          .then(r => r.json())
+          .then(groups => { if (groups.length > 0) watchGroupUnreadBadges(groups.map(g => g.id)); })
+          .catch(() => {});
+          
+        fetch(`${API_URL}/music/artist-status/${currentUser.id}`)
+          .then(r => r.json())
+          .then(s => {
+            const mySongsItem = document.getElementById('mySongsMenuItem');
+            if (mySongsItem) mySongsItem.style.display = s.isArtist ? 'flex' : 'none';
+          }).catch(() => {});
+          
+        initOnlinePresence();
+        
+      } catch (e) {
+        console.error('Arka plan işlem hatası:', e);
+      }
+    }, 100);
       
-    console.log('loadUserData tamamlandı!');
   } catch (error) {
     console.error('Kullanıcı verisi yükleme hatası:', error);
+    // Hata olsa bile ana ekranı göster
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    showPage('home');
   }
 }
 
