@@ -159,7 +159,7 @@ router.post('/login', async (req, res) => {
     } else {
       const block = checkIPBlock(ip);
       if (block) {
-        return res.status(403).json({ error: '24 saat sonra tekrar dene!', blockedUntil: block.blocked_until });
+        return res.status(403).json({ error: 'Çok fazla başarısız deneme! Lütfen 1 saat sonra tekrar dene.', blockedUntil: block.blocked_until });
       }
     }
 
@@ -184,12 +184,14 @@ router.post('/login', async (req, res) => {
         `SELECT COUNT(*) as count FROM login_attempts WHERE ip_address = ? AND success = 0 AND attempted_at > datetime('now', '-1 hour')`
       ).get(ip);
 
-      if (failedAttempts.count >= 3) {
-        addIPBlock(ip);
-        return res.status(403).json({ error: '24 saat sonra tekrar dene!' });
+      // 10 yanlış denemeden sonra 1 saat ban (daha yumuşak)
+      if (failedAttempts.count >= 10) {
+        // 1 saatlik ban
+        db.prepare('INSERT OR REPLACE INTO ip_blocks (ip_address, blocked_until, reason) VALUES (?, datetime("now", "+1 hour"), ?)').run(ip, 'Çok fazla başarısız giriş denemesi');
+        return res.status(403).json({ error: '1 saat sonra tekrar dene!' });
       }
 
-      return res.status(401).json({ error: 'KullanÄ±cÄ± adÄ± veya ÅŸifre hatalÄ±', attemptsLeft: 3 - failedAttempts.count });
+      return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı', attemptsLeft: 10 - failedAttempts.count });
     }
 
     db.prepare('INSERT INTO login_attempts (username, ip_address, attempted_password, success, attempted_at) VALUES (?, ?, ?, 1, ?)')
