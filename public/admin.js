@@ -1,14 +1,25 @@
 ﻿const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3456/api' : (window.location.protocol + '//' + window.location.host + '/api');
 let adminData = null;
 
-// Admin panel giriş sistemi - otomatik giriş
+// Admin panel giriş sistemi - basit versiyon
 window.addEventListener('DOMContentLoaded', () => {
   console.log('Admin panel yükleniyor...');
   
-  // Otomatik giriş yap (şifresiz)
-  adminData = { id: 1, username: 'AdminTeaS' };
-  console.log('Otomatik giriş yapılıyor:', adminData.username);
-  showAdminPanel();
+  // Eğer localStorage'da admin bilgisi varsa otomatik giriş yap
+  const savedAdmin = localStorage.getItem('tea_admin');
+  if (savedAdmin) {
+    try {
+      adminData = JSON.parse(savedAdmin);
+      console.log('Otomatik giriş yapılıyor:', adminData.username);
+      showAdminPanel();
+      return;
+    } catch(e) {
+      console.error('Otomatik giriş hatası:', e);
+      localStorage.removeItem('tea_admin');
+    }
+  }
+  
+  console.log('Şifre girişi bekleniyor...');
 });
 
 function showAdminPanel() {
@@ -125,19 +136,9 @@ async function loadDashboard() {
   const c = document.getElementById('mainContent');
   document.getElementById('topbarTitle').textContent = 'Dashboard';
   c.innerHTML = '<p style="color:#666">Yukleniyor...</p>';
-  
-  console.log('Dashboard yükleniyor, API URL:', API + '/admin/stats');
-  
   try {
     const r = await fetch(API+'/admin/stats');
-    console.log('API yanıtı:', r.status, r.statusText);
-    
-    if (!r.ok) {
-      throw new Error(`HTTP ${r.status}: ${r.statusText}`);
-    }
-    
     const s = await r.json();
-    console.log('Dashboard verileri:', s);
     
     // Pending badge guncelle
     const pb = document.getElementById('pendingBadge');
@@ -165,12 +166,7 @@ async function loadDashboard() {
             <div class="lbl">${card.lbl}</div>
           </div>`).join('')}
       </div>`;
-      
-    console.log('Dashboard başarıyla yüklendi');
-  } catch(e) { 
-    console.error('Dashboard yükleme hatası:', e);
-    c.innerHTML=`<p style="color:#ff4466">Hata: ${e.message}</p><p style="color:#666">API URL: ${API}/admin/stats</p>`; 
-  }
+  } catch(e) { c.innerHTML='<p style="color:#666">Baglanti hatasi</p>'; }
 }
 
 // ─── USERS ────────────────────────────────────────────────────────────────────
