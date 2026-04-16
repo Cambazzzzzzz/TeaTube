@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TeaTube - Admin Girişi</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      background: rgba(26, 26, 26, 0.95);
+      padding: 50px 40px;
+      border-radius: 16px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(255, 0, 51, 0.2);
+      border: 1px solid rgba(255, 0, 51, 0.1);
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .logo i {
+      font-size: 48px;
+      color: #ff0033;
+      margin-bottom: 16px;
+    }
+    h1 {
+      color: #ff0033;
+      margin-bottom: 8px;
+      text-align: center;
+      font-size: 28px;
+      font-weight: 700;
+    }
+    p {
+      text-align: center;
+      color: #888;
+      margin-bottom: 40px;
+      font-size: 14px;
+    }
+    .form-group {
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #ccc;
+      font-weight: 500;
+    }
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 2px solid #333;
+      background: #0f0f0f;
+      color: white;
+      font-size: 15px;
+      transition: all 0.3s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #ff0033;
+      box-shadow: 0 0 0 3px rgba(255, 0, 51, 0.1);
+    }
+    button {
+      width: 100%;
+      padding: 16px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, #ff0033 0%, #cc0029 100%);
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 0, 51, 0.4);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+      transform: none;
+    }
+    #message {
+      margin-top: 20px;
+      padding: 14px;
+      border-radius: 10px;
+      display: none;
+      font-size: 14px;
+      text-align: center;
+      font-weight: 500;
+    }
+    #message.success {
+      background: rgba(26, 77, 26, 0.8);
+      border: 1px solid #1a4d1a;
+      display: block;
+    }
+    #message.error {
+      background: rgba(77, 26, 26, 0.8);
+      border: 1px solid #4d1a1a;
+      display: block;
+    }
+    .back-link {
+      text-align: center;
+      margin-top: 24px;
+    }
+    .back-link a {
+      color: #888;
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.3s;
+    }
+    .back-link a:hover {
+      color: #ff0033;
+    }
+  </style>
+  <link rel="stylesheet" href="fa/css/all.min.css">
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <i class="fas fa-shield-alt"></i>
+    </div>
+    <h1>Admin Paneli</h1>
+    <p>Yönetici Girişi</p>
+    
+    <div class="form-group">
+      <label>Admin Şifresi</label>
+      <input type="password" id="adminPassword" placeholder="Şifrenizi girin" autofocus>
+    </div>
+    
+    <button onclick="checkPassword()">Giriş Yap</button>
+    
+    <div id="message"></div>
+    
+    <div class="back-link">
+      <a href="/">← Ana Sayfaya Dön</a>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_PASSWORD = 'bcics316';
+    
+    function showMessage(text, type) {
+      const msg = document.getElementById('message');
+      msg.textContent = text;
+      msg.className = type;
+    }
+    
+    function checkPassword() {
+      const password = document.getElementById('adminPassword').value;
+      
+      if (!password) {
+        showMessage('Lütfen şifre girin!', 'error');
+        return;
+      }
+      
+      if (password === ADMIN_PASSWORD) {
+        showMessage('✅ Giriş başarılı! Yönlendiriliyorsunuz...', 'success');
+        setTimeout(() => {
+          window.location.href = '/bcics.html';
+        }, 1000);
+      } else {
+        showMessage('❌ Yanlış şifre!', 'error');
+        document.getElementById('adminPassword').value = '';
+        document.getElementById('adminPassword').focus();
+      }
+    }
+    
+    // Enter tuşu ile giriş
+    document.getElementById('adminPassword').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') checkPassword();
+    });
+  </script>
+</body>
+</html>

@@ -46,6 +46,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Admin giriş sayfası
+app.get('/administans', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'administans.html'));
+});
+
 // Admin paneli
 app.get('/bcics', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'bcics.html'));
