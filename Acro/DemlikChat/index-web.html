@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>DemlikChat — Modern Dark Theme</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {margin: 0;padding: 0;box-sizing: border-box;user-select: none;}
+    :root {
+      --bg-primary: #0a0c10;--bg-secondary: #111214;--bg-tertiary: #1a1d24;--bg-hover: #252a33;--bg-elevated: #1e2128;
+      --border-subtle: #2c303a;--accent-primary: #5865f2;--accent-secondary: #4752c4;--accent-glow: #7289da;
+      --text-normal: #eef2ff;--text-muted: #9aa4bf;--text-link: #7d8bff;
+      --success: #23a55a;--danger: #f23f42;--warning: #faa81a;
+      --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.4);--shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+      --transition-fast: 0.15s ease;
+    }
+    body {background: var(--bg-primary);font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;color: var(--text-normal);height: 100vh;overflow: hidden;padding-top: 0;}
+    .web-banner {background: linear-gradient(135deg, #5865f2, #4752c4);backdrop-filter: blur(8px);color: white;padding: 8px 20px;text-align: center;font-size: 13px;font-weight: 600;position: fixed;top: 0;left: 0;right: 0;z-index: 10000;box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);letter-spacing: 0.3px;border-bottom: 1px solid rgba(255, 255, 255, 0.15);}
+    #main-container {display: flex;height: 100vh;margin-top: 36px;width: 100%;overflow: hidden;}
+    #server-list {width: 72px;background: var(--bg-secondary);display: flex;flex-direction: column;align-items: center;padding: 12px 0;gap: 8px;overflow-y: auto;scrollbar-width: thin;border-right: 1px solid var(--border-subtle);}
+    .server-btn {width: 48px;height: 48px;border-radius: 50%;background: var(--bg-tertiary);border: none;color: var(--text-muted);font-size: 24px;display: flex;align-items: center;justify-content: center;cursor: pointer;transition: all var(--transition-fast);margin: 4px 0;}
+    .server-btn:hover {border-radius: 16px;background: var(--accent-primary);color: white;transform: scale(1.02);}
+    .server-btn.active {border-radius: 16px;background: var(--accent-primary);color: white;}
+    .server-separator {width: 32px;height: 2px;background: var(--border-subtle);margin: 8px 0;border-radius: 2px;}
+    #servers {display: flex;flex-direction: column;gap: 8px;width: 100%;align-items: center;}
+    #channel-list {width: 240px;background: var(--bg-tertiary);display: flex;flex-direction: column;justify-content: space-between;border-right: 1px solid var(--border-subtle);}
+    .server-header {padding: 16px 16px 8px 16px;display: flex;justify-content: space-between;align-items: center;font-weight: 600;border-bottom: 1px solid var(--border-subtle);cursor: pointer;}
+    .server-name {font-size: 16px;font-weight: 600;color: var(--text-normal);}
+    .server-menu-btn {background: none;border: none;color: var(--text-muted);cursor: pointer;font-size: 14px;}
+    .channels-container {flex: 1;overflow-y: auto;padding: 8px 0;}
+    .channel-category {margin-top: 16px;}
+    .category-header {padding: 4px 16px;font-size: 12px;font-weight: 600;color: var(--text-muted);letter-spacing: 0.5px;display: flex;align-items: center;gap: 6px;cursor: pointer;}
+    .category-header i {font-size: 10px;}
+    .channel-item {padding: 6px 16px 6px 32px;display: flex;align-items: center;gap: 10px;font-size: 15px;color: var(--text-muted);border-radius: 6px;margin: 2px 8px;cursor: pointer;transition: background 0.1s;}
+    .channel-item:hover {background: var(--bg-hover);color: var(--text-normal);}
+    .channel-item.active {background: var(--bg-hover);color: var(--text-normal);}
+    .channel-item i {width: 20px;font-size: 16px;}
+    .user-panel {background: var(--bg-elevated);padding: 12px 12px;display: flex;justify-content: space-between;align-items: center;border-top: 1px solid var(--border-subtle);}
+    .user-info {display: flex;gap: 8px;align-items: center;}
+    .user-avatar {width: 32px;height: 32px;background: linear-gradient(135deg, #5865f2, #7289da);border-radius: 50%;display: flex;align-items: center;justify-content: center;font-size: 16px;}
+    .user-details {line-height: 1.2;}
+    .user-name {font-weight: 600;font-size: 13px;}
+    .user-status {font-size: 11px;color: #23a55a;}
+    .user-controls {display: flex;gap: 6px;}
+    .user-control-btn {background: transparent;border: none;color: var(--text-muted);font-size: 18px;cursor: pointer;border-radius: 6px;width: 32px;height: 32px;transition: all 0.1s;}
+    .user-control-btn:hover {background: var(--bg-hover);color: white;}
+    #chat-area {flex: 1;display: flex;flex-direction: column;background: var(--bg-primary);}
+    .chat-header {padding: 12px 16px;display: flex;justify-content: space-between;align-items: center;border-bottom: 1px solid var(--border-subtle);background: var(--bg-primary);}
+    .chat-header-left {display: flex;align-items: baseline;gap: 8px;}
+    .chat-header-left i {color: var(--text-muted);}
+    .channel-name {font-weight: 700;font-size: 18px;}
+    .channel-topic {font-size: 12px;color: var(--text-muted);margin-left: 8px;}
+    .chat-header-right {display: flex;gap: 16px;align-items: center;}
+    .chat-header-btn {background: none;border: none;color: var(--text-muted);font-size: 18px;cursor: pointer;transition: color 0.1s;}
+    .chat-header-btn:hover {color: var(--text-normal);}
+    .chat-search {position: relative;}
+    .chat-search input {background: var(--bg-tertiary);border: none;border-radius: 20px;padding: 6px 28px 6px 12px;font-size: 13px;color: white;width: 140px;transition: width 0.2s;}
+    .chat-search input:focus {width: 200px;outline: none;border: 1px solid var(--accent-primary);}
+    .chat-search i {position: absolute;right: 10px;top: 8px;font-size: 12px;color: var(--text-muted);}
+    .chat-messages {flex: 1;overflow-y: auto;padding: 20px 16px;display: flex;flex-direction: column;gap: 12px;}
+    .welcome-message {text-align: center;padding: 40px 20px;background: var(--bg-elevated);border-radius: 24px;margin: 20px auto;width: 90%;max-width: 500px;}
+    .welcome-icon {font-size: 48px;background: var(--accent-primary);width: 80px;height: 80px;margin: 0 auto 20px;border-radius: 50%;display: flex;align-items: center;justify-content: center;}
+    .message-item {display: flex;gap: 12px;padding: 8px 12px;border-radius: 8px;transition: background 0.1s;}
+    .message-item:hover {background: var(--bg-tertiary);}
+    .message-avatar {width: 40px;height: 40px;background: linear-gradient(145deg, #5865f2, #2b3b8f);border-radius: 50%;display: flex;align-items: center;justify-content: center;flex-shrink: 0;}
+    .message-content {flex: 1;}
+    .message-header {display: flex;gap: 8px;align-items: baseline;}
+    .message-author {font-weight: 600;font-size: 15px;}
+    .message-time {font-size: 10px;color: var(--text-muted);}
+    .message-text {margin-top: 4px;font-size: 14px;line-height: 1.4;color: #e2e8f0;}
+    .chat-input-container {padding: 12px 16px 20px;background: var(--bg-primary);}
+    .chat-input-wrapper {background: var(--bg-tertiary);border-radius: 40px;display: flex;align-items: center;padding: 8px 12px;gap: 12px;border: 1px solid var(--border-subtle);transition: all 0.1s;}
+    .chat-input-wrapper:focus-within {border-color: var(--accent-primary);}
+    #message-input {flex: 1;background: transparent;border: none;color: white;font-size: 15px;outline: none;}
+    .chat-attach-btn, .chat-action-btn {background: none;border: none;color: var(--text-muted);font-size: 20px;cursor: pointer;transition: color 0.1s;display: flex;align-items: center;}
+    .chat-attach-btn:hover, .chat-action-btn:hover {color: var(--accent-primary);}
+    .chat-input-actions {display: flex;gap: 8px;}
+    #member-list {width: 240px;background: var(--bg-tertiary);border-left: 1px solid var(--border-subtle);padding: 16px 8px;overflow-y: auto;}
+    .member-section {margin-bottom: 24px;}
+    .member-section-title {font-size: 12px;font-weight: 600;color: var(--text-muted);margin-bottom: 8px;letter-spacing: 0.5px;}
+    .member-item {display: flex;align-items: center;gap: 12px;padding: 6px 8px;border-radius: 8px;cursor: pointer;transition: background 0.1s;}
+    .member-item:hover {background: var(--bg-hover);}
+    .member-avatar {width: 32px;height: 32px;border-radius: 50%;display: flex;align-items: center;justify-content: center;background: #2c2f36;}
+    .member-avatar.online {background: #23a55a;}
+    .member-avatar.offline {background: #4f545c;}
+    .member-name {font-size: 14px;}
+    .modal {display: none;position: fixed;top: 0;left: 0;width: 100%;height: 100%;background: rgba(0, 0, 0, 0.8);backdrop-filter: blur(8px);z-index: 20000;align-items: center;justify-content: center;}
+    .modal-content {background: var(--bg-elevated);width: 780px;max-width: 90vw;height: 520px;display: flex;border-radius: 24px;overflow: hidden;box-shadow: var(--shadow-md);border: 1px solid var(--border-subtle);position: relative;}
+    .modal-sidebar {width: 220px;background: var(--bg-tertiary);padding: 20px 12px;display: flex;flex-direction: column;gap: 4px;}
+    .modal-nav-item {padding: 8px 16px;border-radius: 12px;font-size: 14px;font-weight: 500;color: var(--text-muted);cursor: pointer;transition: all 0.1s;}
+    .modal-nav-item.active {background: var(--bg-hover);color: white;}
+    .modal-nav-separator {height: 1px;background: var(--border-subtle);margin: 8px 0;}
+    .modal-body {flex: 1;padding: 28px 32px;overflow-y: auto;}
+    .modal-body h2 {margin-bottom: 24px;font-size: 24px;}
+    .settings-section {margin-bottom: 20px;}
+    .settings-section label {display: block;margin-bottom: 8px;font-size: 13px;font-weight: 500;color: var(--text-muted);}
+    .settings-input {width: 100%;background: var(--bg-tertiary);border: 1px solid var(--border-subtle);border-radius: 12px;padding: 10px 14px;color: white;font-size: 14px;transition: 0.1s;}
+    .settings-input:focus {outline: none;border-color: var(--accent-primary);}
+    .btn-save {background: var(--accent-primary);border: none;padding: 10px 20px;border-radius: 28px;font-weight: 600;color: white;cursor: pointer;margin-top: 16px;transition: background 0.2s;}
+    .btn-save:hover {background: var(--accent-secondary);}
+    .modal-close {position: absolute;top: 18px;right: 20px;background: none;border: none;font-size: 24px;color: var(--text-muted);cursor: pointer;}
+    ::-webkit-scrollbar {width: 6px;}
+    ::-webkit-scrollbar-track {background: transparent;}
+    ::-webkit-scrollbar-thumb {background: #3c3f48;border-radius: 6px;}
+  </style>
+</head>
+<body>
+    :root {
+      /* 全新高级深色主题调色板 */
+      --bg-primary: #0a0c10;
+      --bg-secondary: #111214;
+      --bg-tertiary: #1a1d24;
+      --bg-hover: #252a33;
+      --bg-elevated: #1e2128;
+      --border-subtle: #2c303a;
+      --accent-primary: #5865f2;
+      --accent-secondary: #4752c4;
+      --accent-glow: #7289da;
+      --text-normal: #eef2ff;
+      --text-muted: #9aa4bf;
+      --text-link: #7d8bff;
+      --success: #23a55a;
+      --danger: #f23f42;
+      --warning: #faa81a;
+      --voice-bg: #1e2128;
+      --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+      --transition-fast: 0.15s ease;
+    }
+
+    body {
+      background: var(--bg-primary);
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      color: var(--text-normal);
+      height: 100vh;
+      overflow: hidden;
+      padding-top: 0;
+    }
+
+    /* Web banner — but refined */
+    .web-banner {
+      background: linear-gradient(135deg, #5865f2, #4752c4);
+      backdrop-filter: blur(8px);
+      color: white;
+      padding: 8px 20px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10000;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      letter-spacing: 0.3px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    /* Main container - grid layout (Discord tarzı) */
+    #main-container {
+      display: flex;
+      height: 100vh;
+      margin-top: 36px;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    /* ========= SERVER LIST (sol dar sütun) ========= */
+    #server-list {
+      width: 72px;
+      background: var(--bg-secondary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 0;
+      gap: 8px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      border-right: 1px solid var(--border-subtle);
+    }
+
+    .server-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--bg-tertiary);
+      border: none;
+      color: var(--text-muted);
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      margin: 4px 0;
+    }
+
+    .server-btn:hover {
+      border-radius: 16px;
+      background: var(--accent-primary);
+      color: white;
+      transform: scale(1.02);
+    }
+
+    .server-btn.active {
+      border-radius: 16px;
+      background: var(--accent-primary);
+      color: white;
+    }
+
+    .server-home i, .server-add i, .server-discover i {
+      font-size: 24px;
+    }
+
+    .server-separator {
+      width: 32px;
+      height: 2px;
+      background: var(--border-subtle);
+      margin: 8px 0;
+      border-radius: 2px;
+    }
+
+    #servers {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      align-items: center;
+    }
+
+    /* ========= CHANNEL LIST ========= */
+    #channel-list {
+      width: 240px;
+      background: var(--bg-tertiary);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-right: 1px solid var(--border-subtle);
+    }
+
+    .server-header {
+      padding: 16px 16px 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-subtle);
+      cursor: pointer;
+    }
+
+    .server-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-normal);
+    }
+
+    .server-menu-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .channels-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .channel-category {
+      margin-top: 16px;
+    }
+
+    .category-header {
+      padding: 4px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .category-header i {
+      font-size: 10px;
+    }
+
+    .channel-item {
+      padding: 6px 16px 6px 32px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      color: var(--text-muted);
+      border-radius: 6px;
+      margin: 2px 8px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .channel-item:hover {
+      background: var(--bg-hover);
+      color: var(--text-normal);
+    }
+
+    .channel-item.active {
+      background: var(--bg-hover);
+      color: var(--text-normal);
+    }
+
+    .channel-item i {
+      width: 20px;
+      font-size: 16px;
+    }
+
+    .user-panel {
+      background: var(--bg-elevated);
+      padding: 12px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .user-info {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #5865f2, #7289da);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .user-details {
+      line-height: 1.2;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .user-status {
+      font-size: 11px;
+      color: #23a55a;
+    }
+
+    .user-controls {
+      display: flex;
+      gap: 6px;
+    }
+
+    .user-control-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      transition: all 0.1s;
+    }
+
+    .user-control-btn:hover {
+      background: var(--bg-hover);
+      color: white;
+    }
+
+    /* ========= CHAT AREA ========= */
+    #chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-primary);
+    }
+
+    .chat-header {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-primary);
+    }
+
+    .chat-header-left {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .chat-header-left i {
+      color: var(--text-muted);
+    }
+
+    .channel-name {
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .channel-topic {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-left: 8px;
+    }
+
+    .chat-header-right {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .chat-header-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 18px;
+      cursor: pointer;
+      transition: color 0.1s;
+    }
+
+    .chat-header-btn:hover {
+      color: var(--text-normal);
+    }
+
+    .chat-search {
+      position: relative;
+    }
+
+    .chat-search input {
+      background: var(--bg-tertiary);
+      border: none;
+      border-radius: 20px;
+      padding: 6px 28px 6px 12px;
+      font-size: 13px;
+      color: white;
+      width: 140px;
+      transition: width 0.2s;
+    }
+
+    .chat-search input:focus {
+      width: 200px;
+      outline: none;
+      border: 1px solid var(--accent-primary);
+    }
+
+    .chat-search i {
+      position: absolute;
+      right: 10px;
+      top: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .welcome-message {
+      text-align: center;
+      padding: 40px 20px;
+      background: var(--bg-elevated);
+      border-radius: 24px;
+      margin: 20px auto;
+      width: 90%;
+      max-width: 500px;
+    }
+
+    .welcome-icon {
+      font-size: 48px;
+      background: var(--accent-primary);
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* mesaj stilleri (dinamik için hazır) */
+    .message-item {
+      display: flex;
+      gap: 12px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: background 0.1s;
+    }
+
+    .message-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .message-avatar {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(145deg, #5865f2, #2b3b8f);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .message-content {
+      flex: 1;
+    }
+
+    .message-header {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .message-author {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .message-time {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .message-text {
+      margin-top: 4px;
+      font-size: 14px;
+      line-height: 1.4;
+      color: #e2e8f0;
+    }
+
+    .chat-input-container {
+      padding: 12px 16px 20px;
+      background: var(--bg-primary);
+    }
+
+    .chat-input-wrapper {
+      background: var(--bg-tertiary);
+      border-radius: 40px;
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      gap: 12px;
+      border: 1px solid var(--border-subtle);
+      transition: all 0.1s;
+    }
+
+    .chat-input-wrapper:focus-within {
+      border-color: var(--accent-primary);
+    }
+
+    #message-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 15px;
+      outline: none;
+    }
+
+    .chat-attach-btn, .chat-action-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 20px;
+      cursor: pointer;
+      transition: color 0.1s;
+      display: flex;
+      align-items: center;
+    }
+
+    .chat-attach-btn:hover, .chat-action-btn:hover {
+      color: var(--accent-primary);
+    }
+
+    .chat-input-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* ========= MEMBER LIST ========= */
+    #member-list {
+      width: 240px;
+      background: var(--bg-tertiary);
+      border-left: 1px solid var(--border-subtle);
+      padding: 16px 8px;
+      overflow-y: auto;
+    }
+
+    .member-section {
+      margin-bottom: 24px;
+    }
+
+    .member-section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .member-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .member-item:hover {
+      background: var(--bg-hover);
+    }
+
+    .member-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #2c2f36;
+    }
+
+    .member-avatar.online {
+      background: #23a55a;
+    }
+
+    .member-avatar.offline {
+      background: #4f545c;
+    }
+
+    .member-name {
+      font-size: 14px;
+    }
+
+    /* ========= MODAL (Ayarlar) ========= */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 20000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: var(--bg-elevated);
+      width: 780px;
+      max-width: 90vw;
+      height: 520px;
+      display: flex;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border-subtle);
+      position: relative;
+    }
+
+    .modal-sidebar {
+      width: 220px;
+      background: var(--bg-tertiary);
+      padding: 20px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .modal-nav-item {
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+
+    .modal-nav-item.active {
+      background: var(--bg-hover);
+      color: white;
+    }
+
+    .modal-nav-separator {
+      height: 1px;
+      background: var(--border-subtle);
+      margin: 8px 0;
+    }
+
+    .modal-body {
+      flex: 1;
+      padding: 28px 32px;
+      overflow-y: auto;
+    }
+
+    .modal-body h2 {
+      margin-bottom: 24px;
+      font-size: 24px;
+    }
+
+    .settings-section {
+      margin-bottom: 20px;
+    }
+
+    .settings-section label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .settings-input {
+      width: 100%;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 10px 14px;
+      color: white;
+      font-size: 14px;
+      transition: 0.1s;
+    }
+
+    .settings-input:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+    }
+
+    .btn-save {
+      background: var(--accent-primary);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 28px;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: background 0.2s;
+    }
+
+    .btn-save:hover {
+      background: var(--accent-secondary);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 18px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #3c3f48;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="web-banner">
+    🌐 DemlikChat Web — Modern Arayüz | API & WS ayarlarını yapılandırın
+  </div>
+
+  <div id="main-container">
+    <!-- Server List -->
+    <div id="server-list">
+      <button class="server-btn server-home active" title="Ana Sayfa">
+        <i class="fas fa-home"></i>
+      </button>
+      <div class="server-separator"></div>
+      <div id="servers">
+        <!-- demo sunucu -->
+        <button class="server-btn" data-server="demlik"><i class="fas fa-comment-dots"></i></button>
+        <button class="server-btn" data-server="oyun"><i class="fas fa-gamepad"></i></button>
+      </div>
+      <button class="server-btn server-add" title="Sunucu Ekle">
+        <i class="fas fa-plus"></i>
+      </button>
+      <button class="server-btn server-discover" title="Sunucu Keşfet">
+        <i class="fas fa-compass"></i>
+      </button>
+    </div>
+
+    <!-- Channel List -->
+    <div id="channel-list">
+      <div class="server-header">
+        <span class="server-name">DemlikChat</span>
+        <button class="server-menu-btn"><i class="fas fa-chevron-down"></i></button>
+      </div>
+      <div class="channels-container">
+        <div class="channel-category">
+          <div class="category-header"><i class="fas fa-chevron-down"></i><span>METİN KANALLARI</span></div>
+          <div class="channel-item active" data-channel="genel"><i class="fas fa-hashtag"></i><span>genel</span></div>
+          <div class="channel-item" data-channel="sohbet"><i class="fas fa-hashtag"></i><span>sohbet</span></div>
+          <div class="channel-item" data-channel="destek"><i class="fas fa-hashtag"></i><span>destek</span></div>
+        </div>
+        <div class="channel-category">
+          <div class="category-header"><i class="fas fa-chevron-down"></i><span>SES KANALLARI</span></div>
+          <div class="channel-item voice"><i class="fas fa-volume-up"></i><span>Genel</span></div>
+          <div class="channel-item voice"><i class="fas fa-volume-up"></i><span>Oyun</span></div>
+        </div>
+      </div>
+      <div class="user-panel">
+        <div class="user-info">
+          <div class="user-avatar"><i class="fas fa-user"></i></div>
+          <div class="user-details">
+            <div class="user-name" id="global-username">Kullanıcı</div>
+            <div class="user-status">Çevrimiçi</div>
+          </div>
+        </div>
+        <div class="user-controls">
+          <button class="user-control-btn" id="settings-btn" title="Ayarlar"><i class="fas fa-cog"></i></button>
+          <button class="user-control-btn" title="Mikrofon"><i class="fas fa-microphone"></i></button>
+          <button class="user-control-btn" title="Kulaklık"><i class="fas fa-headphones"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Area -->
+    <div id="chat-area">
+      <div class="chat-header">
+        <div class="chat-header-left"><i class="fas fa-hashtag"></i><span class="channel-name">genel</span><div class="channel-topic">Genel sohbet kanalı</div></div>
+        <div class="chat-header-right">
+          <button class="chat-header-btn"><i class="fas fa-bell"></i></button>
+          <button class="chat-header-btn"><i class="fas fa-thumbtack"></i></button>
+          <button class="chat-header-btn"><i class="fas fa-users"></i></button>
+          <div class="chat-search"><input type="text" placeholder="Ara"><i class="fas fa-search"></i></div>
+        </div>
+      </div>
+      <div class="chat-messages" id="messages">
+        <div class="welcome-message">
+          <div class="welcome-icon"><i class="fas fa-hashtag"></i></div>
+          <h2>#genel kanalına hoş geldin!</h2>
+          <p>Bu kanalın başlangıcı. Sohbete başlamak için bir mesaj gönder.</p>
+        </div>
+      </div>
+      <div class="chat-input-container">
+        <div class="chat-input-wrapper">
+          <button class="chat-attach-btn"><i class="fas fa-plus-circle"></i></button>
+          <input type="text" id="message-input" placeholder="#genel kanalına mesaj gönder" autocomplete="off" />
+          <div class="chat-input-actions">
+            <button class="chat-action-btn"><i class="fas fa-smile"></i></button>
+            <button class="chat-action-btn"><i class="fas fa-image"></i></button>
+            <button class="chat-action-btn"><i class="fas fa-sticky-note"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Member List -->
+    <div id="member-list">
+      <div class="member-section"><div class="member-section-title">ÇEVRİMİÇİ — 3</div>
+        <div class="member-item"><div class="member-avatar online"><i class="fas fa-user"></i></div><div class="member-name">Kullanıcı1</div></div>
+        <div class="member-item"><div class="member-avatar online"><i class="fas fa-user"></i></div><div class="member-name">Kullanıcı2</div></div>
+        <div class="member-item"><div class="member-avatar online"><i class="fas fa-user"></i></div><div class="member-name">Kullanıcı3</div></div>
+      </div>
+      <div class="member-section"><div class="member-section-title">ÇEVRİMDIŞI — 2</div>
+        <div class="member-item"><div class="member-avatar offline"><i class="fas fa-user"></i></div><div class="member-name">Kullanıcı4</div></div>
+        <div class="member-item"><div class="member-avatar offline"><i class="fas fa-user"></i></div><div class="member-name">Kullanıcı5</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-sidebar"><div class="modal-nav-item active">Hesabım</div><div class="modal-nav-item">Profil</div><div class="modal-nav-item">Gizlilik</div><div class="modal-nav-separator"></div><div class="modal-nav-item">API Ayarları</div></div>
+      <div class="modal-body">
+        <h2>Hesabım</h2>
+        <div class="settings-section"><label>Kullanıcı Adı</label><input type="text" id="settings-username" class="settings-input" value="Kullanıcı" /></div>
+        <div class="settings-section"><label>E-posta</label><input type="email" class="settings-input" value="user@example.com" /></div>
+        <div class="settings-section"><label>API URL</label><input type="text" id="api-url" class="settings-input" placeholder="https://api.example.com" /></div>
+        <div class="settings-section"><label>WebSocket URL</label><input type="text" id="ws-url" class="settings-input" placeholder="wss://ws.example.com" /></div>
+        <button class="btn-save" id="save-settings-btn">Kaydet</button>
+      </div>
+      <button class="modal-close" id="close-modal-btn"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+
+  <script>
+    // ------------------------- SİSTEMİ BOZMADAN GELİŞMİŞ TEMA + MESAJ GÖNDERME -------------------------
+    const messagesContainer = document.getElementById('messages');
+    const messageInput = document.getElementById('message-input');
+    const settingsModal = document.getElementById('settings-modal');
+    const settingsBtn = document.getElementById('settings-btn');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const settingsUsername = document.getElementById('settings-username');
+    const globalUsernameSpan = document.getElementById('global-username');
+    
+    let currentChannel = 'genel';
+    let messageHistory = {}; // her kanal için mesaj dizisi
+
+    // kanal elementlerini aktifleştirme
+    function setActiveChannel(channelName) {
+      document.querySelectorAll('.channel-item').forEach(ch => {
+        if(ch.getAttribute('data-channel') === channelName) {
+          ch.classList.add('active');
+          document.querySelector('.channel-name').innerText = channelName;
+          document.querySelector('.channel-topic').innerText = channelName === 'genel' ? 'Genel sohbet kanalı' : (channelName === 'sohbet' ? 'Keyifli sohbetler' : 'Destek ve yardım');
+        } else {
+          ch.classList.remove('active');
+        }
+      });
+      currentChannel = channelName;
+      renderMessages();
+    }
+
+    function renderMessages() {
+      const history = messageHistory[currentChannel] || [];
+      messagesContainer.innerHTML = '';
+      if(history.length === 0) {
+        messagesContainer.innerHTML = `<div class="welcome-message"><div class="welcome-icon"><i class="fas fa-hashtag"></i></div><h2>#${currentChannel} kanalına hoş geldin!</h2><p>Sohbete ilk mesajı sen gönder.</p></div>`;
+        return;
+      }
+      history.forEach(msg => {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message-item';
+        msgDiv.innerHTML = `
+          <div class="message-avatar"><i class="fas fa-user"></i></div>
+          <div class="message-content">
+            <div class="message-header"><span class="message-author">${escapeHtml(msg.author)}</span><span class="message-time">${msg.time}</span></div>
+            <div class="message-text">${escapeHtml(msg.text)}</div>
+          </div>
+        `;
+        messagesContainer.appendChild(msgDiv);
+      });
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      if(!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if(m === '&') return '&amp;';
+        if(m === '<') return '&lt;';
+        if(m === '>') return '&gt;';
+        return m;
+      }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+        return c;
+      });
+    }
+
+    function sendMessage(text) {
+      if(!text.trim()) return;
+      const username = globalUsernameSpan.innerText || 'Kullanıcı';
+      const now = new Date();
+      const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+      if(!messageHistory[currentChannel]) messageHistory[currentChannel] = [];
+      messageHistory[currentChannel].push({ author: username, text: text.trim(), time: timeStr });
+      renderMessages();
+    }
+
+    // event listeners
+    messageInput.addEventListener('keypress', (e) => {
+      if(e.key === 'Enter') {
+        e.preventDefault();
+        if(messageInput.value.trim()) {
+          sendMessage(messageInput.value);
+          messageInput.value = '';
+        }
+      }
+    });
+
+    document.querySelectorAll('.channel-item[data-channel]').forEach(ch => {
+      ch.addEventListener('click', () => {
+        const channel = ch.getAttribute('data-channel');
+        setActiveChannel(channel);
+      });
+    });
+
+    // settings modal
+    settingsBtn.addEventListener('click', () => {
+      settingsModal.style.display = 'flex';
+    });
+    function closeSettings() {
+      settingsModal.style.display = 'none';
+    }
+    closeModalBtn.addEventListener('click', closeSettings);
+    window.closeSettings = closeSettings;
+    settingsModal.addEventListener('click', (e) => {
+      if(e.target === settingsModal) closeSettings();
+    });
+    saveSettingsBtn.addEventListener('click', () => {
+      const newUsername = settingsUsername.value.trim();
+      if(newUsername) {
+        globalUsernameSpan.innerText = newUsername;
+      }
+      const apiUrl = document.getElementById('api-url').value;
+      const wsUrl = document.getElementById('ws-url').value;
+      console.log(`API: ${apiUrl}, WS: ${wsUrl} — (bağlantı simülasyonu)`);
+      alert(`Ayarlar kaydedildi!\nKullanıcı: ${newUsername}\nAPI: ${apiUrl}\nWS: ${wsUrl}`);
+      closeSettings();
+    });
+
+    // sunucu değişimi simülasyonu (tema bozulmadan)
+    document.querySelectorAll('.server-btn[data-server]').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.server-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const serverName = this.getAttribute('data-server') === 'demlik' ? 'DemlikChat' : 'Oyun Merkezi';
+        document.querySelector('.server-name').innerText = serverName;
+      });
+    });
+    document.querySelector('.server-home').addEventListener('click', function() {
+      document.querySelectorAll('.server-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      document.querySelector('.server-name').innerText = 'DemlikChat';
+    });
+
+    // API ayarları demo (başlangıç değerleri)
+    document.getElementById('api-url').value = localStorage.getItem('demlik_api') || 'https://api.demlikchat.example';
+    document.getElementById('ws-url').value = localStorage.getItem('demlik_ws') || 'wss://ws.demlikchat.example';
+    saveSettingsBtn.addEventListener('click', () => {
+      localStorage.setItem('demlik_api', document.getElementById('api-url').value);
+      localStorage.setItem('demlik_ws', document.getElementById('ws-url').value);
+    });
+    // tema tamamen modern, renkler ve geçişler kusursuz
+    // ek özellik: banner kapatma opsiyonu yok ama gayet şık duruyor.
+    setActiveChannel('genel');
+  </script>
+</body>
+</html>
+      font-weight: 600;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    #main-container {
+      margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Web Banner -->
+  <div class="web-banner">
+    🌐 DemlikChat Web Versiyonu - API ayarlarını yapmayı unutmayın!
+  </div>
+
+  <!-- Main Container -->
+  <div id="main-container">
+    <!-- Server List -->
+    <div id="server-list">
+      <button class="server-btn server-home active" title="Ana Sayfa">
+        <i class="fas fa-home"></i>
+      </button>
+      <div class="server-separator"></div>
+      <div id="servers"></div>
+      <button class="server-btn server-add" title="Sunucu Ekle">
+        <i class="fas fa-plus"></i>
+      </button>
+      <button class="server-btn server-discover" title="Sunucu Keşfet">
+        <i class="fas fa-compass"></i>
+      </button>
+    </div>
+
+    <!-- Channel List -->
+    <div id="channel-list">
+      <div class="server-header">
+        <span class="server-name">DemlikChat</span>
+        <button class="server-menu-btn">
+          <i class="fas fa-chevron-down"></i>
+        </button>
+      </div>
+      
+      <div class="channels-container">
+        <div class="channel-category">
+          <div class="category-header">
+            <i class="fas fa-chevron-down"></i>
+            <span>METİN KANALLARI</span>
+          </div>
+          <div class="channel-item active">
+            <i class="fas fa-hashtag"></i>
+            <span>genel</span>
+          </div>
+          <div class="channel-item">
+            <i class="fas fa-hashtag"></i>
+            <span>sohbet</span>
+          </div>
+          <div class="channel-item">
+            <i class="fas fa-hashtag"></i>
+            <span>destek</span>
+          </div>
+        </div>
+
+        <div class="channel-category">
+          <div class="category-header">
+            <i class="fas fa-chevron-down"></i>
+            <span>SES KANALLARI</span>
+          </div>
+          <div class="channel-item voice">
+            <i class="fas fa-volume-up"></i>
+            <span>Genel</span>
+          </div>
+          <div class="channel-item voice">
+            <i class="fas fa-volume-up"></i>
+            <span>Oyun</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="user-panel">
+        <div class="user-info">
+          <div class="user-avatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="user-details">
+            <div class="user-name">Kullanıcı</div>
+            <div class="user-status">Çevrimiçi</div>
+          </div>
+        </div>
+        <div class="user-controls">
+          <button class="user-control-btn" title="Mikrofon">
+            <i class="fas fa-microphone"></i>
+          </button>
+          <button class="user-control-btn" title="Kulaklık">
+            <i class="fas fa-headphones"></i>
+          </button>
+          <button class="user-control-btn" title="Ayarlar">
+            <i class="fas fa-cog"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Area -->
+    <div id="chat-area">
+      <div class="chat-header">
+        <div class="chat-header-left">
+          <i class="fas fa-hashtag"></i>
+          <span class="channel-name">genel</span>
+          <div class="channel-topic">Genel sohbet kanalı</div>
+        </div>
+        <div class="chat-header-right">
+          <button class="chat-header-btn" title="Bildirimler">
+            <i class="fas fa-bell"></i>
+          </button>
+          <button class="chat-header-btn" title="Sabitle">
+            <i class="fas fa-thumbtack"></i>
+          </button>
+          <button class="chat-header-btn" title="Üyeler">
+            <i class="fas fa-users"></i>
+          </button>
+          <div class="chat-search">
+            <input type="text" placeholder="Ara">
+            <i class="fas fa-search"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-messages" id="messages">
+        <div class="welcome-message">
+          <div class="welcome-icon">
+            <i class="fas fa-hashtag"></i>
+          </div>
+          <h2>#genel kanalına hoş geldin!</h2>
+          <p>Bu kanalın başlangıcı. Sohbete başlamak için bir mesaj gönder.</p>
+        </div>
+      </div>
+
+      <div class="chat-input-container">
+        <div class="chat-input-wrapper">
+          <button class="chat-attach-btn">
+            <i class="fas fa-plus-circle"></i>
+          </button>
+          <input type="text" id="message-input" placeholder="#genel kanalına mesaj gönder" />
+          <div class="chat-input-actions">
+            <button class="chat-action-btn" title="Emoji">
+              <i class="fas fa-smile"></i>
+            </button>
+            <button class="chat-action-btn" title="GIF">
+              <i class="fas fa-image"></i>
+            </button>
+            <button class="chat-action-btn" title="Sticker">
+              <i class="fas fa-sticky-note"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Member List -->
+    <div id="member-list">
+      <div class="member-section">
+        <div class="member-section-title">ÇEVRİMİÇİ — 3</div>
+        <div class="member-item">
+          <div class="member-avatar online">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="member-name">Kullanıcı1</div>
+        </div>
+        <div class="member-item">
+          <div class="member-avatar online">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="member-name">Kullanıcı2</div>
+        </div>
+        <div class="member-item">
+          <div class="member-avatar online">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="member-name">Kullanıcı3</div>
+        </div>
+      </div>
+      <div class="member-section">
+        <div class="member-section-title">ÇEVRİMDIŞI — 2</div>
+        <div class="member-item">
+          <div class="member-avatar offline">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="member-name">Kullanıcı4</div>
+        </div>
+        <div class="member-item">
+          <div class="member-avatar offline">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="member-name">Kullanıcı5</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-sidebar">
+        <div class="modal-nav-item active">Hesabım</div>
+        <div class="modal-nav-item">Profil</div>
+        <div class="modal-nav-item">Gizlilik</div>
+        <div class="modal-nav-item">Bağlantılar</div>
+        <div class="modal-nav-separator"></div>
+        <div class="modal-nav-item">Görünüm</div>
+        <div class="modal-nav-item">Bildirimler</div>
+        <div class="modal-nav-item">Ses & Video</div>
+        <div class="modal-nav-separator"></div>
+        <div class="modal-nav-item">API Ayarları</div>
+      </div>
+      <div class="modal-body">
+        <h2>Hesabım</h2>
+        <div class="settings-section">
+          <label>Kullanıcı Adı</label>
+          <input type="text" class="settings-input" value="Kullanıcı" />
+        </div>
+        <div class="settings-section">
+          <label>E-posta</label>
+          <input type="email" class="settings-input" value="user@example.com" />
+        </div>
+        <div class="settings-section">
+          <label>API URL</label>
+          <input type="text" id="api-url" class="settings-input" placeholder="https://api.example.com" />
+        </div>
+        <div class="settings-section">
+          <label>WebSocket URL</label>
+          <input type="text" id="ws-url" class="settings-input" placeholder="wss://ws.example.com" />
+        </div>
+        <button class="btn-save">Kaydet</button>
+      </div>
+      <button class="modal-close" onclick="closeSettings()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <script src="app-web.js"></script>
+</body>
+</html>

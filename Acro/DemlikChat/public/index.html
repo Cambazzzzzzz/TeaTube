@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DemlikChat</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="fa/css/all.min.css">
+</head>
+<body class="theme-midnight">
+  
+  <!-- Login Screen -->
+  <div id="login-screen" class="auth-screen">
+    <div class="auth-box">
+      <div class="auth-logo">
+        <i class="fas fa-comments"></i>
+        <span>DemlikChat</span>
+      </div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Giriş Yap</button>
+        <button class="auth-tab" data-tab="register">Kayıt Ol</button>
+      </div>
+      
+      <div id="login-form" class="auth-form active">
+        <input type="text" id="login-username" placeholder="Kullanıcı adı" class="auth-input">
+        <input type="password" id="login-password" placeholder="Şifre" class="auth-input">
+        <div id="two-factor-wrap" style="display:none;">
+          <input type="text" id="login-favorite-food" placeholder="En sevdiğin yemek?" class="auth-input">
+        </div>
+        <button id="login-btn" class="auth-btn">Giriş Yap</button>
+      </div>
+      
+      <div id="register-form" class="auth-form">
+        <input type="text" id="register-username" placeholder="Kullanıcı adı" class="auth-input">
+        <input type="text" id="register-display-name" placeholder="Görünen ad" class="auth-input">
+        <input type="password" id="register-password" placeholder="Şifre" class="auth-input">
+        <button id="register-btn" class="auth-btn">Kayıt Ol</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="main-app" style="display:none;">
+    
+    <!-- Titlebar (sadece Electron'da görünür) -->
+    <div id="titlebar" style="display:none;">
+      <div class="titlebar-title">
+        <i class="fas fa-comments"></i>
+        <span>DemlikChat</span>
+      </div>
+      <div class="titlebar-controls">
+        <button class="titlebar-btn" onclick="window.close()"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content">
+      
+      <!-- Left Sidebar - Friends & Groups -->
+      <div id="left-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-tabs">
+            <button class="sidebar-tab active" data-tab="friends"><i class="fas fa-user-friends"></i> Arkadaşlar</button>
+            <button class="sidebar-tab" data-tab="groups"><i class="fas fa-users"></i> Gruplar</button>
+          </div>
+        </div>
+        
+        <div class="sidebar-search">
+          <i class="fas fa-search"></i>
+          <input type="text" id="search-friends" placeholder="Ara...">
+        </div>
+        
+        <div id="friends-panel" class="sidebar-panel active">
+          <div class="panel-actions">
+            <button id="add-friend-btn" class="action-btn"><i class="fas fa-user-plus"></i> Arkadaş Ekle</button>
+            <button id="friend-requests-btn" class="action-btn"><i class="fas fa-bell"></i> İstekler <span id="requests-badge" class="badge">0</span></button>
+          </div>
+          <div id="friends-list" class="list-container"></div>
+        </div>
+        
+        <div id="groups-panel" class="sidebar-panel">
+          <div class="panel-actions">
+            <button id="create-group-btn" class="action-btn"><i class="fas fa-plus"></i> Grup Oluştur</button>
+          </div>
+          <div id="groups-list" class="list-container"></div>
+        </div>
+      </div>
+
+      <!-- Center - Chat Area -->
+      <div id="center-area">
+        <div id="welcome-screen" class="welcome">
+          <i class="fas fa-comments"></i>
+          <h2>DemlikChat'e Hoş Geldin!</h2>
+          <p>Sohbete başlamak için bir arkadaş veya grup seç</p>
+        </div>
+        
+        <div id="chat-area" style="display:none;">
+          <div id="chat-header">
+            <div class="chat-header-info" id="chat-header-info">
+              <img src="" alt="" class="chat-avatar" id="chat-avatar">
+              <div class="chat-header-text">
+                <div class="chat-name" id="chat-name"></div>
+                <div class="chat-status" id="chat-status">Çevrimiçi</div>
+              </div>
+            </div>
+            <div class="chat-header-actions">
+              <button class="header-btn" id="view-profile-btn"><i class="fas fa-user"></i></button>
+              <button class="header-btn" id="block-user-btn"><i class="fas fa-ban"></i></button>
+            </div>
+          </div>
+          
+          <div id="messages-container"></div>
+          
+          <div id="chat-input-area">
+            <button class="input-btn" id="attach-btn"><i class="fas fa-plus"></i></button>
+            <input type="text" id="message-input" placeholder="Mesaj yaz...">
+            <button class="input-btn send-btn" id="send-btn"><i class="fas fa-paper-plane"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Sidebar - Profile & Settings -->
+      <div id="right-sidebar">
+        <div class="profile-card">
+          <div class="profile-bg" id="user-bg"></div>
+          <img src="" alt="" class="profile-avatar" id="user-avatar">
+          <div class="profile-name" id="user-name"></div>
+          <div class="profile-username" id="user-username"></div>
+        </div>
+        
+        <div class="sidebar-menu">
+          <button class="menu-btn" id="settings-btn">
+            <i class="fas fa-cog"></i>
+            <span>Ayarlar</span>
+          </button>
+          <button class="menu-btn" id="logout-btn">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Çıkış Yap</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div id="modal-content" class="modal-content"></div>
+  </div>
+
+  <input type="file" id="file-input" style="display:none" accept="image/*">
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
