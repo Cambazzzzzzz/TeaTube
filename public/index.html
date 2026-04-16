@@ -366,7 +366,8 @@
         console.log('✅ app.js başarıyla yüklendi');
       }
     }, 1000);
-  </script>
+
+    // Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
