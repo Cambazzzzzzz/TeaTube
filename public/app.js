@@ -456,12 +456,14 @@ async function login() {
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value;
 
+  console.log('🔥 LOGIN BAŞLADI:', username);
+
   if (!username || !password) {
     alert('Kullanıcı adı ve şifre gerekli');
     return;
   }
 
-  // Admin girişi kontrolü - normal giriş ekranından da admin paneline yönlendir
+  // Admin girişi kontrolü
   if (username === 'AdminTeaS' && password === 'bcics4128.316!') {
     window.location.href = '/bcics.html';
     return;
@@ -469,34 +471,56 @@ async function login() {
 
   // Loading göster
   const loginBtn = document.querySelector('#loginForm button');
+  if (!loginBtn) {
+    console.error('❌ Login butonu bulunamadı!');
+    return;
+  }
+  
   const originalText = loginBtn.textContent;
   loginBtn.textContent = 'Giriş yapılıyor...';
   loginBtn.disabled = true;
 
   try {
-    console.log('Login başladı:', username);
+    console.log('📡 API isteği gönderiliyor:', API_URL + '/login');
+    
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     });
 
-    console.log('Response alındı:', response.status);
-    const data = await response.json();
-    console.log('Data:', data);
-
-    if (response.ok) {
-      currentUser = data.user;
-      localStorage.setItem('Tea_user', JSON.stringify(currentUser));
-      console.log('User kaydedildi, loadUserData çağrılıyor...');
-      await loadUserData();
-    } else {
-      alert(data.error || 'Giriş başarısız');
+    console.log('📥 Response alındı:', response.status);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('❌ Login başarısız:', errorData);
+      alert(errorData.error || 'Giriş başarısız');
       loginBtn.textContent = originalText;
       loginBtn.disabled = false;
+      return;
     }
+    
+    const data = await response.json();
+    console.log('✅ Login başarılı:', data);
+
+    currentUser = data.user;
+    localStorage.setItem('Tea_user', JSON.stringify(currentUser));
+    console.log('💾 User localStorage\'a kaydedildi');
+    
+    // HEMEN ana ekranı göster
+    console.log('🚀 Ana ekran gösteriliyor...');
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    
+    // Tema uygula
+    document.body.setAttribute('data-theme', currentUser.theme || 'dark');
+    
+    // Ana sayfayı göster
+    showPage('home');
+    console.log('✅ GİRİŞ TAMAMLANDI!');
+    
   } catch (error) {
-    console.error('Giriş hatası:', error);
+    console.error('💥 Login hatası:', error);
     alert('Giriş sırasında bir hata oluştu: ' + error.message);
     loginBtn.textContent = originalText;
     loginBtn.disabled = false;

@@ -1,185 +1,111 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
-  <title>TeaTube Test</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TeaTube Login Test</title>
   <style>
-    body { font-family: Arial; padding: 20px; background: #0f0f0f; color: #fff; }
-    .test-box { background: #272727; padding: 20px; border-radius: 10px; margin: 10px 0; }
-    .success { color: #0f0; }
-    .error { color: #f00; }
-    button { background: #ff0033; color: #fff; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
-    input { padding: 8px; border-radius: 5px; border: 1px solid #444; background: #1a1a1a; color: #fff; margin: 5px; width: 200px; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 400px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #0f0f0f;
+      color: white;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #1a1a1a;
+      color: white;
+      font-size: 14px;
+    }
+    button {
+      background: #ff0033;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #cc0029;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #1a1a1a;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .success { background: #1a4d1a !important; }
+    .error { background: #4d1a1a !important; }
   </style>
 </head>
 <body>
-  <h1>🔍 TeaTube Diagnostic Test</h1>
+  <h1>🔥 TeaTube Login Test</h1>
   
-  <div class="test-box">
-    <h3>1. Server Testi</h3>
-    <button onclick="testServer()">Test Server</button>
-    <div id="serverResult"></div>
-  </div>
-
-  <div class="test-box">
-    <h3>2. Login Testi</h3>
-    <input type="text" id="testUsername" placeholder="Kullanıcı adı" value="test" />
-    <input type="password" id="testPassword" placeholder="Şifre" value="test123" />
-    <button onclick="testLogin()">Test Login</button>
-    <div id="loginResult"></div>
-  </div>
-
-  <div class="test-box">
-    <h3>3. Register Testi</h3>
-    <input type="text" id="regUsername" placeholder="Kullanıcı adı" />
-    <input type="text" id="regNickname" placeholder="Takma ad" />
-    <input type="password" id="regPassword" placeholder="Şifre" />
-    <button onclick="testRegister()">Test Register</button>
-    <div id="registerResult"></div>
-  </div>
-
-  <div class="test-box">
-    <h3>4. Bug Reports Testi</h3>
-    <button onclick="testBugReports()">Test Bug Reports</button>
-    <div id="bugResult"></div>
-  </div>
+  <input type="text" id="username" placeholder="Username" value="testuser">
+  <input type="password" id="password" placeholder="Password" value="test123">
+  <button onclick="testLogin()">GİRİŞ YAP</button>
+  
+  <div id="result"></div>
 
   <script>
     const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3456/api'
       : window.location.origin + '/api';
 
-    async function testServer() {
-      const result = document.getElementById('serverResult');
-      result.innerHTML = '<p>Testing...</p>';
-      
-      try {
-        const response = await fetch(API_URL + '/videos?limit=1');
-        const data = await response.json();
-        result.innerHTML = `
-          <p class="success">✅ Server çalışıyor!</p>
-          <p>Status: ${response.status}</p>
-          <p>API URL: ${API_URL}</p>
-          <p>Response: ${JSON.stringify(data).substring(0, 100)}...</p>
-        `;
-      } catch(e) {
-        result.innerHTML = `
-          <p class="error">❌ Server hatası!</p>
-          <p>Error: ${e.message}</p>
-          <p>API URL: ${API_URL}</p>
-        `;
-      }
-    }
+    console.log('API_URL:', API_URL);
 
     async function testLogin() {
-      const result = document.getElementById('loginResult');
-      const username = document.getElementById('testUsername').value;
-      const password = document.getElementById('testPassword').value;
-      result.innerHTML = '<p>Testing login...</p>';
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const resultDiv = document.getElementById('result');
+      
+      resultDiv.textContent = 'Giriş yapılıyor...';
+      resultDiv.className = '';
       
       try {
-        const response = await fetch(API_URL + '/login', {
+        console.log('Login isteği gönderiliyor:', { username, password: '***' });
+        
+        const response = await fetch(`${API_URL}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
+        
+        console.log('Response status:', response.status);
         const data = await response.json();
+        console.log('Response data:', data);
         
         if (response.ok) {
-          result.innerHTML = `
-            <p class="success">✅ Login başarılı!</p>
-            <p>User: ${data.user.nickname} (@${data.user.username})</p>
-          `;
+          resultDiv.className = 'success';
+          resultDiv.textContent = '✅ GİRİŞ BAŞARILI!\n\n' + JSON.stringify(data, null, 2);
+          
+          // LocalStorage'a kaydet
+          localStorage.setItem('Tea_user', JSON.stringify(data.user));
+          
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
         } else {
-          result.innerHTML = `
-            <p class="error">❌ Login başarısız!</p>
-            <p>Error: ${data.error}</p>
-          `;
+          resultDiv.className = 'error';
+          resultDiv.textContent = '❌ GİRİŞ BAŞARISIZ\n\n' + JSON.stringify(data, null, 2);
         }
-      } catch(e) {
-        result.innerHTML = `
-          <p class="error">❌ Login hatası!</p>
-          <p>Error: ${e.message}</p>
-        `;
+      } catch (error) {
+        console.error('Login error:', error);
+        resultDiv.className = 'error';
+        resultDiv.textContent = '❌ HATA\n\n' + error.message;
       }
     }
-
-    async function testRegister() {
-      const result = document.getElementById('registerResult');
-      const username = document.getElementById('regUsername').value;
-      const nickname = document.getElementById('regNickname').value;
-      const password = document.getElementById('regPassword').value;
-      
-      if (!username || !nickname || !password) {
-        result.innerHTML = '<p class="error">Tüm alanları doldurun!</p>';
-        return;
-      }
-      
-      result.innerHTML = '<p>Testing register...</p>';
-      
-      try {
-        const formData = new FormData();
-        formData.append('username', username);
-        formData.append('nickname', nickname);
-        formData.append('password', password);
-        formData.append('agreed', 'true');
-        
-        const response = await fetch(API_URL + '/register', {
-          method: 'POST',
-          body: formData
-        });
-        const data = await response.json();
-        
-        if (response.ok) {
-          result.innerHTML = `
-            <p class="success">✅ Register başarılı!</p>
-            <p>User ID: ${data.userId}</p>
-          `;
-        } else {
-          result.innerHTML = `
-            <p class="error">❌ Register başarısız!</p>
-            <p>Error: ${data.error}</p>
-          `;
-        }
-      } catch(e) {
-        result.innerHTML = `
-          <p class="error">❌ Register hatası!</p>
-          <p>Error: ${e.message}</p>
-        `;
-      }
-    }
-
-    async function testBugReports() {
-      const result = document.getElementById('bugResult');
-      result.innerHTML = '<p>Testing bug reports...</p>';
-      
-      try {
-        const response = await fetch(API_URL + '/bug-reports');
-        const data = await response.json();
-        
-        if (response.ok) {
-          result.innerHTML = `
-            <p class="success">✅ Bug reports çalışıyor!</p>
-            <p>Toplam rapor: ${data.length}</p>
-            <p>Response: ${JSON.stringify(data[0] || {}).substring(0, 100)}...</p>
-          `;
-        } else {
-          result.innerHTML = `
-            <p class="error">❌ Bug reports başarısız!</p>
-            <p>Error: ${data.error}</p>
-          `;
-        }
-      } catch(e) {
-        result.innerHTML = `
-          <p class="error">❌ Bug reports hatası!</p>
-          <p>Error: ${e.message}</p>
-        `;
-      }
-    }
-
-    // Sayfa yüklendiğinde otomatik test
-    window.onload = () => {
-      testServer();
-    };
+    
+    // Enter tuşu ile giriş
+    document.getElementById('password').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') testLogin();
+    });
   </script>
 </body>
 </html>
