@@ -6,6 +6,7 @@ const routes = require('./src/routes');
 const adminRoutes = require('./src/routes-admin');
 const musicRoutes = require('./src/routes-music');
 const groupRoutes = require('./src/routes-groups');
+const textPostRoutes = require('./src/routes-textposts');
 const migrateAdminPassword = require('./migrate-admin-password');
 
 const app = express();
@@ -40,6 +41,7 @@ app.use('/api', routes);
 app.use('/api', adminRoutes);
 app.use('/api', musicRoutes);
 app.use('/api', groupRoutes);
+app.use('/api', textPostRoutes);
 
 // Ana sayfa
 app.get('/', (req, res) => {

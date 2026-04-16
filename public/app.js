@@ -69,6 +69,16 @@ function showMobileUploadMenu() {
   sheet.innerHTML = `
     <div style="width:100%; background:var(--yt-spec-raised-background); border-radius:20px 20px 0 0; padding:20px 16px 32px;">
       <div style="width:40px; height:4px; background:rgba(255,255,255,0.2); border-radius:2px; margin:0 auto 20px;"></div>
+      <button onclick="event.stopPropagation(); document.getElementById('mobileUploadSheet').remove(); setTimeout(showTextPostModal, 100);"
+        style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
+        <div style="width:44px; height:44px; background:rgba(29,155,240,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
+          <i class="fas fa-pen" style="color:#1d9bf0; font-size:18px;"></i>
+        </div>
+        <div style="text-align:left;">
+          <p style="font-weight:600; margin-bottom:2px;">Metin Paylaş</p>
+          <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Düşüncelerini paylaş</p>
+        </div>
+      </button>
       <button onclick="event.stopPropagation(); document.getElementById('mobileUploadSheet').remove(); setTimeout(() => { showUploadVideoModal(); setTimeout(() => switchUploadType('reals'), 50); }, 100);"
         style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
         <div style="width:44px; height:44px; background:rgba(255,0,51,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
@@ -101,6 +111,96 @@ function showMobileUploadMenu() {
   });
   
   document.body.appendChild(sheet);
+}
+
+// Metin paylaşma modalı
+function showTextPostModal() {
+  const modal = document.createElement('div');
+  modal.id = 'textPostModal';
+  modal.style.cssText = `
+    position:fixed; inset:0; z-index:10000; background:rgba(0,0,0,0.8);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  `;
+  modal.innerHTML = `
+    <div style="width:100%; max-width:600px; background:var(--yt-spec-raised-background); border-radius:16px; padding:24px; max-height:90vh; overflow-y:auto;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+        <h2 style="font-size:20px; font-weight:700; margin:0;">Metin Paylaş</h2>
+        <button onclick="document.getElementById('textPostModal').remove();" style="background:none; border:none; color:var(--yt-spec-text-secondary); font-size:24px; cursor:pointer; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:50%;">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <input type="text" id="textPostTitle" placeholder="Başlık (opsiyonel)" style="width:100%; padding:12px; background:var(--yt-spec-10-percent-layer); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--yt-spec-text-primary); font-size:16px; margin-bottom:12px; font-weight:600;" maxlength="100" />
+      
+      <textarea id="textPostContent" placeholder="Ne düşünüyorsun?" style="width:100%; min-height:200px; padding:12px; background:var(--yt-spec-10-percent-layer); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--yt-spec-text-primary); font-size:15px; resize:vertical; font-family:inherit; line-height:1.5;" maxlength="5000"></textarea>
+      
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.08);">
+        <span id="textPostCharCount" style="font-size:13px; color:var(--yt-spec-text-secondary);">0 / 5000</span>
+        <button onclick="publishTextPost()" style="background:#1d9bf0; border:none; color:#fff; padding:10px 24px; border-radius:20px; font-size:15px; font-weight:700; cursor:pointer;">
+          Paylaş
+        </button>
+      </div>
+    </div>
+  `;
+  
+  modal.addEventListener('click', e => { 
+    if (e.target === modal) modal.remove(); 
+  });
+  
+  document.body.appendChild(modal);
+  
+  // Karakter sayacı
+  const textarea = document.getElementById('textPostContent');
+  const charCount = document.getElementById('textPostCharCount');
+  textarea.addEventListener('input', () => {
+    charCount.textContent = `${textarea.value.length} / 5000`;
+    if (textarea.value.length > 4900) {
+      charCount.style.color = '#ff4444';
+    } else {
+      charCount.style.color = 'var(--yt-spec-text-secondary)';
+    }
+  });
+  
+  setTimeout(() => textarea.focus(), 100);
+}
+
+// Metin gönderisi yayınla
+async function publishTextPost() {
+  const title = document.getElementById('textPostTitle').value.trim();
+  const content = document.getElementById('textPostContent').value.trim();
+  
+  if (!content) {
+    alert('Lütfen bir şeyler yaz!');
+    return;
+  }
+  
+  try {
+    const res = await fetch(`${API_URL}/text-posts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: currentUser.id,
+        title: title || null,
+        content: content
+      })
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      document.getElementById('textPostModal').remove();
+      alert('Metin paylaşıldı! ✅');
+      // Ana sayfayı yenile
+      if (currentPage === 'home') {
+        loadHomeFeed();
+      }
+    } else {
+      alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+    }
+  } catch (err) {
+    console.error('Metin paylaşma hatası:', err);
+    alert('Bir hata oluştu!');
+  }
 }
 
 // Profil tıklayınca ayarlar sheet
