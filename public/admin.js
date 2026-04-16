@@ -883,16 +883,16 @@ async function saveAgeSettings() {
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast('Yas siniri guncellendi');
   } catch(e) { showToast('Baglanti hatasi', false); }
-}
-  } catch(e) {
-    c.innerHTML = `
-      <h2>Admin Ayarlari</h2>
-      <div style="background:#1a1a1a;border-radius:8px;padding:20px;max-width:480px;margin-bottom:20px">
-        <h4 style="margin:0 0 12px">Admin Sifresi Degistir</h4>
-        <input id="adminCurrentPw" class="a-input" type="password" placeholder="Mevcut sifre" style="width:100%;margin-bottom:8px">
-        <input id="adminNewPw" class="a-input" type="password" placeholder="Yeni sifre" style="width:100%;margin-bottom:8px">
-        <input id="adminNewPwConfirm" class="a-input" type="password" placeholder="Yeni sifre (tekrar)" style="width:100%;margin-bottom:12px">
-        <button class="a-btn" style="width:100%" onclick="saveAdminPassword()">Sifreyi Degistir</button>
+  
+  const c = document.getElementById('mainContent');
+  c.innerHTML = `
+    <h2>Admin Ayarlari</h2>
+    <div style="background:#1a1a1a;border-radius:8px;padding:20px;max-width:480px;margin-bottom:20px">
+      <h4 style="margin:0 0 12px">Admin Sifresi Degistir</h4>
+      <input id="adminCurrentPw" class="a-input" type="password" placeholder="Mevcut sifre" style="width:100%;margin-bottom:8px">
+      <input id="adminNewPw" class="a-input" type="password" placeholder="Yeni sifre" style="width:100%;margin-bottom:8px">
+      <input id="adminNewPwConfirm" class="a-input" type="password" placeholder="Yeni sifre (tekrar)" style="width:100%;margin-bottom:12px">
+      <button class="a-btn" style="width:100%" onclick="saveAdminPassword()">Sifreyi Degistir</button>
       </div>
       <div style="background:#1a1a1a;border-radius:8px;padding:20px;max-width:480px">
         <h4 style="margin:0 0 6px">Kullanici Hesabi Bypass Sifresi</h4>
