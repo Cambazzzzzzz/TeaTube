@@ -74,9 +74,10 @@ const server = app.listen(PORT, () => {
   `);
 });
 
-// Video yÃ¼kleme iÃ§in uzun timeout
-server.timeout = 1800000; // 30 dakika
-server.keepAliveTimeout = 1800000;
+// Optimized timeouts for Railway
+server.timeout = 120000; // 2 dakika
+server.keepAliveTimeout = 65000; // 65 saniye
+server.headersTimeout = 66000; // 66 saniye
 
 // Graceful shutdown
 process.on('SIGTERM', () => {

@@ -7371,20 +7371,39 @@ async function blockUserFromComment(userId, nickname) {
 
 // Cihaz ID'si oluştur (basit fingerprint)
 async function getDeviceId() {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  ctx.textBaseline = 'top';
-  ctx.font = '14px Arial';
-  ctx.fillText('fingerprint', 2, 2);
-  const canvasData = canvas.toDataURL();
-  
-  const data = [
-    navigator.userAgent,
-    navigator.language,
-    screen.width + 'x' + screen.height,
-    new Date().getTimezoneOffset(),
-    canvasData.substring(0, 100)
-  ].join('|');
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 200;
+    canvas.height = 50;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    
+    if (!ctx) {
+      // Canvas desteklenmiyorsa fallback
+      return 'device_' + Math.random().toString(36).substr(2, 9);
+    }
+    
+    ctx.textBaseline = 'top';
+    ctx.font = '14px Arial';
+    ctx.fillText('fingerprint', 2, 2);
+    const canvasData = canvas.toDataURL();
+    
+    const data = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width + 'x' + screen.height,
+      new Date().getTimezoneOffset(),
+      canvasData.substring(0, 100)
+    ].join('|');
+  } catch (e) {
+    // Canvas hatası durumunda fallback
+    const data = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width + 'x' + screen.height,
+      new Date().getTimezoneOffset(),
+      'fallback_' + Math.random().toString(36).substr(2, 9)
+    ].join('|');
+  }
   
   // Basit hash
   let hash = 0;
