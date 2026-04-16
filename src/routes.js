@@ -89,9 +89,9 @@ router.post('/register', upload.single('profile_photo'), async (req, res) => {
       return res.status(400).json({ error: 'Doğum tarihi gereklidir' });
     }
 
-    const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+    const existingUser = db.prepare('SELECT id FROM users WHERE LOWER(username) = LOWER(?)').get(username);
     if (existingUser) {
-      return res.status(400).json({ error: 'Bu kullanÄ±cÄ± adÄ± zaten kullanÄ±lÄ±yor' });
+      return res.status(400).json({ error: 'Bu kullanıcı adı zaten kullanılıyor' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

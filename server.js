@@ -46,6 +46,16 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// DC (DemlikChat) - Countdown page
+app.get('/dc', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'countdown.html'));
+});
+
+// DC Discord page
+app.get('/dc/discord', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'discord.html'));
+});
+
 // Admin giriş sayfası
 app.get('/administans', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'administans.html'));
