@@ -34,6 +34,8 @@ function showSection(section) {
     'dashboard': 'Dashboard',
     'users': 'Kullanıcılar',
     'channels': 'Kanallar',
+    'personal': 'Kişisel Hesaplar',
+    'ip-bans': 'IP Banları',
     'videos': 'Videolar',
     'groups': 'Gruplar',
     'messages': 'Mesajlaşmalar',
@@ -56,8 +58,38 @@ function showSection(section) {
     case 'users':
       loadUsers();
       break;
+    case 'channels':
+      loadChannels();
+      break;
+    case 'personal':
+      loadPersonal();
+      break;
+    case 'ip-bans':
+      loadIPBans();
+      break;
     case 'videos':
       loadVideos();
+      break;
+    case 'groups':
+      loadGroups();
+      break;
+    case 'messages':
+      loadMessages();
+      break;
+    case 'music-applications':
+      loadMusicApplications();
+      break;
+    case 'music-artists':
+      loadMusicArtists();
+      break;
+    case 'music-songs':
+      loadMusicSongs();
+      break;
+    case 'announcements':
+      loadAnnouncements();
+      break;
+    case 'badges':
+      loadBadges();
       break;
     case 'admin-settings':
       loadAdminSettings();
@@ -260,6 +292,125 @@ function saveAdminPassword() {
   }
   
   showToast('Şifre değiştirildi! (Demo)', true);
+}
+
+// Diğer sayfalar
+async function loadChannels() {
+  const content = document.getElementById('mainContent');
+  try {
+    const res = await fetch(API + '/admin/channels', {
+      headers: { 'x-admin-token': adminData?.token || '' }
+    });
+    const channels = await res.json();
+    
+    let html = `<div class="section-header"><h2>Kanallar</h2></div><div class="table-wrap"><table class="a-table"><thead><tr><th>ID</th><th>Kanal Adı</th><th>Sahibi</th><th>Oluşturma</th><th>İşlemler</th></tr></thead><tbody>`;
+    
+    channels.forEach(ch => {
+      html += `<tr><td>${ch.id}</td><td>${ch.channel_name}</td><td>${ch.owner_id}</td><td>${new Date(ch.created_at).toLocaleDateString('tr-TR')}</td><td><button class="a-btn a-btn-sm a-btn-gray">Detay</button></td></tr>`;
+    });
+    
+    html += `</tbody></table></div>`;
+    content.innerHTML = html;
+  } catch (e) {
+    content.innerHTML = `<p style="color:#ff4466">Kanallar yüklenemedi: ${e.message}</p>`;
+  }
+}
+
+async function loadPersonal() {
+  const content = document.getElementById('mainContent');
+  content.innerHTML = `
+    <div class="section-header"><h2>Kişisel Hesaplar</h2></div>
+    <p>Kişisel hesaplar yönetim sayfası</p>
+    <div class="table-wrap"><table class="a-table"><thead><tr><th>ID</th><th>Kullanıcı</th><th>Durum</th></tr></thead><tbody><tr><td colspan="3" style="text-align:center;padding:20px">Veri yükleniyor...</td></tr></tbody></table></div>
+  `;
+}
+
+async function loadIPBans() {
+  const content = document.getElementById('mainContent');
+  try {
+    const res = await fetch(API + '/admin/ip-bans', {
+      headers: { 'x-admin-token': adminData?.token || '' }
+    });
+    const bans = await res.json();
+    
+    let html = `<div class="section-header"><h2>IP Banları</h2></div><div class="table-wrap"><table class="a-table"><thead><tr><th>IP Adresi</th><th>Sebep</th><th>Tarih</th><th>İşlemler</th></tr></thead><tbody>`;
+    
+    if (bans.length === 0) {
+      html += `<tr><td colspan="4" style="text-align:center;padding:20px">Aktif IP banı yok</td></tr>`;
+    } else {
+      bans.forEach(ban => {
+        html += `<tr><td>${ban.ip_address}</td><td>${ban.reason}</td><td>${new Date(ban.blocked_until).toLocaleDateString('tr-TR')}</td><td><button class="a-btn a-btn-sm a-btn-orange" onclick="alert('Kaldır: ${ban.ip_address}')">Kaldır</button></td></tr>`;
+      });
+    }
+    
+    html += `</tbody></table></div>`;
+    content.innerHTML = html;
+  } catch (e) {
+    content.innerHTML = `<p style="color:#ff4466">IP banları yüklenemedi: ${e.message}</p>`;
+  }
+}
+
+async function loadGroups() {
+  const content = document.getElementById('mainContent');
+  content.innerHTML = `
+    <div class="section-header"><h2>Gruplar</h2></div>
+    <p>Gruplar yönetim sayfası</p>
+    <div class="table-wrap"><table class="a-table"><thead><tr><th>ID</th><th>Grup Adı</th><th>Üye Sayısı</th></tr></thead><tbody><tr><td colspan="3" style="text-align:center;padding:20px">Veri yükleniyor...</td></tr></tbody></table></div>
+  `;
+}
+
+async function loadMessages() {
+  const content = document.getElementById('mainContent');
+  content.innerHTML = `
+    <div class="section-header"><h2>Mesajlaşmalar</h2></div>
+    <p>Mesajlaşmalar yönetim sayfası</p>
+    <div class="table-wrap"><table class="a-table"><thead><tr><th>ID</th><th>Gönderen</th><th>Alıcı</th><th>Tarih</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;padding:20px">Veri yükleniyor...</td></tr></tbody></table></div>
+  `;
+}
+
+async function loadMusicApplications() {
+  const content = document.getElementById('mainContent');
+  content.innerHTML = `
+    <div class="section-header"><h2>TS Music Başvuruları</h2></div>
+    <p>Sanatçı başvuruları yönetim sayfası</p>
+    <div class="table-wrap"><table class="a-table"><thead><tr><th>ID</th><th>Başvuran</th><th>Durum</th><th>İşlemler</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;padding:20px">Başvuru yok</td></tr></tbody></table></div>
+  `;
+}
+
+async function loadMusicArtists() {
+  const content = document.getElementById('mainContent');
+  content.innerHTML = `
+    <div class="section-header"><h2>TS Music Sanatçıları</h2></div>
+    <p>Sanatçılar yönetim sayfası</p>
+    <div class="table-wrap"><table class="a-table"><thead><tr><th>ID</th><th>Sanatçı Adı</th><th>Şarkı Sayısı</th></tr></thead><tbody><tr><td colspan="3" style="text-align:center;padding:20px">Veri yükleniyor...</td></tr></tbody></table></div>
+  `;
+}
+
+async function loadMusicSongs() {
+  const content = document.getElementById('mainContent');
+  content.innerHTML = `
+    <div class="section-header"><h2>TS Music Şarkıları</h2></div>
+    <p>Şarkılar yönetim sayfası</p>
+    <div class="table-wrap"><table class="a-table"><thead><tr><th>ID</th><th>Şarkı Adı</th><th>Sanatçı</th><th>Tarih</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;padding:20px">Veri yükleniyor...</td></tr></tbody></table></div>
+  `;
+}
+
+async function loadAnnouncements() {
+  const content = document.getElementById('mainContent');
+  content.innerHTML = `
+    <div class="section-header"><h2>Duyurular</h2></div>
+    <button class="a-btn" onclick="alert('Yeni duyuru oluştur')">+ Yeni Duyuru</button>
+    <div class="table-wrap" style="margin-top:16px"><table class="a-table"><thead><tr><th>ID</th><th>Başlık</th><th>Tarih</th><th>İşlemler</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;padding:20px">Duyuru yok</td></tr></tbody></table></div>
+  `;
+}
+
+async function loadBadges() {
+  const content = document.getElementById('mainContent');
+  content.innerHTML = `
+    <div class="section-header"><h2>Rozetler</h2></div>
+    <button class="a-btn" onclick="alert('Yeni rozet oluştur')">+ Yeni Rozet</button>
+    <div class="table-wrap" style="margin-top:16px"><table class="a-table"><thead><tr><th>ID</th><th>Rozet Adı</th><th>Sahip Sayısı</th><th>İşlemler</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;padding:20px">Rozet yok</td></tr></tbody></table></div>
+  `;
 }
 
 function showToast(msg, success = true) {
