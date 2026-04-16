@@ -2298,8 +2298,8 @@ function renderShortsPlayer() {
   if (container) {
     let scrollCooldown = false;
     let scrollAccumulator = 0;
-    const SCROLL_THRESHOLD = 50; // Minimum scroll miktarı
-    const COOLDOWN_TIME = 1000; // Daha uzun cooldown (1 saniye)
+    const SCROLL_THRESHOLD = 120; // Daha yüksek eşik - daha az hassas
+    const COOLDOWN_TIME = 300; // Daha kısa cooldown (300ms)
     
     container.addEventListener('wheel', (e) => {
       e.preventDefault();
@@ -2318,16 +2318,22 @@ function renderShortsPlayer() {
         else prevShort();
       }
       
-      // Accumulator'ı sıfırla (500ms içinde yeterli scroll yoksa)
-      setTimeout(() => { scrollAccumulator = 0; }, 500);
+      // Accumulator'ı sıfırla (800ms içinde yeterli scroll yoksa)
+      setTimeout(() => { scrollAccumulator = 0; }, 800);
     }, { passive: false });
 
-    // Touch swipe (mobil)
+    // Touch swipe (mobil) - daha az hassas
     let touchStartY = 0;
     container.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
     container.addEventListener('touchend', e => {
       const diff = touchStartY - e.changedTouches[0].clientY;
-      if (Math.abs(diff) > 60) { if (diff > 0) nextShort(); else prevShort(); }
+      if (Math.abs(diff) > 100) { // 60'dan 100'e çıkardık - daha az hassas
+        if (scrollCooldown) return; // Cooldown kontrolü ekledik
+        scrollCooldown = true;
+        setTimeout(() => scrollCooldown = false, COOLDOWN_TIME);
+        if (diff > 0) nextShort(); else prevShort(); 
+      }
+    }, { passive: true });
     }, { passive: true });
 
     // Giriş animasyonu
