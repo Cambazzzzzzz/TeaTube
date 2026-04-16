@@ -2,6 +2,9 @@
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:3456/api'
   : window.location.origin + '/api';
+
+console.log('API_URL:', API_URL);
+console.log('Current hostname:', window.location.hostname);
 let currentUser = null;
 let currentChannel = null;
 let currentPage = 'home';
@@ -253,10 +256,29 @@ function toggleSidebar() {
 
 // Sayfa yüklendiğinde
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM yüklendi, otomatik giriş kontrol ediliyor...');
+  
   const savedUser = localStorage.getItem('Tea_user');
   if (savedUser) {
-    currentUser = JSON.parse(savedUser);
-    loadUserData();
+    try {
+      currentUser = JSON.parse(savedUser);
+      console.log('Kaydedilmiş kullanıcı bulundu:', currentUser.username);
+      loadUserData().catch(e => {
+        console.error('loadUserData hatası:', e);
+        // Hata olsa bile giriş ekranını göster
+        document.getElementById('authScreen').style.display = 'flex';
+        document.getElementById('mainApp').style.display = 'none';
+      });
+    } catch (e) {
+      console.error('Kaydedilmiş kullanıcı parse hatası:', e);
+      localStorage.removeItem('Tea_user');
+      document.getElementById('authScreen').style.display = 'flex';
+      document.getElementById('mainApp').style.display = 'none';
+    }
+  } else {
+    console.log('Kaydedilmiş kullanıcı yok, giriş ekranı gösteriliyor');
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
   }
   
   // Başlangıçta sidebar durumunu ayarla
@@ -445,25 +467,39 @@ async function login() {
     return;
   }
 
+  // Loading göster
+  const loginBtn = document.querySelector('#loginForm button');
+  const originalText = loginBtn.textContent;
+  loginBtn.textContent = 'Giriş yapılıyor...';
+  loginBtn.disabled = true;
+
   try {
+    console.log('Login başladı:', username);
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     });
 
+    console.log('Response alındı:', response.status);
     const data = await response.json();
+    console.log('Data:', data);
 
     if (response.ok) {
       currentUser = data.user;
       localStorage.setItem('Tea_user', JSON.stringify(currentUser));
-      loadUserData();
+      console.log('User kaydedildi, loadUserData çağrılıyor...');
+      await loadUserData();
     } else {
       alert(data.error || 'Giriş başarısız');
+      loginBtn.textContent = originalText;
+      loginBtn.disabled = false;
     }
   } catch (error) {
     console.error('Giriş hatası:', error);
-    alert('Giriş sırasında bir hata oluştu');
+    alert('Giriş sırasında bir hata oluştu: ' + error.message);
+    loginBtn.textContent = originalText;
+    loginBtn.disabled = false;
   }
 }
 
@@ -471,40 +507,37 @@ async function loadUserData() {
   try {
     console.log('loadUserData başladı...');
     
+    // HEMEN ana ekranı göster - hiçbir şey bekleme!
+    console.log('Ana ekran gösteriliyor...');
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    
     // Temayı uygula
     document.body.setAttribute('data-theme', currentUser.theme || 'dark');
     applyTheme(currentUser.theme || 'dark');
     console.log('Tema uygulandı');
     
-    // Kullanıcı bilgilerini göster
-    const userPhoto = document.getElementById('userPhoto');
-    if (userPhoto) {
-      userPhoto.src = getProfilePhotoUrl(currentUser.profile_photo);
-      userPhoto.style.display = 'block';
-    }
-    console.log('Profil fotoğrafı ayarlandı');
-
-    // Ana ekranı göster - DİREKT GÖSTER
-    console.log('Ana ekran gösteriliyor...');
-    document.getElementById('authScreen').style.display = 'none';
-    document.getElementById('mainApp').style.display = 'block';
+    // Ana sayfayı göster
     showPage('home');
-    updateMobileProfilePhoto();
     console.log('Ana ekran gösterildi - GİRİŞ TAMAMLANDI!');
 
-    // Diğer işlemleri arka planda yap
+    // Diğer işlemleri arka planda yap - HATA OLSA BİLE DEVAM ET
     setTimeout(async () => {
       try {
         // Kullanıcı bilgilerini güncelle
         const userResponse = await fetch(`${API_URL}/user/${currentUser.id}`);
-        const userData = await userResponse.json();
-        currentUser = { ...currentUser, ...userData };
-        localStorage.setItem('Tea_user', JSON.stringify(currentUser));
-        console.log('Kullanıcı bilgileri güncellendi (arka plan)');
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          currentUser = { ...currentUser, ...userData };
+          localStorage.setItem('Tea_user', JSON.stringify(currentUser));
+          console.log('Kullanıcı bilgileri güncellendi (arka plan)');
+        }
 
         // Kanalı kontrol et
         const channelResponse = await fetch(`${API_URL}/channel/user/${currentUser.id}`);
-        currentChannel = await channelResponse.json();
+        if (channelResponse.ok) {
+          currentChannel = await channelResponse.json();
+        }
         
         if (!currentChannel) {
           const formData = new FormData();
@@ -515,30 +548,32 @@ async function loadUserData() {
           const createRes = await fetch(`${API_URL}/channel`, { method: 'POST', body: formData });
           if (createRes.ok) {
             const chRes = await fetch(`${API_URL}/channel/user/${currentUser.id}`);
-            currentChannel = await chRes.json();
+            if (chRes.ok) {
+              currentChannel = await chRes.json();
+            }
           }
         }
         
-        // Diğer işlemler
-        loadNotifications().catch(() => {});
-        loadActiveAnnouncements().catch(() => {});
+        // Diğer işlemler - hata olsa bile devam et
+        loadNotifications().catch(() => console.log('Bildirimler yüklenemedi'));
+        loadActiveAnnouncements().catch(() => console.log('Duyurular yüklenemedi'));
         
         fetch(`${API_URL}/groups/user/${currentUser.id}`)
           .then(r => r.json())
           .then(groups => { if (groups.length > 0) watchGroupUnreadBadges(groups.map(g => g.id)); })
-          .catch(() => {});
+          .catch(() => console.log('Gruplar yüklenemedi'));
           
         fetch(`${API_URL}/music/artist-status/${currentUser.id}`)
           .then(r => r.json())
           .then(s => {
             const mySongsItem = document.getElementById('mySongsMenuItem');
             if (mySongsItem) mySongsItem.style.display = s.isArtist ? 'flex' : 'none';
-          }).catch(() => {});
+          }).catch(() => console.log('Müzik durumu yüklenemedi'));
           
         initOnlinePresence();
         
       } catch (e) {
-        console.error('Arka plan işlem hatası:', e);
+        console.error('Arka plan işlem hatası (önemli değil):', e);
       }
     }, 100);
       

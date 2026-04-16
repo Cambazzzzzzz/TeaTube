@@ -78,8 +78,8 @@
 
       <div id="loginForm" class="auth-form">
         <h2>Giriş Yap</h2>
-        <input type="text" id="loginUsername" class="yt-input" placeholder="Kullanıcı Adı" />
-        <input type="password" id="loginPassword" class="yt-input" placeholder="Şifre" />
+        <input type="text" id="loginUsername" class="yt-input" placeholder="Kullanıcı Adı" onkeypress="if(event.key==='Enter') login()" />
+        <input type="password" id="loginPassword" class="yt-input" placeholder="Şifre" onkeypress="if(event.key==='Enter') login()" />
         <button class="yt-btn" onclick="login()">Giriş Yap</button>
         <div class="auth-link">Hesabın yok mu? <a href="#" onclick="event.preventDefault(); showRegister()">Kayıt Ol</a></div>
       </div>
