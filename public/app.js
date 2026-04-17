@@ -229,11 +229,6 @@ function showMobileProfileSheet() {
           ${item.label}
         </button>
       `).join('')}
-      <button onclick="document.getElementById('mobileProfileSheet').remove(); window.location.href='/dc';"
-        style="width:100%; display:flex; align-items:center; gap:14px; background:linear-gradient(135deg,#5865f2,#7289da); border:none; color:#fff; padding:12px 8px; font-size:15px; cursor:pointer; border-radius:8px; margin-bottom:8px; font-weight:700;">
-        <div style="width:20px; font-size:16px; font-weight:900; text-align:center;">DC</div>
-        DemlikChat
-      </button>
       <button onclick="document.getElementById('mobileProfileSheet').remove(); setTimeout(showMobileUploadMenu, 50);"
         style="width:100%; display:flex; align-items:center; gap:14px; background:rgba(255,0,51,0.1); border:1px solid rgba(255,0,51,0.2); color:#ff0033; padding:12px 8px; font-size:15px; cursor:pointer; border-radius:8px; margin-bottom:4px;">
         <i class="fas fa-upload" style="width:20px;"></i>
