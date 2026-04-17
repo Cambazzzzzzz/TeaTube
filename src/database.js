@@ -903,3 +903,85 @@ try {
   const newHash = bcrypt.hashSync('bcics4128.316!', 4);
   db.prepare("UPDATE admins SET password = ? WHERE username = 'AdminTeaS'").run(newHash);
 } catch(e) {}
+
+
+// ==================== DEMLIKCHAT TABLES ====================
+
+// DC Users
+db.exec(`
+  CREATE TABLE IF NOT EXISTS dc_users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    display_name TEXT,
+    avatar TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+// DC Servers
+db.exec(`
+  CREATE TABLE IF NOT EXISTS dc_servers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    icon TEXT,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(created_by) REFERENCES dc_users(id)
+  )
+`);
+
+// DC Server Members
+db.exec(`
+  CREATE TABLE IF NOT EXISTS dc_server_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    server_id INTEGER,
+    user_id INTEGER,
+    role TEXT DEFAULT 'member',
+    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(server_id) REFERENCES dc_servers(id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES dc_users(id) ON DELETE CASCADE
+  )
+`);
+
+// DC Channels
+db.exec(`
+  CREATE TABLE IF NOT EXISTS dc_channels (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    server_id INTEGER,
+    name TEXT NOT NULL,
+    type TEXT DEFAULT 'text',
+    position INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(server_id) REFERENCES dc_servers(id) ON DELETE CASCADE
+  )
+`);
+
+// DC Messages
+db.exec(`
+  CREATE TABLE IF NOT EXISTS dc_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    server_id INTEGER,
+    channel_id TEXT,
+    user_id INTEGER,
+    content TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(server_id) REFERENCES dc_servers(id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES dc_users(id) ON DELETE CASCADE
+  )
+`);
+
+// DC Voice Sessions
+db.exec(`
+  CREATE TABLE IF NOT EXISTS dc_voice_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    server_id INTEGER,
+    channel_id TEXT,
+    user_id INTEGER,
+    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(server_id) REFERENCES dc_servers(id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES dc_users(id) ON DELETE CASCADE
+  )
+`);
+
+console.log('✓ DemlikChat tables initialized');
