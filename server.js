@@ -57,12 +57,18 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// DemlikChat - Countdown page
+// DemlikChat - Countdown page (both routes for compatibility)
+app.get('/dc', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'countdown.html'));
+});
 app.get('/demlikchat', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'countdown.html'));
 });
 
-// DemlikChat - Main app
+// DemlikChat - Main app (both routes for compatibility)
+app.get('/dc/discord', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'discord.html'));
+});
 app.get('/demlikchat/app', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'discord.html'));
 });
