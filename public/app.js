@@ -1762,6 +1762,16 @@ function sendTypingStatus(friendId, isTyping) {
 }
 
 async function sendMessage(friendId) {
+  // Backend'de engel kontrolü - İKİ YÖNLÜ: engellenen kişi mesaj atamaz VE engelleyen kişiye mesaj atılamaz
+  try {
+    const blockCheck = await fetch(`${API_URL}/is-blocked/${currentUser.id}/${friendId}`);
+    const blockData = await blockCheck.json();
+    if (blockData.isBlocked) {
+      showToast('Bu kişiye mesaj atamazsınız', 'error');
+      return;
+    }
+  } catch(e) { /* kontrol başarısız olsa bile devam etme */ return; }
+
   // Bekleyen fotoğraf varsa önce onu gönder
   if (pendingChatPhoto) {
     const file = pendingChatPhoto;
@@ -3658,6 +3668,22 @@ async function playVideo(videoId) {
   try {
     const response = await fetch(`${API_URL}/video/${videoId}?userId=${currentUser.id}`);
     const video = await response.json();
+
+    // Engel kontrolü - engellenen veya engelleyen kişinin videosunu gösterme
+    if (currentUser && video.user_id) {
+      const blockCheck = await fetch(`${API_URL}/is-blocked/${currentUser.id}/${video.user_id}`);
+      const blockData = await blockCheck.json();
+      if (blockData.isBlocked) {
+        const pageContent = document.getElementById('pageContent');
+        pageContent.innerHTML = `
+          <div style="text-align:center; padding:80px 20px;">
+            <i class="fas fa-ban" style="font-size:64px; color:var(--yt-spec-text-secondary); margin-bottom:16px;"></i>
+            <p style="font-size:18px; color:var(--yt-spec-text-secondary); margin-bottom:8px;">Video görüntülenemiyor</p>
+            <p style="font-size:14px; color:var(--yt-spec-text-secondary);">Bu içerik artık mevcut değil</p>
+          </div>`;
+        return;
+      }
+    }
 
     // Fotoğraf ise ayrı layout
     if (video.video_type === 'Fotoğraf') {
@@ -6399,6 +6425,22 @@ function showToast(message, type = 'info') {
 // Kanal görüntüleme
 async function viewChannel(channelId) {
   try {
+    // Engel kontrolü - engellenen veya engelleyen kişinin profilini gösterme
+    if (currentUser) {
+      const blockCheck = await fetch(`${API_URL}/is-blocked/${currentUser.id}/${channelId}`);
+      const blockData = await blockCheck.json();
+      if (blockData.isBlocked) {
+        const pageContent = document.getElementById('pageContent');
+        pageContent.innerHTML = `
+          <div style="text-align:center; padding:80px 20px;">
+            <i class="fas fa-user-slash" style="font-size:64px; color:var(--yt-spec-text-secondary); margin-bottom:16px;"></i>
+            <p style="font-size:18px; color:var(--yt-spec-text-secondary); margin-bottom:8px;">Kullanıcı bulunamadı</p>
+            <p style="font-size:14px; color:var(--yt-spec-text-secondary);">Bu profil görüntülenemiyor</p>
+          </div>`;
+        return;
+      }
+    }
+
     const [channelRes, videosRes, supportersRes, privRes, accountTypeRes] = await Promise.all([
       fetch(`${API_URL}/channel/${channelId}`),
       fetch(`${API_URL}/videos/channel/${channelId}`),

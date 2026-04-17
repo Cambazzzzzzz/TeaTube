@@ -681,7 +681,7 @@ router.get('/videos', (req, res) => {
     const { userId, page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
 
-    const videos = db.prepare(`
+    let videos = db.prepare(`
       SELECT v.*, c.channel_name, c.user_id, u.profile_photo, u.nickname, u.is_red_verified,
              (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as subscriber_count
       FROM videos v
@@ -692,6 +692,19 @@ router.get('/videos', (req, res) => {
       ORDER BY v.created_at DESC
       LIMIT ? OFFSET ?
     `).all(limit, offset);
+
+    // Engellenen kullanıcıların videolarını filtrele
+    if (userId) {
+      const blockedUsers = db.prepare(`
+        SELECT blocked_id FROM user_blocks WHERE blocker_id = ?
+        UNION
+        SELECT blocker_id FROM user_blocks WHERE blocked_id = ?
+      `).all(userId, userId).map(b => b.blocked_id || b.blocker_id);
+      
+      if (blockedUsers.length > 0) {
+        videos = videos.filter(v => !blockedUsers.includes(v.user_id));
+      }
+    }
 
     res.json(videos);
   } catch (error) {
@@ -876,7 +889,7 @@ router.get('/search', (req, res) => {
     }
 
     const searchTerm = `%${q}%`;
-    const videos = db.prepare(`
+    let videos = db.prepare(`
       SELECT v.*, c.channel_name, c.user_id, u.profile_photo, u.nickname, u.is_red_verified,
              (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as subscriber_count
       FROM videos v
@@ -888,6 +901,19 @@ router.get('/search', (req, res) => {
       ORDER BY v.views DESC, v.created_at DESC
       LIMIT ? OFFSET ?
     `).all(searchTerm, searchTerm, searchTerm, searchTerm, limit, offset);
+
+    // Engellenen kullanıcıların videolarını filtrele
+    if (userId) {
+      const blockedUsers = db.prepare(`
+        SELECT blocked_id FROM user_blocks WHERE blocker_id = ?
+        UNION
+        SELECT blocker_id FROM user_blocks WHERE blocked_id = ?
+      `).all(userId, userId).map(b => b.blocked_id || b.blocker_id);
+      
+      if (blockedUsers.length > 0) {
+        videos = videos.filter(v => !blockedUsers.includes(v.user_id));
+      }
+    }
 
     res.json(videos);
   } catch (error) {
@@ -1735,14 +1761,28 @@ router.get('/shorts', (req, res) => {
       LIMIT 100
     `).all();
 
+    // Engellenen kullanıcıların shortlarını filtrele
+    let filteredByBlock = shorts;
+    if (userId) {
+      const blockedUsers = db.prepare(`
+        SELECT blocked_id FROM user_blocks WHERE blocker_id = ?
+        UNION
+        SELECT blocker_id FROM user_blocks WHERE blocked_id = ?
+      `).all(userId, userId).map(b => b.blocked_id || b.blocker_id);
+      
+      if (blockedUsers.length > 0) {
+        filteredByBlock = shorts.filter(v => !blockedUsers.includes(v.channel_owner_id));
+      }
+    }
+
     // Etiket filtresi uygula
     const filtered = dislikedTags.length > 0
-      ? shorts.filter(v => {
+      ? filteredByBlock.filter(v => {
           if (!v.tags) return true;
           const videoTags = v.tags.toLowerCase().split(',').map(t => t.trim());
           return !videoTags.some(t => dislikedTags.includes(t));
         })
-      : shorts;
+      : filteredByBlock;
 
     res.json(filtered.slice(0, 50));
   } catch(e) {
@@ -2203,11 +2243,12 @@ router.get('/blocked-users/:userId', (req, res) => {
   }
 });
 
-// Engel kontrolÃ¼
+// Engel kontrolÃ¼ - İKİ YÖNLÜ (blocker veya blocked olarak)
 router.get('/is-blocked/:userId/:targetId', (req, res) => {
   try {
-    const block = db.prepare('SELECT id FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?')
-      .get(req.params.userId, req.params.targetId);
+    // userId, targetId'yi engellemiş mi VEYA targetId, userId'yi engellemiş mi?
+    const block = db.prepare('SELECT id FROM user_blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?)')
+      .get(req.params.userId, req.params.targetId, req.params.targetId, req.params.userId);
     res.json({ isBlocked: !!block });
   } catch(e) {
     res.status(500).json({ error: 'Kontrol edilemedi' });
