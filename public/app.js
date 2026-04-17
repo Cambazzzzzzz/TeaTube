@@ -671,6 +671,9 @@ async function loadUserData() {
         // Diğer işlemler - hata olsa bile devam et
         loadNotifications().catch(() => console.log('Bildirimler yüklenemedi'));
         loadActiveAnnouncements().catch(() => console.log('Duyurular yüklenemedi'));
+
+        // Socket.IO bağlantısını başlat (sesli arama için)
+        try { initVoiceSocket(); } catch(e) { console.log('Voice socket başlatılamadı'); }
         
         fetch(`${API_URL}/groups/user/${currentUser.id}`)
           .then(r => r.json())
@@ -8840,6 +8843,7 @@ async function openGroup(groupId) {
             <p style="font-size:12px;color:var(--yt-spec-text-secondary)">${group.member_count} üye</p>
           </div>
           <div style="display:flex;gap:6px">
+            ${isMember ? `<button onclick="joinVoiceRoom(${group.id},'${group.name.replace(/'/g,"\\'")}'); this.style.color='#1db954';" title="Sesli Sohbet" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:16px;padding:4px 8px" id="voiceJoinBtn_${group.id}"><i class="fas fa-headphones"></i></button>` : ''}
             <button onclick="showGroupMembersPanel(${group.id},${isOwner || isMod})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:16px;padding:4px 8px" id="groupMembersBtn"><i class="fas fa-users"></i></button>
             ${isOwner ? `<button onclick="showGroupSettings(${group.id})" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:16px;padding:4px 8px"><i class="fas fa-cog"></i></button>` : ''}
             ${isMember && !isOwner ? `<button onclick="leaveGroup(${group.id})" style="background:none;border:none;color:#ff4444;cursor:pointer;font-size:14px;padding:4px 8px"><i class="fas fa-sign-out-alt"></i></button>` : ''}
