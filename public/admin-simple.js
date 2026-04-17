@@ -39,9 +39,9 @@ function showSection(section) {
     'videos': 'Videolar',
     'groups': 'Gruplar',
     'messages': 'Mesajlaşmalar',
-    'music-applications': 'TS Music Başvuruları',
-    'music-artists': 'TS Music Sanatçıları',
-    'music-songs': 'TS Music Şarkıları',
+    'music-applications': 'TeaSocial Music Başvuruları',
+    'music-artists': 'TeaSocial Music Sanatçıları',
+    'music-songs': 'TeaSocial Music Şarkıları',
     'announcements': 'Duyurular',
     'badges': 'Rozetler',
     'admin-settings': 'Admin Ayarları'
@@ -688,7 +688,7 @@ async function loadMusicApplications() {
     
     let html = `
       <div class="section-header">
-        <h2>TS Music Başvuruları (${apps.length})</h2>
+        <h2>TeaSocial Music Başvuruları (${apps.length})</h2>
       </div>
       <div class="table-wrap">
         <table class="a-table">
@@ -803,7 +803,7 @@ async function loadMusicArtists() {
     
     let html = `
       <div class="section-header">
-        <h2>TS Music Sanatçıları (${artists.length})</h2>
+        <h2>TeaSocial Music Sanatçıları (${artists.length})</h2>
       </div>
       <div class="table-wrap">
         <table class="a-table">
@@ -870,7 +870,7 @@ async function loadMusicSongs() {
     
     let html = `
       <div class="section-header">
-        <h2>TS Music Şarkıları (${songs.length})</h2>
+        <h2>TeaSocial Music Şarkıları (${songs.length})</h2>
       </div>
       <div class="table-wrap">
         <table class="a-table">
@@ -965,3 +965,506 @@ window.addEventListener('load', () => {
     showSection('dashboard');
   }
 });
+
+
+// ==================== KULLANIM KOŞULLARI YÖNETİMİ ====================
+
+async function loadTermsManagement() {
+  const content = document.getElementById('mainContent');
+  content.innerHTML = '<div class="loading">Yükleniyor...</div>';
+  
+  try {
+    const res = await fetch(`${API}/admin/terms`);
+    const terms = await res.json();
+    
+    content.innerHTML = `
+      <div class="section-header">
+        <h2>Kullanım Koşulları Yönetimi</h2>
+        <button class="btn-primary" onclick="saveTerms()">
+          <i class="fas fa-save"></i> Kaydet
+        </button>
+      </div>
+      
+      <div class="card">
+        <div class="form-group">
+          <label>Kullanım Koşulları İçeriği</label>
+          <textarea id="termsContent" rows="20" style="width:100%;padding:12px;border:1px solid #333;background:#1a1a1a;color:#fff;border-radius:8px;font-family:monospace;font-size:14px;line-height:1.6;">${terms.content || ''}</textarea>
+        </div>
+        
+        ${terms.version ? `
+          <div style="margin-top:16px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;">
+            <p style="margin:0;font-size:13px;color:#888;">
+              <strong>Mevcut Versiyon:</strong> ${terms.version} | 
+              <strong>Son Güncelleme:</strong> ${new Date(terms.updated_at).toLocaleString('tr-TR')}
+            </p>
+          </div>
+        ` : ''}
+      </div>
+      
+      <div class="card" style="margin-top:20px;">
+        <h3 style="margin-bottom:16px;">Geçmiş Versiyonlar</h3>
+        <div id="termsHistory"></div>
+      </div>
+    `;
+    
+    loadTermsHistory();
+  } catch(err) {
+    content.innerHTML = `<div class="error">Hata: ${err.message}</div>`;
+  }
+}
+
+async function loadTermsHistory() {
+  try {
+    const res = await fetch(`${API}/admin/terms/history`);
+    const history = await res.json();
+    
+    const historyDiv = document.getElementById('termsHistory');
+    if (history.length === 0) {
+      historyDiv.innerHTML = '<p style="color:#888;">Henüz geçmiş versiyon yok.</p>';
+      return;
+    }
+    
+    historyDiv.innerHTML = history.map(h => `
+      <div style="padding:12px;border-bottom:1px solid #333;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <strong>Versiyon ${h.version}</strong>
+          <span style="color:#888;margin-left:12px;">${new Date(h.updated_at).toLocaleString('tr-TR')}</span>
+        </div>
+        <button class="btn-secondary" onclick="viewTermsVersion(${h.id})">Görüntüle</button>
+      </div>
+    `).join('');
+  } catch(err) {
+    console.error('Geçmiş yüklenemedi:', err);
+  }
+}
+
+async function saveTerms() {
+  const content = document.getElementById('termsContent').value;
+  if (!content.trim()) {
+    alert('İçerik boş olamaz!');
+    return;
+  }
+  
+  try {
+    const res = await fetch(`${API}/admin/terms`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, adminId: 1 })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      alert('Kullanım koşulları güncellendi! Yeni versiyon: ' + data.version);
+      loadTermsManagement();
+    } else {
+      alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+    }
+  } catch(err) {
+    alert('Kaydetme hatası: ' + err.message);
+  }
+}
+
+// ==================== VİDEO DETAYLI DÜZENLEME ====================
+
+async function editVideoDetails(videoId) {
+  try {
+    const res = await fetch(`${API}/admin/video/${videoId}/details`);
+    const video = await res.json();
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header">
+          <h3>Video Düzenle</h3>
+          <button onclick="this.closest('.modal').remove()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Başlık</label>
+            <input type="text" id="editVideoTitle" value="${video.title}" style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;">
+          </div>
+          
+          <div class="form-group">
+            <label>Açıklama</label>
+            <textarea id="editVideoDesc" rows="4" style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;">${video.description || ''}</textarea>
+          </div>
+          
+          <div class="form-group">
+            <label>Etiketler (virgülle ayırın)</label>
+            <input type="text" id="editVideoTags" value="${video.tags || ''}" style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;">
+          </div>
+          
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label>Görüntüleme</label>
+              <input type="number" id="editVideoViews" value="${video.views}" style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;">
+            </div>
+            
+            <div class="form-group">
+              <label>Beğeni</label>
+              <input type="number" id="editVideoLikes" value="${video.likes}" style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;">
+            </div>
+          </div>
+          
+          <button class="btn-primary" onclick="saveVideoDetails(${videoId})" style="width:100%;margin-top:16px;">
+            <i class="fas fa-save"></i> Kaydet
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  } catch(err) {
+    alert('Video yüklenemedi: ' + err.message);
+  }
+}
+
+async function saveVideoDetails(videoId) {
+  const title = document.getElementById('editVideoTitle').value;
+  const description = document.getElementById('editVideoDesc').value;
+  const tags = document.getElementById('editVideoTags').value;
+  const views = document.getElementById('editVideoViews').value;
+  const likes = document.getElementById('editVideoLikes').value;
+  
+  try {
+    const res = await fetch(`${API}/admin/video/${videoId}/details`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, description, tags, views, likes })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      alert('Video güncellendi!');
+      document.querySelector('.modal').remove();
+      loadVideos();
+    } else {
+      alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+    }
+  } catch(err) {
+    alert('Kaydetme hatası: ' + err.message);
+  }
+}
+
+// ==================== ŞARKI DETAYLI DÜZENLEME ====================
+
+async function editSongDetails(songId) {
+  try {
+    const res = await fetch(`${API}/admin/music/song/${songId}/details`);
+    const song = await res.json();
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header">
+          <h3>Şarkı Düzenle</h3>
+          <button onclick="this.closest('.modal').remove()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Şarkı Adı</label>
+            <input type="text" id="editSongTitle" value="${song.title}" style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;">
+          </div>
+          
+          <div class="form-group">
+            <label>Sanatçı</label>
+            <input type="text" value="${song.artist_name}" disabled style="width:100%;padding:10px;background:#0a0a0a;border:1px solid #333;color:#888;border-radius:6px;">
+          </div>
+          
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label>Tür</label>
+              <input type="text" id="editSongGenre" value="${song.genre || ''}" style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;">
+            </div>
+            
+            <div class="form-group">
+              <label>Dinlenme Sayısı</label>
+              <input type="number" id="editSongPlays" value="${song.play_count}" style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Şirket (opsiyonel)</label>
+            <input type="text" id="editSongCompany" value="${song.company_name || ''}" style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;">
+          </div>
+          
+          <button class="btn-primary" onclick="saveSongDetails(${songId})" style="width:100%;margin-top:16px;">
+            <i class="fas fa-save"></i> Kaydet
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  } catch(err) {
+    alert('Şarkı yüklenemedi: ' + err.message);
+  }
+}
+
+async function saveSongDetails(songId) {
+  const title = document.getElementById('editSongTitle').value;
+  const genre = document.getElementById('editSongGenre').value;
+  const play_count = document.getElementById('editSongPlays').value;
+  const company_name = document.getElementById('editSongCompany').value;
+  
+  try {
+    const res = await fetch(`${API}/admin/music/song/${songId}/full`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, genre, play_count, company_name })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      alert('Şarkı güncellendi!');
+      document.querySelector('.modal').remove();
+      loadMusicSongs();
+    } else {
+      alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+    }
+  } catch(err) {
+    alert('Kaydetme hatası: ' + err.message);
+  }
+}
+
+// ==================== REALS ETİKET YÖNETİMİ ====================
+
+async function loadRealsTagManagement() {
+  const content = document.getElementById('mainContent');
+  content.innerHTML = '<div class="loading">Yükleniyor...</div>';
+  
+  try {
+    const res = await fetch(`${API}/admin/reals/tags`);
+    const tags = await res.json();
+    
+    content.innerHTML = `
+      <div class="section-header">
+        <h2>Reals Etiket Yönetimi</h2>
+      </div>
+      
+      <div class="card">
+        <h3 style="margin-bottom:16px;">Tüm Etiketler (${tags.length})</h3>
+        
+        ${tags.length === 0 ? '<p style="color:#888;">Henüz etiket yok.</p>' : `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Etiket</th>
+                  <th>Kullanım Sayısı</th>
+                  <th>İşlemler</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tags.map(t => `
+                  <tr>
+                    <td><span style="background:#1db954;color:#000;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600;">#${t.tag}</span></td>
+                    <td>${t.count} video</td>
+                    <td>
+                      <button class="btn-secondary" onclick="replaceRealsTag('${t.tag}')">
+                        <i class="fas fa-edit"></i> Değiştir
+                      </button>
+                      <button class="btn-danger" onclick="deleteRealsTag('${t.tag}')">
+                        <i class="fas fa-trash"></i> Sil
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+      </div>
+    `;
+  } catch(err) {
+    content.innerHTML = `<div class="error">Hata: ${err.message}</div>`;
+  }
+}
+
+async function replaceRealsTag(oldTag) {
+  const newTag = prompt(`"${oldTag}" etiketini ne ile değiştirmek istiyorsunuz?`);
+  if (!newTag || newTag === oldTag) return;
+  
+  try {
+    const res = await fetch(`${API}/admin/reals/tags/replace`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldTag, newTag })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      alert(`${data.updated} video güncellendi!`);
+      loadRealsTagManagement();
+    } else {
+      alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+    }
+  } catch(err) {
+    alert('Hata: ' + err.message);
+  }
+}
+
+async function deleteRealsTag(tag) {
+  if (!confirm(`"${tag}" etiketini tüm videolardan silmek istediğinize emin misiniz?`)) return;
+  
+  try {
+    const res = await fetch(`${API}/admin/reals/tags/${encodeURIComponent(tag)}`, {
+      method: 'DELETE'
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      alert(`${data.updated} videodan etiket silindi!`);
+      loadRealsTagManagement();
+    } else {
+      alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+    }
+  } catch(err) {
+    alert('Hata: ' + err.message);
+  }
+}
+
+// ==================== KULLANICI PROFİL DÜZENLEME ====================
+
+async function editUserProfile(userId) {
+  try {
+    const res = await fetch(`${API}/admin/user/${userId}`);
+    const user = await res.json();
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header">
+          <h3>Kullanıcı Düzenle</h3>
+          <button onclick="this.closest('.modal').remove()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div style="text-align:center;margin-bottom:20px;">
+            <img src="${user.profile_photo}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;" onerror="this.src='?'">
+            <p style="margin-top:8px;color:#888;">@${user.username}</p>
+          </div>
+          
+          <div class="form-group">
+            <label>Nickname</label>
+            <input type="text" id="editUserNickname" value="${user.nickname}" style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;">
+          </div>
+          
+          <div class="form-group">
+            <label>Kullanıcı Adı</label>
+            <input type="text" id="editUsername" value="${user.username}" style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;">
+          </div>
+          
+          <div class="form-group">
+            <label>Yeni Şifre (boş bırakılırsa değişmez)</label>
+            <input type="password" id="editUserPassword" placeholder="Yeni şifre" style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:6px;">
+          </div>
+          
+          <button class="btn-primary" onclick="saveUserProfile(${userId})" style="width:100%;margin-top:16px;">
+            <i class="fas fa-save"></i> Kaydet
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  } catch(err) {
+    alert('Kullanıcı yüklenemedi: ' + err.message);
+  }
+}
+
+async function saveUserProfile(userId) {
+  const nickname = document.getElementById('editUserNickname').value;
+  const username = document.getElementById('editUsername').value;
+  const password = document.getElementById('editUserPassword').value;
+  
+  try {
+    // Nickname güncelle
+    await fetch(`${API}/admin/user/${userId}/nickname`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nickname })
+    });
+    
+    // Username güncelle
+    await fetch(`${API}/admin/user/${userId}/rename`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    
+    // Şifre varsa güncelle
+    if (password) {
+      await fetch(`${API}/admin/user/${userId}/password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword: password })
+      });
+    }
+    
+    alert('Kullanıcı güncellendi!');
+    document.querySelector('.modal').remove();
+    loadUsers();
+  } catch(err) {
+    alert('Kaydetme hatası: ' + err.message);
+  }
+}
+
+// Video listesine düzenle butonu ekle
+const originalLoadVideos = loadVideos;
+loadVideos = async function() {
+  await originalLoadVideos();
+  // Düzenle butonlarını ekle
+  document.querySelectorAll('.video-row').forEach(row => {
+    const videoId = row.dataset.videoId;
+    if (videoId) {
+      const actionsCell = row.querySelector('.actions-cell');
+      if (actionsCell && !actionsCell.querySelector('.edit-btn')) {
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn-secondary edit-btn';
+        editBtn.innerHTML = '<i class="fas fa-edit"></i> Düzenle';
+        editBtn.onclick = () => editVideoDetails(videoId);
+        actionsCell.insertBefore(editBtn, actionsCell.firstChild);
+      }
+    }
+  });
+};
+
+// Şarkı listesine düzenle butonu ekle
+const originalLoadMusicSongs = loadMusicSongs;
+loadMusicSongs = async function() {
+  await originalLoadMusicSongs();
+  // Düzenle butonlarını ekle
+  document.querySelectorAll('.song-row').forEach(row => {
+    const songId = row.dataset.songId;
+    if (songId) {
+      const actionsCell = row.querySelector('.actions-cell');
+      if (actionsCell && !actionsCell.querySelector('.edit-btn')) {
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn-secondary edit-btn';
+        editBtn.innerHTML = '<i class="fas fa-edit"></i> Düzenle';
+        editBtn.onclick = () => editSongDetails(songId);
+        actionsCell.insertBefore(editBtn, actionsCell.firstChild);
+      }
+    }
+  });
+};
+
+// Kullanıcı listesine düzenle butonu ekle
+const originalLoadUsers = loadUsers;
+loadUsers = async function() {
+  await originalLoadUsers();
+  // Düzenle butonlarını ekle
+  document.querySelectorAll('.user-row').forEach(row => {
+    const userId = row.dataset.userId;
+    if (userId) {
+      const actionsCell = row.querySelector('.actions-cell');
+      if (actionsCell && !actionsCell.querySelector('.edit-btn')) {
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn-secondary edit-btn';
+        editBtn.innerHTML = '<i class="fas fa-edit"></i> Düzenle';
+        editBtn.onclick = () => editUserProfile(userId);
+        actionsCell.insertBefore(editBtn, actionsCell.firstChild);
+      }
+    }
+  });
+};

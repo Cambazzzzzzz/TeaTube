@@ -109,7 +109,7 @@ function closeModal() { document.querySelector('.a-modal-bg')?.remove(); }
 function showSection(sec) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>{ if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes(sec)) n.classList.add('active'); });
-  const titles = {dashboard:'Dashboard',users:'Kullanicilar',channels:'Kanallar',personal:'Kisisel Hesaplar','ip-bans':'IP Banlari',videos:'Videolar',groups:'Gruplar',messages:'Mesajlasmalar','music-applications':'TS Music - Basvurular','music-artists':'TS Music - Artistler','music-songs':'TS Music - Sarkilar','admin-settings':'Admin Ayarlari'};
+  const titles = {dashboard:'Dashboard',users:'Kullanicilar',channels:'Kanallar',personal:'Kisisel Hesaplar','ip-bans':'IP Banlari',videos:'Videolar',groups:'Gruplar',messages:'Mesajlasmalar','music-applications':'TeaSocial Music - Basvurular','music-artists':'TeaSocial Music - Artistler','music-songs':'TeaSocial Music - Sarkilar','admin-settings':'Admin Ayarlari'};
   const tb = document.getElementById('topbarTitle');
   if (tb) tb.textContent = titles[sec] || sec;
   switch(sec) {

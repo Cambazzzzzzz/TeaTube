@@ -1,4 +1,4 @@
-﻿// TS Music - Sarki Yaz Modülü
+﻿// TeaSocial Music - Sarki Yaz Modülü
 // song-writing.js
 
 // ─── Yardımcı: Yıldız render ───────────────────────────────────────────────

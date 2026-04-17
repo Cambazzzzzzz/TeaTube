@@ -219,7 +219,7 @@ function showMobileProfileSheet() {
         { icon:'fa-bookmark', label:'Kaydedilenler', page:'saved' },
         { icon:'fa-history', label:'Geçmiş', page:'history' },
         { icon:'fa-layer-group', label:'Gruplar', page:'groups' },
-        { icon:'fa-music', label:'TS Music', page:'ts-music' },
+        { icon:'fa-music', label:'TeaSocial Music', page:'ts-music' },
         { icon:'fa-brain', label:'Algoritmam', page:'algorithm' },
         { icon:'fa-cog', label:'Ayarlar', page:'settings' },
       ].map(item => `
@@ -7631,7 +7631,7 @@ async function unblockUser(blockedId, nickname) {
 }
 
 
-// ==================== TS MUSIC ====================
+// ==================== TEASOCIAL MUSIC ====================
 let tsMusicAudio = null;
 let tsMusicCurrentSong = null;
 let tsMusicIsPlaying = false;
@@ -7813,7 +7813,7 @@ function renderTSArtistCard(a) {
     </div>`;
 }
 
-// TS Music global queue (anasayfa için)
+// TeaSocial Music global queue (anasayfa için)
 let tsMusicHomeQueue = [];
 let tsMusicHomeIndex = -1;
 let tsMusicHomeShuffle = false;
