@@ -1071,3 +1071,37 @@ db.exec(`
 `);
 
 console.log('✓ DemlikChat extended tables initialized');
+
+// ==================== DEMLIKCHAT ROL SİSTEMİ ====================
+
+// DC Roles
+db.exec(`
+  CREATE TABLE IF NOT EXISTS dc_roles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    server_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    color TEXT DEFAULT '#99aab5',
+    permissions TEXT DEFAULT '{}',
+    position INTEGER DEFAULT 0,
+    is_default INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(server_id) REFERENCES dc_servers(id) ON DELETE CASCADE
+  )
+`);
+
+// DC Member Roles
+db.exec(`
+  CREATE TABLE IF NOT EXISTS dc_member_roles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    server_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    role_id INTEGER NOT NULL,
+    assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(server_id, user_id, role_id),
+    FOREIGN KEY(server_id) REFERENCES dc_servers(id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES dc_users(id) ON DELETE CASCADE,
+    FOREIGN KEY(role_id) REFERENCES dc_roles(id) ON DELETE CASCADE
+  )
+`);
+
+console.log('✓ DemlikChat role system tables initialized');

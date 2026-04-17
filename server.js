@@ -19,7 +19,7 @@ const io = socketIO(server, {
 });
 const PORT = process.env.PORT || 3456;
 
-// Admin þifresini güncelle (sadece ilk baþlatmada)
+// Admin ï¿½ifresini gï¿½ncelle (sadece ilk baï¿½latmada)
 migrateAdminPassword().catch(err => console.error('Migration error:', err));
 
 app.set('trust proxy', true);
@@ -67,7 +67,7 @@ app.get('/dc/discord', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'discord.html'));
 });
 
-// Admin giriþ sayfasý
+// Admin giriï¿½ sayfasï¿½
 app.get('/administans', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'administans.html'));
 });
@@ -90,13 +90,13 @@ app.use((err, req, res, next) => {
 
 server.listen(PORT, () => {
   console.log(`
-â??â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â??
-â??         TeaTube Server v1.0          â??
-â? â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?£
-â??  Port: ${PORT}                         â??
-â??  URL: http://localhost:${PORT}        â??
-â??  Status: â?? Ã?alÄ±Å?Ä±yor                 â??
-â??â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?â?
+ï¿½??ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½??
+ï¿½??         TeaTube Server v1.0          ï¿½??
+ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½
+ï¿½??  Port: ${PORT}                         ï¿½??
+ï¿½??  URL: http://localhost:${PORT}        ï¿½??
+ï¿½??  Status: ï¿½?? ï¿½?alÄ±ï¿½?Ä±yor                 ï¿½??
+ï¿½??ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½
   `);
 });
 
@@ -199,58 +199,97 @@ io.on('connection', (socket) => {
   
   // Join voice channel
   socket.on('join_voice', (data) => {
-    const { userId, channel } = data;
+    const { userId, username, serverId, channelId } = data;
+    const voiceRoomId = `voice_${serverId}_${channelId}`;
     
-    if (!voiceChannels.has(channel)) {
-      voiceChannels.set(channel, new Set());
+    if (!voiceChannels.has(voiceRoomId)) {
+      voiceChannels.set(voiceRoomId, new Map());
     }
     
-    voiceChannels.get(channel).add(userId);
-    socket.join(`voice_${channel}`);
+    voiceChannels.get(voiceRoomId).set(userId, { username, socketId: socket.id });
+    socket.join(voiceRoomId);
+    socket.voiceChannel = voiceRoomId;
     
-    // Notify others in the channel
-    io.to(`voice_${channel}`).emit('user_joined_voice', {
-      channel,
+    console.log(`ðŸŽ¤ User ${username} joined voice channel ${channelId}`);
+    
+    // Get existing users in channel
+    const existingUsers = Array.from(voiceChannels.get(voiceRoomId).entries())
+      .filter(([id]) => id !== userId)
+      .map(([id, data]) => ({ userId: id, username: data.username }));
+    
+    // Send existing users to new user
+    socket.emit('voice_users', { users: existingUsers });
+    
+    // Notify others about new user
+    socket.to(voiceRoomId).emit('user_joined_voice', {
       userId,
-      users: Array.from(voiceChannels.get(channel))
+      username,
+      channelId
     });
-    
-    console.log(`User ${userId} joined voice channel ${channel}`);
   });
   
   // Leave voice channel
   socket.on('leave_voice', (data) => {
-    const { userId, channel } = data;
+    const { userId, channelId } = data;
     
-    if (voiceChannels.has(channel)) {
-      voiceChannels.get(channel).delete(userId);
+    if (socket.voiceChannel) {
+      const voiceRoomId = socket.voiceChannel;
       
-      if (voiceChannels.get(channel).size === 0) {
-        voiceChannels.delete(channel);
+      if (voiceChannels.has(voiceRoomId)) {
+        const userData = voiceChannels.get(voiceRoomId).get(userId);
+        voiceChannels.get(voiceRoomId).delete(userId);
+        
+        if (voiceChannels.get(voiceRoomId).size === 0) {
+          voiceChannels.delete(voiceRoomId);
+        }
+        
+        // Notify others
+        socket.to(voiceRoomId).emit('user_left_voice', {
+          userId,
+          username: userData?.username,
+          channelId
+        });
+        
+        console.log(`ðŸ”Œ User ${userData?.username} left voice channel ${channelId}`);
       }
+      
+      socket.leave(voiceRoomId);
+      socket.voiceChannel = null;
     }
-    
-    socket.leave(`voice_${channel}`);
-    
-    // Notify others in the channel
-    io.to(`voice_${channel}`).emit('user_left_voice', {
-      channel,
-      userId,
-      users: voiceChannels.has(channel) ? Array.from(voiceChannels.get(channel)) : []
-    });
-    
-    console.log(`User ${userId} left voice channel ${channel}`);
   });
   
   // Voice signaling (for WebRTC)
   socket.on('voice_signal', (data) => {
-    const { to, signal } = data;
+    const { to, from, signal, channelId } = data;
     const toSocketId = dcUsers.get(to);
     
     if (toSocketId) {
+      // Get sender username
+      let username = 'Unknown';
+      if (socket.voiceChannel && voiceChannels.has(socket.voiceChannel)) {
+        const userData = voiceChannels.get(socket.voiceChannel).get(from);
+        if (userData) username = userData.username;
+      }
+      
       io.to(toSocketId).emit('voice_signal', {
-        from: socket.userId,
-        signal
+        from,
+        signal,
+        username,
+        channelId
+      });
+      
+      console.log(`ðŸ“¡ Voice signal: ${username} -> User ${to}`);
+    }
+  });
+  
+  // Voice mute status
+  socket.on('voice_mute_status', (data) => {
+    const { userId, channelId, muted } = data;
+    
+    if (socket.voiceChannel) {
+      socket.to(socket.voiceChannel).emit('user_mute_status', {
+        userId,
+        muted
       });
     }
   });
@@ -260,17 +299,22 @@ io.on('connection', (socket) => {
     if (socket.userId) {
       dcUsers.delete(socket.userId);
       
-      // Remove from all voice channels
-      voiceChannels.forEach((users, channel) => {
-        if (users.has(socket.userId)) {
-          users.delete(socket.userId);
-          io.to(`voice_${channel}`).emit('user_left_voice', {
-            channel,
-            userId: socket.userId,
-            users: Array.from(users)
-          });
+      // Remove from voice channel if connected
+      if (socket.voiceChannel && voiceChannels.has(socket.voiceChannel)) {
+        const voiceRoom = voiceChannels.get(socket.voiceChannel);
+        const userData = voiceRoom.get(socket.userId);
+        voiceRoom.delete(socket.userId);
+        
+        if (voiceRoom.size === 0) {
+          voiceChannels.delete(socket.voiceChannel);
         }
-      });
+        
+        // Notify others
+        socket.to(socket.voiceChannel).emit('user_left_voice', {
+          userId: socket.userId,
+          username: userData?.username
+        });
+      }
     }
     
     console.log('Socket disconnected:', socket.id);

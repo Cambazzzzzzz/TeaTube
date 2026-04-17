@@ -454,6 +454,8 @@ function renderMembers(members) {
   
   members.forEach(member => {
     const memberEl = document.createElement('div');
+    memberEl.dataset.userId = member.id;
+    memberEl.dataset.username = member.display_name || member.username;
     memberEl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 8px;margin:2px 0;border-radius:4px;cursor:pointer;transition:background 0.1s;';
     memberEl.innerHTML = `
       <div style="position:relative;width:32px;height:32px;border-radius:50%;background:var(--brand);overflow:hidden;">
@@ -1222,3 +1224,72 @@ if (currentUser) {
   loadDMs();
   loadFriends();
 }
+
+
+// ==================== SUNUCU AYARLARI DROPDOWN ====================
+
+// Sunucu ayarları dropdown menüsü
+document.querySelector('.server-dropdown-btn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  
+  const dropdown = document.createElement('div');
+  dropdown.className = 'server-dropdown-menu';
+  dropdown.style.cssText = `
+    position:absolute;
+    top:56px;
+    left:16px;
+    right:16px;
+    background:var(--bg-tertiary);
+    border-radius:8px;
+    padding:8px;
+    box-shadow:0 8px 16px rgba(0,0,0,0.24);
+    z-index:100;
+  `;
+  
+  dropdown.innerHTML = `
+    <button onclick="showRolesModal(${currentServer}); this.parentElement.remove();" style="display:block;width:100%;padding:12px;background:none;border:none;color:var(--text-normal);text-align:left;cursor:pointer;border-radius:4px;font-size:14px;font-weight:500;" onmouseover="this.style.background='var(--background-modifier-hover)'" onmouseout="this.style.background='none'">
+      <i class="fas fa-shield-alt" style="margin-right:8px;"></i> Sunucu Rolleri
+    </button>
+    <button onclick="showServerSettings(); this.parentElement.remove();" style="display:block;width:100%;padding:12px;background:none;border:none;color:var(--text-normal);text-align:left;cursor:pointer;border-radius:4px;font-size:14px;font-weight:500;" onmouseover="this.style.background='var(--background-modifier-hover)'" onmouseout="this.style.background='none'">
+      <i class="fas fa-cog" style="margin-right:8px;"></i> Sunucu Ayarları
+    </button>
+    <button onclick="showInviteModal(); this.parentElement.remove();" style="display:block;width:100%;padding:12px;background:none;border:none;color:var(--text-normal);text-align:left;cursor:pointer;border-radius:4px;font-size:14px;font-weight:500;" onmouseover="this.style.background='var(--background-modifier-hover)'" onmouseout="this.style.background='none'">
+      <i class="fas fa-user-plus" style="margin-right:8px;"></i> Davet Oluştur
+    </button>
+  `;
+  
+  document.querySelector('.channel-sidebar').appendChild(dropdown);
+  
+  // Dışarı tıklanınca kapat
+  setTimeout(() => {
+    document.addEventListener('click', function closeDropdown(e) {
+      if (!dropdown.contains(e.target)) {
+        dropdown.remove();
+        document.removeEventListener('click', closeDropdown);
+      }
+    });
+  }, 100);
+});
+
+function showServerSettings() {
+  showToast('Sunucu ayarları yakında!', 'info');
+}
+
+function showInviteModal() {
+  showToast('Davet sistemi yakında!', 'info');
+}
+
+// Üyelere sağ tıklayınca rol atama menüsü
+document.addEventListener('contextmenu', (e) => {
+  const memberItem = e.target.closest('.member-items > div');
+  if (memberItem && currentServer !== 'home') {
+    e.preventDefault();
+    
+    const userId = memberItem.dataset.userId;
+    const username = memberItem.dataset.username;
+    
+    if (userId && username) {
+      showMemberRolesModal(currentServer, userId, username);
+    }
+  }
+});
