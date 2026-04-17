@@ -11,7 +11,7 @@ node server.js
 ### 2️⃣ Open DemlikChat
 Open your browser and go to:
 ```
-http://localhost:3456/dc/discord
+http://localhost:3456/demlikchat/app
 ```
 
 ### 3️⃣ Create Account
@@ -103,7 +103,7 @@ http://localhost:3456/dc/discord
 
 DemlikChat is fully responsive! Access from your phone:
 1. Open browser on phone
-2. Go to `http://YOUR_IP:3456/dc/discord`
+2. Go to `http://YOUR_IP:3456/demlikchat/app`
 3. Use normally - all features work!
 
 **Note:** Replace `YOUR_IP` with your computer's local IP address.
@@ -127,7 +127,7 @@ DemlikChat is fully responsive! Access from your phone:
 ### Can't Connect?
 1. ✅ Check if server is running (`node server.js`)
 2. ✅ Check port 3456 is not in use
-3. ✅ Try `http://localhost:3456/dc/discord`
+3. ✅ Try `http://localhost:3456/demlikchat/app`
 4. ✅ Clear browser cache
 
 ### Messages Not Sending?
@@ -230,8 +230,8 @@ Enjoy your fully functional Discord clone with:
 ## 🔗 Quick Links
 
 - **Main App:** http://localhost:3456
-- **DemlikChat:** http://localhost:3456/dc/discord
-- **Countdown:** http://localhost:3456/dc
+- **DemlikChat:** http://localhost:3456/demlikchat/app
+- **Countdown:** http://localhost:3456/demlikchat
 - **Admin Panel:** http://localhost:3456/bcics
 
 ---

@@ -57,13 +57,13 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// DC (DemlikChat) - Countdown page
-app.get('/dc', (req, res) => {
+// DemlikChat - Countdown page
+app.get('/demlikchat', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'countdown.html'));
 });
 
-// DC Discord page
-app.get('/dc/discord', (req, res) => {
+// DemlikChat - Main app
+app.get('/demlikchat/app', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'discord.html'));
 });
 

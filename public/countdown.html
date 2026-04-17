@@ -404,10 +404,10 @@
       const distance = launchDate.getTime() - now;
 
       if (distance < 0) {
-        // Geri sayım bitti, Discord sayfasına yönlendir
-        console.log('Geri sayım tamamlandı! Discord açılıyor...');
+        // Geri sayım bitti, DemlikChat sayfasına yönlendir
+        console.log('Geri sayım tamamlandı! DemlikChat açılıyor...');
         localStorage.removeItem('dcLaunchTime'); // Temizle
-        window.location.href = '/dc/discord';
+        window.location.href = '/demlikchat/app';
         return;
       }
 

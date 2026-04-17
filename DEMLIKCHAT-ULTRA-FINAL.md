@@ -106,7 +106,7 @@ node server.js
 
 ### Erişim:
 - **Ana Sayfa:** http://localhost:3456
-- **DemlikChat:** http://localhost:3456/dc/discord
+- **DemlikChat:** http://localhost:3456/demlikchat/app
 
 ### Ses Efekti Kullanımı:
 1. Sesli kanala katıl

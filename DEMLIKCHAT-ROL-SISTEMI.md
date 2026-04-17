@@ -19,12 +19,12 @@ dc_member_roles (
 ```
 
 ### API Endpoints
-- ✅ `GET /api/dc/roles/:serverId` - Sunucu rollerini getir
-- ✅ `POST /api/dc/roles/create` - Rol oluştur
-- ✅ `POST /api/dc/roles/delete` - Rol sil
-- ✅ `GET /api/dc/member-roles/:serverId/:userId` - Üye rollerini getir
-- ✅ `POST /api/dc/member-roles/add` - Üyeye rol ekle
-- ✅ `POST /api/dc/member-roles/remove` - Üyeden rol kaldır
+- ✅ `GET /api/demlikchat/roles/:serverId` - Sunucu rollerini getir
+- ✅ `POST /api/demlikchat/roles/create` - Rol oluştur
+- ✅ `POST /api/demlikchat/roles/delete` - Rol sil
+- ✅ `GET /api/demlikchat/member-roles/:serverId/:userId` - Üye rollerini getir
+- ✅ `POST /api/demlikchat/member-roles/add` - Üyeye rol ekle
+- ✅ `POST /api/demlikchat/member-roles/remove` - Üyeden rol kaldır
 
 ### Frontend UI
 - ✅ Rol yönetimi modal'ı (`discord-roles.js`)

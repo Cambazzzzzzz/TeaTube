@@ -132,9 +132,9 @@ node server.js
 ```
 
 ### Erişim:
-- **Web:** http://localhost:3000/dc
-- **Countdown:** http://localhost:3000/dc (ilk sayfa)
-- **Discord App:** http://localhost:3000/dc/discord
+- **Web:** http://localhost:3000/demlikchat
+- **Countdown:** http://localhost:3000/demlikchat (ilk sayfa)
+- **Discord App:** http://localhost:3000/demlikchat/app
 
 ### Test Kullanıcıları:
 1. Kayıt ol: Kullanıcı adı + şifre

@@ -301,8 +301,8 @@ node server.js
 
 ### Accessing DemlikChat:
 - **Main Page:** http://localhost:3456
-- **Countdown:** http://localhost:3456/dc
-- **Discord App:** http://localhost:3456/dc/discord
+- **Countdown:** http://localhost:3456/demlikchat
+- **Discord App:** http://localhost:3456/demlikchat/app
 
 ### Using Voice Effects:
 1. Join a voice channel

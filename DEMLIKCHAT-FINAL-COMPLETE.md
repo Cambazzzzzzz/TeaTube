@@ -93,7 +93,7 @@ node server.js
 
 ### Erişim:
 - **Ana Sayfa:** http://localhost:3456
-- **DemlikChat:** http://localhost:3456/dc/discord
+- **DemlikChat:** http://localhost:3456/demlikchat/app
 
 ### Sesli Sohbet Kullanımı:
 1. Sol sidebar'dan sesli kanal seç (🔊 ikonu)

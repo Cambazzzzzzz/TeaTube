@@ -14,13 +14,13 @@ DemlikChat (Discord Clone) artık TeaTube'un içinde tam fonksiyonel olarak çal
 
 ### 2. Backend API
 - ✅ `src/routes-dc.js` - DemlikChat API endpoint'leri
-  - `/api/dc/register` - Kayıt ol
-  - `/api/dc/login` - Giriş yap
-  - `/api/dc/servers/:userId` - Kullanıcının sunucularını getir
-  - `/api/dc/servers/create` - Yeni sunucu oluştur
-  - `/api/dc/channels/:serverId` - Sunucu kanallarını getir
-  - `/api/dc/messages/:serverId/:channelId` - Kanal mesajlarını getir
-  - `/api/dc/members/:serverId` - Sunucu üyelerini getir
+  - `/api/demlikchat/register` - Kayıt ol
+  - `/api/demlikchat/login` - Giriş yap
+  - `/api/demlikchat/servers/:userId` - Kullanıcının sunucularını getir
+  - `/api/demlikchat/servers/create` - Yeni sunucu oluştur
+  - `/api/demlikchat/channels/:serverId` - Sunucu kanallarını getir
+  - `/api/demlikchat/messages/:serverId/:channelId` - Kanal mesajlarını getir
+  - `/api/demlikchat/members/:serverId` - Sunucu üyelerini getir
 
 ### 3. Database
 - ✅ `src/database.js` - DemlikChat tabloları eklendi
@@ -39,8 +39,8 @@ DemlikChat (Discord Clone) artık TeaTube'un içinde tam fonksiyonel olarak çal
   - Kullanıcı presence tracking
 
 ### 5. Routes
-- ✅ `/dc` → Geri sayım sayfası
-- ✅ `/dc/discord` → Discord uygulaması
+- ✅ `/demlikchat` → Geri sayım sayfası
+- ✅ `/demlikchat/app` → Discord uygulaması
 
 ## 🎯 ÖZELLİKLER
 
@@ -89,12 +89,12 @@ DemlikChat (Discord Clone) artık TeaTube'un içinde tam fonksiyonel olarak çal
 1. TeaTube'u aç
 2. Mobilde: Alt menüden **DC** butonuna tıkla
 3. PC'de: Sol sidebar'dan **DC** butonuna tıkla
-4. Veya direkt: `http://localhost:3456/dc`
+4. Veya direkt: `http://localhost:3456/demlikchat`
 
 ### İlk Kullanım
 1. Geri sayım sayfası açılır (24 saat)
 2. Geri sayım bitince otomatik olarak Discord sayfasına yönlendirilir
-3. Veya direkt: `http://localhost:3456/dc/discord`
+3. Veya direkt: `http://localhost:3456/demlikchat/app`
 
 ### Kayıt ve Giriş
 1. **Kayıt Ol** sekmesinden yeni hesap oluştur
@@ -165,13 +165,13 @@ dc_voice_sessions (id, server_id, channel_id, user_id, joined_at)
 ### API Endpoints
 
 ```
-POST   /api/dc/register              - Kayıt ol
-POST   /api/dc/login                 - Giriş yap
-GET    /api/dc/servers/:userId       - Sunucuları getir
-POST   /api/dc/servers/create        - Sunucu oluştur
-GET    /api/dc/channels/:serverId    - Kanalları getir
-GET    /api/dc/messages/:serverId/:channelId - Mesajları getir
-GET    /api/dc/members/:serverId     - Üyeleri getir
+POST   /api/demlikchat/register              - Kayıt ol
+POST   /api/demlikchat/login                 - Giriş yap
+GET    /api/demlikchat/servers/:userId       - Sunucuları getir
+POST   /api/demlikchat/servers/create        - Sunucu oluştur
+GET    /api/demlikchat/channels/:serverId    - Kanalları getir
+GET    /api/demlikchat/messages/:serverId/:channelId - Mesajları getir
+GET    /api/demlikchat/members/:serverId     - Üyeleri getir
 ```
 
 ## 📱 MOBIL UYUMLULUK

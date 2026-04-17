@@ -10,8 +10,8 @@
 - ✅ Real-time DM bildirimleri
 
 **API Endpoints:**
-- `GET /api/dc/dms/:userId` - DM listesi
-- `GET /api/dc/dm-messages/:userId/:targetId` - DM mesajları
+- `GET /api/demlikchat/dms/:userId` - DM listesi
+- `GET /api/demlikchat/dm-messages/:userId/:targetId` - DM mesajları
 
 **Socket Events:**
 - `send_dm` - DM gönder
@@ -27,11 +27,11 @@
 - ✅ Arkadaşlara direkt mesaj gönderme
 
 **API Endpoints:**
-- `GET /api/dc/friends/:userId` - Arkadaşlar ve istekler
-- `POST /api/dc/friends/request` - Arkadaşlık isteği gönder
-- `POST /api/dc/friends/accept` - İsteği kabul et
-- `POST /api/dc/friends/reject` - İsteği reddet
-- `POST /api/dc/friends/remove` - Arkadaşı kaldır
+- `GET /api/demlikchat/friends/:userId` - Arkadaşlar ve istekler
+- `POST /api/demlikchat/friends/request` - Arkadaşlık isteği gönder
+- `POST /api/demlikchat/friends/accept` - İsteği kabul et
+- `POST /api/demlikchat/friends/reject` - İsteği reddet
+- `POST /api/demlikchat/friends/remove` - Arkadaşı kaldır
 
 **UI:**
 - Arkadaşlar butonu (header'da)
@@ -47,7 +47,7 @@
 - ✅ Real-time mesaj silme
 
 **API Endpoints:**
-- `POST /api/dc/messages/delete` - Mesaj sil
+- `POST /api/demlikchat/messages/delete` - Mesaj sil
 
 **Socket Events:**
 - `message_deleted` - Mesaj silindi
@@ -68,7 +68,7 @@
 - ✅ Yükleme progress göstergesi
 
 **API Endpoints:**
-- `POST /api/dc/upload` - Dosya yükle
+- `POST /api/demlikchat/upload` - Dosya yükle
 
 **UI:**
 - Dosya yükleme modal'ı

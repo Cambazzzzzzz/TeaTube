@@ -16,12 +16,12 @@
 - `dc_member_roles` - Üye rolleri
 
 **API Endpoints:**
-- `GET /api/dc/roles/:serverId`
-- `POST /api/dc/roles/create`
-- `POST /api/dc/roles/delete`
-- `GET /api/dc/member-roles/:serverId/:userId`
-- `POST /api/dc/member-roles/add`
-- `POST /api/dc/member-roles/remove`
+- `GET /api/demlikchat/roles/:serverId`
+- `POST /api/demlikchat/roles/create`
+- `POST /api/demlikchat/roles/delete`
+- `GET /api/demlikchat/member-roles/:serverId/:userId`
+- `POST /api/demlikchat/member-roles/add`
+- `POST /api/demlikchat/member-roles/remove`
 
 ### 2. **Mention Sistemi** 📢
 - ✅ @kullanıcı mention
@@ -48,9 +48,9 @@
 - `dc_message_reactions` tablosu
 
 **API Endpoints:**
-- `POST /api/dc/reactions/add`
-- `POST /api/dc/reactions/remove`
-- `GET /api/dc/reactions/:messageId`
+- `POST /api/demlikchat/reactions/add`
+- `POST /api/demlikchat/reactions/remove`
+- `GET /api/demlikchat/reactions/:messageId`
 
 ### 4. **Sabitlenmiş Mesajlar** 📌
 - ✅ Mesaj sabitleme
@@ -60,9 +60,9 @@
 - ✅ Mesaj önizleme
 
 **API Endpoints:**
-- `POST /api/dc/messages/pin`
-- `POST /api/dc/messages/unpin`
-- `GET /api/dc/pinned/:serverId/:channelId`
+- `POST /api/demlikchat/messages/pin`
+- `POST /api/demlikchat/messages/unpin`
+- `GET /api/demlikchat/pinned/:serverId/:channelId`
 
 **Kullanım:**
 - Mesaja sağ tıkla → Sabitle
@@ -77,7 +77,7 @@
 - ✅ Highlight efekti
 
 **API Endpoints:**
-- `GET /api/dc/search?serverId=X&query=Y`
+- `GET /api/demlikchat/search?serverId=X&query=Y`
 
 **Kullanım:**
 - 🔍 butonuna tıkla
@@ -98,9 +98,9 @@
 - `dc_user_status` tablosu
 
 **API Endpoints:**
-- `POST /api/dc/status/set`
-- `POST /api/dc/status/custom`
-- `GET /api/dc/status/:userId`
+- `POST /api/demlikchat/status/set`
+- `POST /api/demlikchat/status/custom`
+- `GET /api/demlikchat/status/:userId`
 
 ### 7. **Sunucu Ayarları Dropdown** ⚙️
 - ✅ Sunucu rolleri
