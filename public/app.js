@@ -5515,8 +5515,7 @@ async function loadSettingsPage() {
 
       <!-- İmza -->
       <div style="margin-top:32px;padding:16px;border-top:1px solid rgba(255,255,255,0.06);text-align:center;">
-        <p style="font-size:11px;color:rgba(255,255,255,0.2);margin:0 0 4px;letter-spacing:0.5px;">Created by <span style="color:rgba(255,255,255,0.35);font-weight:600;">CMS Team</span></p>
-        <p style="font-size:11px;color:rgba(255,255,255,0.15);margin:0;letter-spacing:0.5px;">Created by <span style="color:rgba(255,255,255,0.25);font-weight:600;">İsmail DEMİRCAN</span></p>
+        <p style="font-size:11px;color:rgba(255,255,255,0.2);margin:0;letter-spacing:0.5px;">© 2026 TeaTube</p>
       </div>
     `;
     
@@ -7271,89 +7270,41 @@ console.log('%c⚠️ Bu konsolu kullanarak kod çalıştırmayın!', 'color: #f
 // Kullanım Koşulları Sayfası
 function loadTermsPage() {
   const pageContent = document.getElementById('pageContent');
-  pageContent.innerHTML = `
-    <div style="max-width: 900px; margin: 0 auto; padding: 20px;">
-      <h2 class="section-header">Kullanım Koşulları</h2>
-      
-      <div class="settings-card">
-        <h3 class="settings-card-title">Tea KVKK Açıklama Metni</h3>
-        <h4 style="color: var(--yt-spec-text-primary); margin: 20px 0 12px; font-size: 16px;">Kişisel Verilerin Korunması ve İşlenmesine İlişkin Açıklama</h4>
-        <p style="color: var(--yt-spec-text-secondary); line-height: 1.6; margin-bottom: 20px;">
-          Tea uygulamasına üye olarak veya giriş yaparak, aşağıdaki kişisel veri işleme yöntemlerini ve haklarınızı kabul etmiş olursunuz.
-        </p>
-        
-        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">Toplanan Kişisel Veriler</h4>
-        <ul style="color: var(--yt-spec-text-secondary); line-height: 1.8; padding-left: 24px; margin-bottom: 20px;">
-          <li>Kullanıcı adı, takma ad, şifre (hashlenmiş), IP adresi</li>
-          <li>Profil fotoğrafı</li>
-          <li>Video yükleme sırasında gönderilen banner ve video URL bilgileri</li>
-          <li>Abonelik, favori ve kaydedilen videolarla ilgili bilgiler</li>
-          <li>Uygulama içi kullanım istatistikleri (izlenen videolar, etkileşimler)</li>
-          <li>Mesajlaşma ve arkadaşlık verileri</li>
-        </ul>
-        
-        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">Veri İşleme Amaçları</h4>
-        <ul style="color: var(--yt-spec-text-secondary); line-height: 1.8; padding-left: 24px; margin-bottom: 20px;">
-          <li>Kullanıcı kimliğini doğrulamak ve hesap güvenliğini sağlamak</li>
-          <li>Kullanıcı deneyimini iyileştirmek ve öneri algoritmasını çalıştırmak</li>
-          <li>Uygulama içi hataları ve güvenlik tehditlerini tespit etmek</li>
-          <li>Beta sürecinde sistem testleri ve performans ölçümleri yapmak</li>
-          <li>Kullanıcılar arası iletişimi sağlamak</li>
-        </ul>
-        
-        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">Veri Saklama Süresi</h4>
-        <p style="color: var(--yt-spec-text-secondary); line-height: 1.6; margin-bottom: 20px;">
-          Kullanıcı verileri, hesabınız aktif olduğu sürece ve uygulama faaliyetleri boyunca saklanır. Kullanıcı hesabı silinirse, kişisel veriler makul bir süre içerisinde sistemden kalıcı olarak silinir.
-        </p>
-        
-        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">Veri Paylaşımı</h4>
-        <p style="color: var(--yt-spec-text-secondary); line-height: 1.6; margin-bottom: 20px;">
-          Kullanıcı verileri üçüncü taraflarla paylaşılmaz. Sadece yasal zorunluluk hâlinde veya sistem güvenliği için yetkili kişilerle paylaşılır.
-        </p>
-        
-        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">Veri Güvenliği Önlemleri</h4>
-        <ul style="color: var(--yt-spec-text-secondary); line-height: 1.8; padding-left: 24px; margin-bottom: 20px;">
-          <li>Şifreler bcrypt ile hashlenir, düz metin olarak saklanmaz</li>
-          <li>IP adresleri yalnızca güvenlik ve erişim logları için kaydedilir</li>
-          <li>Veritabanı ve depolama servisleri SSL/TLS ile korunur</li>
-          <li>Depolama servisleri (Cloudinary, Firebase) veri güvenliği standartlarına uygundur</li>
-          <li>Başarısız giriş denemeleri takip edilir ve otomatik IP engelleme yapılır</li>
-        </ul>
-        
-        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">Kullanıcı Hakları</h4>
-        <ul style="color: var(--yt-spec-text-secondary); line-height: 1.8; padding-left: 24px; margin-bottom: 20px;">
-          <li>Kendi kişisel verilerinize erişme ve doğrulama</li>
-          <li>Yanlış veya eksik verilerin düzeltilmesini talep etme</li>
-          <li>Verilerinizin silinmesini talep etme</li>
-          <li>Veri işleme ve paylaşımı ile ilgili itirazda bulunma</li>
-          <li>Arama ve izleme geçmişinizi istediğiniz zaman temizleme</li>
-          <li>Hesabınızı gizli yaparak içeriklerinizi sadece takipçilerinizle paylaşma</li>
-        </ul>
-        
-        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">İçerik Yönetimi</h4>
-        <ul style="color: var(--yt-spec-text-secondary); line-height: 1.8; padding-left: 24px; margin-bottom: 20px;">
-          <li>Yüklediğiniz videolar ve fotoğraflar üzerinde tam kontrole sahipsiniz</li>
-          <li>İçeriklerinizi istediğiniz zaman düzenleyebilir veya silebilirsiniz</li>
-          <li>Yorumları ve beğenileri kapatma/açma seçeneğiniz vardır</li>
-          <li>İçeriklerinizi gizleyerek sadece siz görebilirsiniz</li>
-        </ul>
-        
-        <h4 style="color: var(--yt-spec-text-primary); margin: 24px 0 12px; font-size: 15px;">Onay ve Kabul</h4>
-        <p style="color: var(--yt-spec-text-secondary); line-height: 1.6; margin-bottom: 20px;">
-          Tea'a giriş yaparak veya üye olarak, yukarıda belirtilen kişisel veri işleme kurallarını ve güvenlik önlemlerini kabul etmiş olursunuz.
-        </p>
-        
-        <div style="background: rgba(255,0,51,0.1); border-left: 3px solid var(--yt-spec-brand-background-solid); padding: 16px; border-radius: 8px; margin-top: 24px;">
-          <p style="color: var(--yt-spec-text-primary); font-weight: 500; margin-bottom: 8px;">
-            <i class="fas fa-info-circle" style="margin-right: 8px;"></i>Önemli Not
-          </p>
-          <p style="color: var(--yt-spec-text-secondary); line-height: 1.6; font-size: 14px;">
-            Bu kullanım koşulları, Tea platformunun beta sürümü için geçerlidir. Kullanım koşulları güncellendiğinde, değişiklikler bu sayfada yayınlanacaktır.
-          </p>
+  pageContent.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin" style="font-size:32px;color:var(--yt-spec-text-secondary);"></i></div>';
+  
+  // API'den kullanım koşullarını çek
+  fetch(`${API_URL}/terms`)
+    .then(r => r.json())
+    .then(data => {
+      pageContent.innerHTML = `
+        <div style="max-width: 900px; margin: 0 auto; padding: 20px;">
+          <h2 class="section-header">Kullanım Koşulları</h2>
+          
+          <div class="settings-card">
+            <div style="white-space: pre-wrap; color: var(--yt-spec-text-secondary); line-height: 1.8;">
+              ${data.content || 'Kullanım koşulları henüz belirlenmemiş.'}
+            </div>
+            
+            ${data.version ? `
+              <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; color: var(--yt-spec-text-secondary);">
+                Versiyon: ${data.version} | Son Güncelleme: ${new Date(data.updated_at).toLocaleDateString('tr-TR')}
+              </div>
+            ` : ''}
+          </div>
         </div>
-      </div>
-    </div>
-  `;
+      `;
+    })
+    .catch(err => {
+      console.error('Kullanım koşulları yüklenemedi:', err);
+      pageContent.innerHTML = `
+        <div style="max-width: 900px; margin: 0 auto; padding: 20px;">
+          <h2 class="section-header">Kullanım Koşulları</h2>
+          <div class="settings-card">
+            <p style="color: var(--yt-spec-text-secondary);">Kullanım koşulları yüklenemedi. Lütfen daha sonra tekrar deneyin.</p>
+          </div>
+        </div>
+      `;
+    });
 }
 
 // Kullanım koşullarını modal olarak göster (kayıt ekranı için)
@@ -7772,7 +7723,7 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
   pageContent.innerHTML = `
     <div style="padding-bottom:120px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <h2 style="font-size:22px;font-weight:700"><i class="fas fa-music" style="color:#1db954;margin-right:8px"></i>TS Music</h2>
+        <h2 style="font-size:22px;font-weight:700"><i class="fas fa-music" style="color:#1db954;margin-right:8px"></i>TeaSocial Music</h2>
         <div style="display:flex;gap:8px">
           <button class="yt-btn" onclick="showTSMusicSearch()" style="background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)"><i class="fas fa-search"></i></button>
           <button class="yt-btn" onclick="loadSongWritingsPage()" style="background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)" title="Yazılan Şarkılar"><i class="fas fa-book-open"></i></button>
@@ -7798,8 +7749,7 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
 
       <!-- İmza -->
       <div style="margin-top:40px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.05);text-align:center;">
-        <p style="font-size:11px;color:rgba(255,255,255,0.18);margin:0 0 3px;letter-spacing:0.5px;">Created by <span style="color:rgba(255,255,255,0.3);font-weight:600;">CMS Team</span></p>
-        <p style="font-size:11px;color:rgba(255,255,255,0.12);margin:0;letter-spacing:0.5px;">Created by <span style="color:rgba(255,255,255,0.22);font-weight:600;">İsmail DEMİRCAN</span></p>
+        <p style="font-size:11px;color:rgba(255,255,255,0.18);margin:0;letter-spacing:0.5px;">© 2026 TeaTube</p>
       </div>
     </div>
   `;
@@ -8119,7 +8069,7 @@ async function loadMySongsPage() {
           <i class="fas fa-music" style="font-size:48px;color:rgba(255,255,255,0.1);margin-bottom:16px;display:block"></i>
           <p style="font-size:16px;font-weight:600;margin-bottom:8px">Artist değilsin</p>
           <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:20px">Şarkı yükleyebilmek için artist başvurusu yapman gerekiyor.</p>
-          <button class="yt-btn" onclick="showPage('ts-music')">TS Music'e Git</button>
+          <button class="yt-btn" onclick="showPage('ts-music')">TeaSocial Music'e Git</button>
         </div>`;
       return;
     }
@@ -8139,7 +8089,7 @@ async function loadMySongsPage() {
               <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
                 <span style="width:20px;text-align:center;font-size:13px;color:var(--yt-spec-text-secondary);flex-shrink:0">${i + 1}</span>
                 <img src="${s.cover_url}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:pointer" onclick="playSong(${s.id})" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=http://www.w3.org/2000/svg width=44 height=44%3E%3Crect width=44 height=44 fill=%23333/%3E%3C/svg%3E'" />
-                <div style="flex:1;min-width:0;cursor:pointer" onclick="playSong(${s.id})">
+                <div style="flex:1;min-width:0;cursor:pointer" onclick="showSongDetail(${s.id})">
                   <p style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.title}</p>
                   <p style="font-size:12px;color:var(--yt-spec-text-secondary)">${formatNumber(s.play_count || 0)} dinlenme</p>
                 </div>
@@ -8599,7 +8549,7 @@ async function addSongToTSPlaylist(playlistId, songId) {
 function showArtistApplyModal() {
   showModal(`
     <h3 style="margin-bottom:16px">Artist Başvurusu</h3>
-    <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:16px">TS Music'te şarkı yükleyebilmek için artist başvurusu yapman gerekiyor.</p>
+    <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:16px">TeaSocial Music'te şarkı yükleyebilmek için artist başvurusu yapman gerekiyor.</p>
     <div class="yt-form-group"><label class="yt-form-label">Mahlas (Artist Adı) *</label><input id="applyArtistName" class="yt-input" placeholder="Sahne adın / mahlasın" /></div>
     <div class="yt-form-group">
       <label class="yt-form-label">Örnek Şarkı (MP3/WAV) *</label>
@@ -9740,4 +9690,125 @@ async function deleteAnnouncement(id) {
 function showImageModal(url) {
   const modalContent = `<img src="${url}" style="width:100%; border-radius:12px;" />`;
   showModal(modalContent, 'Görsel');
+}
+
+
+// ==================== ŞARKI DETAY SAYFASI ====================
+
+async function showSongDetail(songId) {
+  showPage('song-detail');
+  const pageContent = document.getElementById('pageContent');
+  pageContent.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin" style="font-size:32px;"></i></div>';
+  
+  try {
+    const res = await fetch(`${API_URL}/music/song/${songId}`);
+    const song = await res.json();
+    
+    if (!song || song.error) {
+      pageContent.innerHTML = '<div style="text-align:center;padding:40px;color:var(--yt-spec-text-secondary);">Şarkı bulunamadı</div>';
+      return;
+    }
+    
+    pageContent.innerHTML = `
+      <div style="max-width:900px;margin:0 auto;padding:20px;">
+        <button onclick="showPage('ts-music')" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:14px;margin-bottom:16px;display:flex;align-items:center;gap:6px;">
+          <i class="fas fa-arrow-left"></i> Geri
+        </button>
+        
+        <div style="display:flex;gap:24px;margin-bottom:32px;flex-wrap:wrap;">
+          <img src="${song.cover_url}" style="width:200px;height:200px;border-radius:12px;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,0.3);" onerror="this.src='logoteatube.png'" />
+          
+          <div style="flex:1;min-width:250px;">
+            <h1 style="font-size:28px;font-weight:700;margin:0 0 8px;color:var(--yt-spec-text-primary);">${song.title}</h1>
+            <p style="font-size:16px;color:var(--yt-spec-text-secondary);margin:0 0 16px;">
+              <i class="fas fa-microphone" style="margin-right:6px;"></i>${song.artist_name}
+            </p>
+            
+            ${song.genre ? `<p style="font-size:14px;color:var(--yt-spec-text-secondary);margin:0 0 8px;">
+              <i class="fas fa-tag" style="margin-right:6px;"></i>Tür: ${song.genre}
+            </p>` : ''}
+            
+            ${song.show_play_count ? `<p style="font-size:14px;color:var(--yt-spec-text-secondary);margin:0 0 16px;">
+              <i class="fas fa-play" style="margin-right:6px;"></i>${song.play_count || 0} dinlenme
+            </p>` : ''}
+            
+            <div style="display:flex;gap:12px;flex-wrap:wrap;">
+              <button onclick="playSong(${song.id})" class="yt-btn" style="background:#1db954;color:#000;font-weight:700;">
+                <i class="fas fa-play" style="margin-right:6px;"></i>Çal
+              </button>
+              <button onclick="toggleSongLike(${song.id})" class="yt-btn" style="background:rgba(255,255,255,0.08);">
+                <i class="fas fa-heart"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        ${song.lyrics ? `
+          <div style="background:var(--yt-spec-raised-background);padding:20px;border-radius:12px;margin-bottom:24px;">
+            <h3 style="font-size:18px;font-weight:600;margin:0 0 16px;color:var(--yt-spec-text-primary);">
+              <i class="fas fa-align-left" style="margin-right:8px;"></i>Şarkı Sözleri
+            </h3>
+            <div style="white-space:pre-wrap;color:var(--yt-spec-text-secondary);line-height:1.8;">
+              ${song.lyrics}
+            </div>
+          </div>
+        ` : ''}
+        
+        <div style="background:var(--yt-spec-raised-background);padding:20px;border-radius:12px;">
+          <h3 style="font-size:18px;font-weight:600;margin:0 0 16px;color:var(--yt-spec-text-primary);">
+            <i class="fas fa-info-circle" style="margin-right:8px;"></i>Detaylar
+          </h3>
+          <div style="display:grid;gap:12px;">
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+              <span style="color:var(--yt-spec-text-secondary);">Sanatçı</span>
+              <span style="color:var(--yt-spec-text-primary);font-weight:500;" onclick="showArtistProfile(${song.artist_id})" style="cursor:pointer;color:#1db954;">${song.artist_name}</span>
+            </div>
+            ${song.genre ? `
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                <span style="color:var(--yt-spec-text-secondary);">Tür</span>
+                <span style="color:var(--yt-spec-text-primary);font-weight:500;">${song.genre}</span>
+              </div>
+            ` : ''}
+            ${song.company_name ? `
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                <span style="color:var(--yt-spec-text-secondary);">Şirket</span>
+                <span style="color:var(--yt-spec-text-primary);font-weight:500;">${song.company_name}</span>
+              </div>
+            ` : ''}
+            <div style="display:flex;justify-content:space-between;padding:8px 0;">
+              <span style="color:var(--yt-spec-text-secondary);">Yüklenme Tarihi</span>
+              <span style="color:var(--yt-spec-text-primary);font-weight:500;">${new Date(song.created_at).toLocaleDateString('tr-TR')}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  } catch(err) {
+    console.error('Şarkı detayı yüklenemedi:', err);
+    pageContent.innerHTML = '<div style="text-align:center;padding:40px;color:var(--yt-spec-text-secondary);">Şarkı yüklenemedi</div>';
+  }
+}
+
+// Şarkı beğeni toggle
+async function toggleSongLike(songId) {
+  try {
+    const res = await fetch(`${API_URL}/music/song/${songId}/like`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id })
+    });
+    const data = await res.json();
+    if (data.liked !== undefined) {
+      showToast(data.liked ? 'Şarkı beğenildi' : 'Beğeni kaldırıldı');
+    }
+  } catch(err) {
+    console.error('Beğeni hatası:', err);
+  }
+}
+
+// Sanatçı profiline git
+function showArtistProfile(artistId) {
+  // Mevcut artist profil fonksiyonunu kullan
+  showPage('artist-profile');
+  loadArtistProfile(artistId);
 }

@@ -1305,3 +1305,388 @@ router.post('/admin/login-password', async (req, res) => {
     res.status(500).json({ error: 'Giriş hatası' });
   }
 });
+
+
+// ==================== KULLANIM KOŞULLARI YÖNETİMİ ====================
+
+// Kullanım koşullarını getir
+router.get('/admin/terms', (req, res) => {
+  try {
+    const terms = db.prepare('SELECT * FROM terms_of_service ORDER BY version DESC LIMIT 1').get();
+    res.json(terms || { content: '', version: 0 });
+  } catch(e) {
+    res.status(500).json({ error: 'Kullanım koşulları alınamadı' });
+  }
+});
+
+// Kullanım koşullarını güncelle
+router.put('/admin/terms', (req, res) => {
+  try {
+    const { content, adminId } = req.body;
+    if (!content) return res.status(400).json({ error: 'İçerik gerekli' });
+    
+    // Mevcut versiyonu al
+    const current = db.prepare('SELECT version FROM terms_of_service ORDER BY version DESC LIMIT 1').get();
+    const newVersion = (current?.version || 0) + 1;
+    
+    // Yeni versiyon ekle
+    db.prepare('INSERT INTO terms_of_service (content, version, updated_by) VALUES (?, ?, ?)')
+      .run(content, newVersion, adminId || null);
+    
+    res.json({ success: true, version: newVersion });
+  } catch(e) {
+    res.status(500).json({ error: 'Kullanım koşulları güncellenemedi' });
+  }
+});
+
+// Kullanım koşulları geçmişi
+router.get('/admin/terms/history', (req, res) => {
+  try {
+    const history = db.prepare('SELECT * FROM terms_of_service ORDER BY version DESC').all();
+    res.json(history);
+  } catch(e) {
+    res.status(500).json({ error: 'Geçmiş alınamadı' });
+  }
+});
+
+// ==================== VİDEO DETAYLI DÜZENLEME ====================
+
+// Video detaylı düzenleme (başlık, açıklama, görüntüleme, beğeni, etiketler)
+router.put('/admin/video/:videoId/details', (req, res) => {
+  try {
+    const { title, description, views, likes, dislikes, tags } = req.body;
+    
+    let sets = [];
+    let params = [];
+    
+    if (title !== undefined) { sets.push('title = ?'); params.push(title); }
+    if (description !== undefined) { sets.push('description = ?'); params.push(description || null); }
+    if (views !== undefined && views !== '') { sets.push('views = ?'); params.push(parseInt(views) || 0); }
+    if (likes !== undefined && likes !== '') { sets.push('likes = ?'); params.push(parseInt(likes) || 0); }
+    if (dislikes !== undefined && dislikes !== '') { sets.push('dislikes = ?'); params.push(parseInt(dislikes) || 0); }
+    if (tags !== undefined) { sets.push('tags = ?'); params.push(tags || null); }
+    
+    if (sets.length > 0) {
+      params.push(req.params.videoId);
+      db.prepare(`UPDATE videos SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+    }
+    
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Video düzenlenemedi: ' + e.message });
+  }
+});
+
+// Video etiketlerini getir
+router.get('/admin/video/:videoId/details', (req, res) => {
+  try {
+    const video = db.prepare('SELECT * FROM videos WHERE id = ?').get(req.params.videoId);
+    if (!video) return res.status(404).json({ error: 'Video bulunamadı' });
+    res.json(video);
+  } catch(e) {
+    res.status(500).json({ error: 'Video alınamadı' });
+  }
+});
+
+// ==================== KULLANICI PROFİL DÜZENLEMEsi ====================
+
+// Kullanıcı profil fotoğrafını değiştir
+router.put('/admin/user/:userId/profile-photo', upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Fotoğraf gerekli' });
+    
+    const photoUrl = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { resource_type: 'image', folder: 'teatube/profiles' },
+        (err, result) => err ? reject(err) : resolve(result.secure_url)
+      );
+      stream.end(req.file.buffer);
+    });
+    
+    db.prepare('UPDATE users SET profile_photo = ? WHERE id = ?').run(photoUrl, req.params.userId);
+    res.json({ success: true, photoUrl });
+  } catch(e) {
+    res.status(500).json({ error: 'Fotoğraf değiştirilemedi: ' + e.message });
+  }
+});
+
+// Kullanıcı nickname değiştir
+router.put('/admin/user/:userId/nickname', (req, res) => {
+  try {
+    const { nickname } = req.body;
+    if (!nickname) return res.status(400).json({ error: 'Nickname gerekli' });
+    db.prepare('UPDATE users SET nickname = ? WHERE id = ?').run(nickname, req.params.userId);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Nickname değiştirilemedi' });
+  }
+});
+
+// ==================== ŞARKI DETAYLI DÜZENLEME ====================
+
+// Şarkı detaylı düzenleme (dinlenme, başlık, tür, artist)
+router.put('/admin/music/song/:songId/full', (req, res) => {
+  try {
+    const { title, genre, play_count, company_name } = req.body;
+    
+    let sets = [];
+    let params = [];
+    
+    if (title !== undefined) { sets.push('title = ?'); params.push(title); }
+    if (genre !== undefined) { sets.push('genre = ?'); params.push(genre || null); }
+    if (play_count !== undefined && play_count !== '') { sets.push('play_count = ?'); params.push(parseInt(play_count) || 0); }
+    if (company_name !== undefined) { sets.push('company_name = ?'); params.push(company_name || null); }
+    
+    if (sets.length > 0) {
+      params.push(req.params.songId);
+      db.prepare(`UPDATE songs SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+    }
+    
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Şarkı düzenlenemedi: ' + e.message });
+  }
+});
+
+// Şarkı detaylarını getir
+router.get('/admin/music/song/:songId/details', (req, res) => {
+  try {
+    const song = db.prepare(`
+      SELECT s.*, a.artist_name, a.id as artist_id
+      FROM songs s
+      JOIN music_artists a ON s.artist_id = a.id
+      WHERE s.id = ?
+    `).get(req.params.songId);
+    
+    if (!song) return res.status(404).json({ error: 'Şarkı bulunamadı' });
+    res.json(song);
+  } catch(e) {
+    res.status(500).json({ error: 'Şarkı alınamadı' });
+  }
+});
+
+// ==================== KANAL DÜZENLEMEsi ====================
+
+// Kanal detaylı düzenleme
+router.put('/admin/channel/:channelId/details', (req, res) => {
+  try {
+    const { channel_name, about, account_type, is_private_account } = req.body;
+    
+    let sets = [];
+    let params = [];
+    
+    if (channel_name !== undefined) { sets.push('channel_name = ?'); params.push(channel_name); }
+    if (about !== undefined) { sets.push('about = ?'); params.push(about || null); }
+    if (account_type !== undefined) { sets.push('account_type = ?'); params.push(account_type); }
+    if (is_private_account !== undefined) { sets.push('is_private_account = ?'); params.push(is_private_account ? 1 : 0); }
+    
+    if (sets.length > 0) {
+      params.push(req.params.channelId);
+      db.prepare(`UPDATE channels SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+    }
+    
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Kanal düzenlenemedi' });
+  }
+});
+
+// ==================== TOPLU İŞLEMLER ====================
+
+// Toplu video silme
+router.post('/admin/videos/bulk-delete', (req, res) => {
+  try {
+    const { videoIds } = req.body;
+    if (!Array.isArray(videoIds) || videoIds.length === 0) {
+      return res.status(400).json({ error: 'Video ID listesi gerekli' });
+    }
+    
+    const placeholders = videoIds.map(() => '?').join(',');
+    const result = db.prepare(`DELETE FROM videos WHERE id IN (${placeholders})`).run(...videoIds);
+    
+    res.json({ success: true, deleted: result.changes });
+  } catch(e) {
+    res.status(500).json({ error: 'Videolar silinemedi' });
+  }
+});
+
+// Toplu kullanıcı askıya alma
+router.post('/admin/users/bulk-suspend', (req, res) => {
+  try {
+    const { userIds, reason } = req.body;
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: 'Kullanıcı ID listesi gerekli' });
+    }
+    
+    const placeholders = userIds.map(() => '?').join(',');
+    const result = db.prepare(`UPDATE users SET is_suspended = 1, suspend_reason = ? WHERE id IN (${placeholders})`)
+      .run(reason || 'Toplu askıya alma', ...userIds);
+    
+    res.json({ success: true, suspended: result.changes });
+  } catch(e) {
+    res.status(500).json({ error: 'Kullanıcılar askıya alınamadı' });
+  }
+});
+
+// ==================== İSTATİSTİKLER (GELİŞMİŞ) ====================
+
+// Günlük/haftalık/aylık istatistikler
+router.get('/admin/stats/detailed', (req, res) => {
+  try {
+    const { period = 'daily' } = req.query;
+    
+    let dateFilter = '';
+    switch(period) {
+      case 'daily':
+        dateFilter = "datetime('now', '-1 day')";
+        break;
+      case 'weekly':
+        dateFilter = "datetime('now', '-7 days')";
+        break;
+      case 'monthly':
+        dateFilter = "datetime('now', '-30 days')";
+        break;
+      default:
+        dateFilter = "datetime('now', '-1 day')";
+    }
+    
+    const newUsers = db.prepare(`SELECT COUNT(*) as cnt FROM users WHERE created_at > ${dateFilter}`).get().cnt;
+    const newVideos = db.prepare(`SELECT COUNT(*) as cnt FROM videos WHERE created_at > ${dateFilter}`).get().cnt;
+    const newSongs = db.prepare(`SELECT COUNT(*) as cnt FROM songs WHERE created_at > ${dateFilter}`).get().cnt;
+    
+    // En popüler videolar
+    const topVideos = db.prepare(`
+      SELECT v.id, v.title, v.views, v.likes, c.channel_name
+      FROM videos v
+      JOIN channels c ON v.channel_id = c.id
+      WHERE v.created_at > ${dateFilter}
+      ORDER BY v.views DESC
+      LIMIT 10
+    `).all();
+    
+    // En popüler şarkılar
+    const topSongs = db.prepare(`
+      SELECT s.id, s.title, s.play_count, a.artist_name
+      FROM songs s
+      JOIN music_artists a ON s.artist_id = a.id
+      WHERE s.created_at > ${dateFilter}
+      ORDER BY s.play_count DESC
+      LIMIT 10
+    `).all();
+    
+    res.json({
+      period,
+      newUsers,
+      newVideos,
+      newSongs,
+      topVideos,
+      topSongs
+    });
+  } catch(e) {
+    res.status(500).json({ error: 'İstatistikler alınamadı' });
+  }
+});
+
+// En aktif kullanıcılar
+router.get('/admin/stats/active-users', (req, res) => {
+  try {
+    const activeUsers = db.prepare(`
+      SELECT u.id, u.username, u.nickname, u.profile_photo,
+             (SELECT COUNT(*) FROM videos WHERE channel_id IN (SELECT id FROM channels WHERE user_id = u.id)) as video_count,
+             (SELECT COUNT(*) FROM comments WHERE user_id = u.id) as comment_count
+      FROM users u
+      WHERE u.is_suspended = 0
+      ORDER BY video_count DESC, comment_count DESC
+      LIMIT 20
+    `).all();
+    
+    res.json(activeUsers);
+  } catch(e) {
+    res.status(500).json({ error: 'Aktif kullanıcılar alınamadı' });
+  }
+});
+
+// ==================== REALS ETİKET YÖNETİMİ ====================
+
+// Tüm reals etiketlerini getir
+router.get('/admin/reals/tags', (req, res) => {
+  try {
+    const tags = db.prepare(`
+      SELECT DISTINCT tags FROM videos 
+      WHERE is_short = 1 AND tags IS NOT NULL AND tags != ''
+    `).all();
+    
+    // Tüm etiketleri ayır ve say
+    const tagMap = {};
+    tags.forEach(row => {
+      if (row.tags) {
+        row.tags.split(',').forEach(tag => {
+          const trimmed = tag.trim();
+          if (trimmed) {
+            tagMap[trimmed] = (tagMap[trimmed] || 0) + 1;
+          }
+        });
+      }
+    });
+    
+    const tagList = Object.entries(tagMap).map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count);
+    
+    res.json(tagList);
+  } catch(e) {
+    res.status(500).json({ error: 'Etiketler alınamadı' });
+  }
+});
+
+// Reals etiketini değiştir (toplu)
+router.put('/admin/reals/tags/replace', (req, res) => {
+  try {
+    const { oldTag, newTag } = req.body;
+    if (!oldTag || !newTag) return res.status(400).json({ error: 'Eski ve yeni etiket gerekli' });
+    
+    // Tüm reals'leri al
+    const reals = db.prepare('SELECT id, tags FROM videos WHERE is_short = 1 AND tags LIKE ?').all(`%${oldTag}%`);
+    
+    let updated = 0;
+    reals.forEach(real => {
+      if (real.tags) {
+        const newTags = real.tags.split(',')
+          .map(t => t.trim() === oldTag ? newTag : t.trim())
+          .join(',');
+        db.prepare('UPDATE videos SET tags = ? WHERE id = ?').run(newTags, real.id);
+        updated++;
+      }
+    });
+    
+    res.json({ success: true, updated });
+  } catch(e) {
+    res.status(500).json({ error: 'Etiketler değiştirilemedi' });
+  }
+});
+
+// Reals etiketini sil (toplu)
+router.delete('/admin/reals/tags/:tag', (req, res) => {
+  try {
+    const { tag } = req.params;
+    
+    const reals = db.prepare('SELECT id, tags FROM videos WHERE is_short = 1 AND tags LIKE ?').all(`%${tag}%`);
+    
+    let updated = 0;
+    reals.forEach(real => {
+      if (real.tags) {
+        const newTags = real.tags.split(',')
+          .map(t => t.trim())
+          .filter(t => t !== tag)
+          .join(',');
+        db.prepare('UPDATE videos SET tags = ? WHERE id = ?').run(newTags || null, real.id);
+        updated++;
+      }
+    });
+    
+    res.json({ success: true, updated });
+  } catch(e) {
+    res.status(500).json({ error: 'Etiket silinemedi' });
+  }
+});
+
+module.exports = router;

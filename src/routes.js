@@ -2622,3 +2622,16 @@ router.delete('/announcement/:id', (req, res) => {
 module.exports = router;
 
 
+
+
+// ==================== KULLANIM KOŞULLARI ====================
+
+// Kullanım koşullarını getir (kullanıcı tarafı)
+router.get('/terms', (req, res) => {
+  try {
+    const terms = db.prepare('SELECT content, version, updated_at FROM terms_of_service ORDER BY version DESC LIMIT 1').get();
+    res.json(terms || { content: 'Kullanım koşulları henüz belirlenmemiş.', version: 0 });
+  } catch(e) {
+    res.status(500).json({ error: 'Kullanım koşulları alınamadı' });
+  }
+});
