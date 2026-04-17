@@ -985,3 +985,89 @@ db.exec(`
 `);
 
 console.log('✓ DemlikChat tables initialized');
+
+
+// DC DM Messages
+db.exec(`
+  CREATE TABLE IF NOT EXISTS dc_dm_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    from_user INTEGER,
+    to_user INTEGER,
+    content TEXT,
+    file_url TEXT,
+    file_type TEXT,
+    file_name TEXT,
+    read INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(from_user) REFERENCES dc_users(id) ON DELETE CASCADE,
+    FOREIGN KEY(to_user) REFERENCES dc_users(id) ON DELETE CASCADE
+  )
+`);
+
+// DC Friends
+db.exec(`
+  CREATE TABLE IF NOT EXISTS dc_friends (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user1_id INTEGER,
+    user2_id INTEGER,
+    status TEXT DEFAULT 'accepted',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user1_id) REFERENCES dc_users(id) ON DELETE CASCADE,
+    FOREIGN KEY(user2_id) REFERENCES dc_users(id) ON DELETE CASCADE
+  )
+`);
+
+// DC Friend Requests
+db.exec(`
+  CREATE TABLE IF NOT EXISTS dc_friend_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    from_user INTEGER,
+    to_user INTEGER,
+    status TEXT DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(from_user) REFERENCES dc_users(id) ON DELETE CASCADE,
+    FOREIGN KEY(to_user) REFERENCES dc_users(id) ON DELETE CASCADE
+  )
+`);
+
+// DC Message Reactions
+db.exec(`
+  CREATE TABLE IF NOT EXISTS dc_message_reactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message_id INTEGER,
+    user_id INTEGER,
+    emoji TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(message_id) REFERENCES dc_messages(id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES dc_users(id) ON DELETE CASCADE
+  )
+`);
+
+// DC Server Invites
+db.exec(`
+  CREATE TABLE IF NOT EXISTS dc_server_invites (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    server_id INTEGER,
+    code TEXT UNIQUE,
+    created_by INTEGER,
+    max_uses INTEGER DEFAULT 0,
+    uses INTEGER DEFAULT 0,
+    expires_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(server_id) REFERENCES dc_servers(id) ON DELETE CASCADE,
+    FOREIGN KEY(created_by) REFERENCES dc_users(id) ON DELETE CASCADE
+  )
+`);
+
+// DC User Status
+db.exec(`
+  CREATE TABLE IF NOT EXISTS dc_user_status (
+    user_id INTEGER PRIMARY KEY,
+    status TEXT DEFAULT 'online',
+    custom_status TEXT,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES dc_users(id) ON DELETE CASCADE
+  )
+`);
+
+console.log('✓ DemlikChat extended tables initialized');

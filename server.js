@@ -28,6 +28,7 @@ app.use(cors());
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 app.use(express.static('public'));
+app.use('/dc-uploads', express.static('data/dc-uploads'));
 
 // API route'larÄ±na UTF-8 charset ekle
 app.use('/api', (req, res, next) => {
@@ -122,7 +123,7 @@ io.on('connection', (socket) => {
   
   // Send message
   socket.on('send_message', (data) => {
-    const { userId, username, avatar, server, channel, content } = data;
+    const { userId, username, avatar, server, channel, content, fileUrl, fileType, fileName } = data;
     
     // Save to database
     try {
@@ -137,6 +138,9 @@ io.on('connection', (socket) => {
         server,
         channel,
         content,
+        fileUrl,
+        fileType,
+        fileName,
         created_at: new Date().toISOString()
       };
       
@@ -145,6 +149,52 @@ io.on('connection', (socket) => {
     } catch (err) {
       console.error('Send message error:', err);
     }
+  });
+  
+  // Send DM
+  socket.on('send_dm', (data) => {
+    const { fromUser, toUser, content, fileUrl, fileType, fileName } = data;
+    
+    try {
+      const stmt = db.db.prepare('INSERT INTO dc_dm_messages (from_user, to_user, content, file_url, file_type, file_name) VALUES (?, ?, ?, ?, ?, ?)');
+      const result = stmt.run(fromUser, toUser, content, fileUrl || null, fileType || null, fileName || null);
+      
+      const message = {
+        id: result.lastInsertRowid,
+        from_user: fromUser,
+        to_user: toUser,
+        content,
+        fileUrl,
+        fileType,
+        fileName,
+        created_at: new Date().toISOString()
+      };
+      
+      // Send to both users
+      const toSocketId = dcUsers.get(toUser);
+      if (toSocketId) {
+        io.to(toSocketId).emit('new_dm', message);
+      }
+      io.to(socket.id).emit('new_dm', message);
+    } catch (err) {
+      console.error('Send DM error:', err);
+    }
+  });
+  
+  // Message deleted
+  socket.on('message_deleted', (data) => {
+    io.emit('message_deleted', data);
+  });
+  
+  // Typing indicator
+  socket.on('typing_start', (data) => {
+    const { channel, username } = data;
+    socket.to(`channel_${channel}`).emit('user_typing', { channel, username });
+  });
+  
+  socket.on('typing_stop', (data) => {
+    const { channel, username } = data;
+    socket.to(`channel_${channel}`).emit('user_stopped_typing', { channel, username });
   });
   
   // Join voice channel

@@ -644,3 +644,581 @@ function escapeHtml(text) {
 document.getElementById('modal-overlay')?.addEventListener('click', (e) => {
   if (e.target.id === 'modal-overlay') closeModal();
 });
+
+
+// ==================== ÖZEL MESAJLAR (DM) ====================
+
+let dmUsers = [];
+let currentDM = null;
+
+async function loadDMs() {
+  try {
+    const res = await fetch(`${API_URL}/api/dc/dms/${currentUser.id}`);
+    const data = await res.json();
+    
+    if (data.success) {
+      dmUsers = data.dms;
+      renderDMList();
+    }
+  } catch (err) {
+    console.error('Load DMs error:', err);
+  }
+}
+
+function renderDMList() {
+  // DM listesini sol sidebar'a ekle
+  const channelList = document.querySelector('.channel-list');
+  
+  // DM kategorisi ekle
+  let dmCategory = document.querySelector('.dm-category');
+  if (!dmCategory) {
+    dmCategory = document.createElement('div');
+    dmCategory.className = 'channel-category dm-category';
+    dmCategory.innerHTML = `
+      <div class="category-header">
+        <i class="fas fa-chevron-down"></i>
+        <span>ÖZEL MESAJLAR</span>
+      </div>
+      <div class="category-channels dm-channels"></div>
+    `;
+    channelList.insertBefore(dmCategory, channelList.firstChild);
+  }
+  
+  const dmChannels = dmCategory.querySelector('.dm-channels');
+  dmChannels.innerHTML = '';
+  
+  dmUsers.forEach(dm => {
+    const dmItem = document.createElement('div');
+    dmItem.className = 'channel-item dm-item';
+    dmItem.dataset.dmUser = dm.user_id;
+    dmItem.innerHTML = `
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--brand);overflow:hidden;flex-shrink:0;">
+        ${dm.avatar ? `<img src="${dm.avatar}" style="width:100%;height:100%;object-fit:cover;">` : ''}
+      </div>
+      <span>${dm.display_name || dm.username}</span>
+      ${dm.unread_count > 0 ? `<span class="unread-badge">${dm.unread_count}</span>` : ''}
+    `;
+    dmItem.addEventListener('click', () => openDM(dm.user_id, dm.display_name || dm.username, dm.avatar));
+    dmChannels.appendChild(dmItem);
+  });
+}
+
+async function openDM(userId, displayName, avatar) {
+  currentDM = { userId, displayName, avatar };
+  currentChannelType = 'dm';
+  
+  // UI güncelle
+  document.querySelectorAll('.channel-item').forEach(item => item.classList.remove('active'));
+  document.querySelector(`.dm-item[data-dm-user="${userId}"]`)?.classList.add('active');
+  
+  document.getElementById('current-channel-name').innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="width:24px;height:24px;border-radius:50%;background:var(--brand);overflow:hidden;">
+        ${avatar ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;">` : ''}
+      </div>
+      <span>${displayName}</span>
+    </div>
+  `;
+  
+  // Mesajları yükle
+  await loadDMMessages(userId);
+}
+
+async function loadDMMessages(userId) {
+  try {
+    const res = await fetch(`${API_URL}/api/dc/dm-messages/${currentUser.id}/${userId}`);
+    const data = await res.json();
+    
+    if (data.success) {
+      const container = document.getElementById('messages-container');
+      container.innerHTML = '';
+      data.messages.forEach(msg => displayMessage(msg));
+      container.scrollTop = container.scrollHeight;
+    }
+  } catch (err) {
+    console.error('Load DM messages error:', err);
+  }
+}
+
+// ==================== ARKADAŞ SİSTEMİ ====================
+
+let friends = [];
+let friendRequests = [];
+
+async function loadFriends() {
+  try {
+    const res = await fetch(`${API_URL}/api/dc/friends/${currentUser.id}`);
+    const data = await res.json();
+    
+    if (data.success) {
+      friends = data.friends;
+      friendRequests = data.requests;
+      renderFriendsList();
+    }
+  } catch (err) {
+    console.error('Load friends error:', err);
+  }
+}
+
+function showFriendsModal() {
+  const modal = document.getElementById('modal');
+  modal.innerHTML = `
+    <div style="padding:24px;max-height:80vh;overflow-y:auto;">
+      <h2 style="font-size:24px;font-weight:600;margin-bottom:24px;color:var(--header-primary);">Arkadaşlar</h2>
+      
+      <!-- Arkadaş Ekle -->
+      <div style="margin-bottom:24px;padding:16px;background:var(--bg-secondary);border-radius:8px;">
+        <h3 style="font-size:16px;font-weight:600;margin-bottom:12px;color:var(--header-secondary);">ARKADAŞ EKLE</h3>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="friend-username-input" placeholder="Kullanıcı adı" style="flex:1;padding:10px;background:var(--bg-tertiary);border:1px solid rgba(0,0,0,0.3);border-radius:4px;color:var(--text-normal);font-size:14px;">
+          <button onclick="sendFriendRequest()" style="padding:10px 20px;background:var(--brand);border:none;border-radius:4px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">Gönder</button>
+        </div>
+      </div>
+      
+      <!-- Bekleyen İstekler -->
+      ${friendRequests.length > 0 ? `
+        <div style="margin-bottom:24px;">
+          <h3 style="font-size:16px;font-weight:600;margin-bottom:12px;color:var(--header-secondary);">BEKLEYEN İSTEKLER — ${friendRequests.length}</h3>
+          <div id="friend-requests-list"></div>
+        </div>
+      ` : ''}
+      
+      <!-- Arkadaşlar -->
+      <div>
+        <h3 style="font-size:16px;font-weight:600;margin-bottom:12px;color:var(--header-secondary);">TÜM ARKADAŞLAR — ${friends.length}</h3>
+        <div id="friends-list"></div>
+      </div>
+      
+      <div style="margin-top:24px;">
+        <button onclick="closeModal()" style="width:100%;padding:12px;background:transparent;border:none;border-radius:4px;color:var(--text-normal);font-size:14px;font-weight:600;cursor:pointer;">Kapat</button>
+      </div>
+    </div>
+  `;
+  
+  // Render friend requests
+  if (friendRequests.length > 0) {
+    const requestsList = document.getElementById('friend-requests-list');
+    friendRequests.forEach(req => {
+      const reqEl = document.createElement('div');
+      reqEl.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-tertiary);border-radius:8px;margin-bottom:8px;';
+      reqEl.innerHTML = `
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--brand);overflow:hidden;">
+          ${req.avatar ? `<img src="${req.avatar}" style="width:100%;height:100%;object-fit:cover;">` : ''}
+        </div>
+        <div style="flex:1;">
+          <div style="font-weight:600;color:var(--header-primary);">${req.display_name || req.username}</div>
+          <div style="font-size:12px;color:var(--text-muted);">@${req.username}</div>
+        </div>
+        <button onclick="acceptFriendRequest(${req.id})" style="padding:8px 16px;background:var(--green);border:none;border-radius:4px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Kabul Et</button>
+        <button onclick="rejectFriendRequest(${req.id})" style="padding:8px 16px;background:var(--red);border:none;border-radius:4px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Reddet</button>
+      `;
+      requestsList.appendChild(reqEl);
+    });
+  }
+  
+  // Render friends
+  const friendsList = document.getElementById('friends-list');
+  friends.forEach(friend => {
+    const friendEl = document.createElement('div');
+    friendEl.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-tertiary);border-radius:8px;margin-bottom:8px;';
+    friendEl.innerHTML = `
+      <div style="position:relative;width:40px;height:40px;border-radius:50%;background:var(--brand);overflow:hidden;">
+        ${friend.avatar ? `<img src="${friend.avatar}" style="width:100%;height:100%;object-fit:cover;">` : ''}
+        <div style="position:absolute;bottom:-2px;right:-2px;width:14px;height:14px;border-radius:50%;background:${friend.online ? 'var(--green)' : 'var(--text-muted)'};border:3px solid var(--bg-tertiary);"></div>
+      </div>
+      <div style="flex:1;">
+        <div style="font-weight:600;color:var(--header-primary);">${friend.display_name || friend.username}</div>
+        <div style="font-size:12px;color:var(--text-muted);">${friend.online ? 'Çevrimiçi' : 'Çevrimdışı'}</div>
+      </div>
+      <button onclick="openDM(${friend.user_id}, '${friend.display_name || friend.username}', '${friend.avatar || ''}'); closeModal();" style="padding:8px 16px;background:var(--brand);border:none;border-radius:4px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Mesaj Gönder</button>
+      <button onclick="removeFriend(${friend.user_id})" style="padding:8px 16px;background:var(--red);border:none;border-radius:4px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Kaldır</button>
+    `;
+    friendsList.appendChild(friendEl);
+  });
+  
+  document.getElementById('modal-overlay').classList.add('active');
+}
+
+async function sendFriendRequest() {
+  const username = document.getElementById('friend-username-input').value.trim();
+  if (!username) {
+    showToast('Kullanıcı adı gerekli', 'error');
+    return;
+  }
+  
+  try {
+    const res = await fetch(`${API_URL}/api/dc/friends/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id, targetUsername: username })
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      showToast('Arkadaşlık isteği gönderildi!', 'success');
+      document.getElementById('friend-username-input').value = '';
+    } else {
+      showToast(data.error || 'İstek gönderilemedi', 'error');
+    }
+  } catch (err) {
+    console.error('Send friend request error:', err);
+    showToast('Bağlantı hatası', 'error');
+  }
+}
+
+async function acceptFriendRequest(requestId) {
+  try {
+    const res = await fetch(`${API_URL}/api/dc/friends/accept`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId })
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      showToast('Arkadaşlık kabul edildi!', 'success');
+      loadFriends();
+      closeModal();
+      setTimeout(() => showFriendsModal(), 300);
+    } else {
+      showToast(data.error || 'Kabul edilemedi', 'error');
+    }
+  } catch (err) {
+    console.error('Accept friend request error:', err);
+    showToast('Bağlantı hatası', 'error');
+  }
+}
+
+async function rejectFriendRequest(requestId) {
+  try {
+    const res = await fetch(`${API_URL}/api/dc/friends/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId })
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      showToast('Arkadaşlık reddedildi', 'info');
+      loadFriends();
+      closeModal();
+      setTimeout(() => showFriendsModal(), 300);
+    } else {
+      showToast(data.error || 'Reddedilemedi', 'error');
+    }
+  } catch (err) {
+    console.error('Reject friend request error:', err);
+    showToast('Bağlantı hatası', 'error');
+  }
+}
+
+async function removeFriend(friendId) {
+  if (!confirm('Bu arkadaşı kaldırmak istediğinden emin misin?')) return;
+  
+  try {
+    const res = await fetch(`${API_URL}/api/dc/friends/remove`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id, friendId })
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      showToast('Arkadaş kaldırıldı', 'info');
+      loadFriends();
+      closeModal();
+      setTimeout(() => showFriendsModal(), 300);
+    } else {
+      showToast(data.error || 'Kaldırılamadı', 'error');
+    }
+  } catch (err) {
+    console.error('Remove friend error:', err);
+    showToast('Bağlantı hatası', 'error');
+  }
+}
+
+// ==================== MESAJ DÜZENLEME/SİLME ====================
+
+let editingMessageId = null;
+
+function showMessageActions(messageId, messageContent, isOwner) {
+  const actionsMenu = document.createElement('div');
+  actionsMenu.className = 'message-actions-menu';
+  actionsMenu.style.cssText = `
+    position:absolute;
+    background:var(--bg-tertiary);
+    border-radius:8px;
+    padding:8px;
+    box-shadow:0 8px 16px rgba(0,0,0,0.24);
+    z-index:100;
+  `;
+  
+  if (isOwner) {
+    actionsMenu.innerHTML = `
+      <button onclick="editMessage(${messageId}, '${messageContent.replace(/'/g, "\\'")}'); this.parentElement.remove();" style="display:block;width:100%;padding:8px 12px;background:none;border:none;color:var(--text-normal);text-align:left;cursor:pointer;border-radius:4px;font-size:14px;" onmouseover="this.style.background='var(--background-modifier-hover)'" onmouseout="this.style.background='none'">
+        <i class="fas fa-edit"></i> Düzenle
+      </button>
+      <button onclick="deleteMessage(${messageId}); this.parentElement.remove();" style="display:block;width:100%;padding:8px 12px;background:none;border:none;color:var(--red);text-align:left;cursor:pointer;border-radius:4px;font-size:14px;" onmouseover="this.style.background='var(--background-modifier-hover)'" onmouseout="this.style.background='none'">
+        <i class="fas fa-trash"></i> Sil
+      </button>
+    `;
+  } else {
+    actionsMenu.innerHTML = `
+      <button onclick="reportMessage(${messageId}); this.parentElement.remove();" style="display:block;width:100%;padding:8px 12px;background:none;border:none;color:var(--red);text-align:left;cursor:pointer;border-radius:4px;font-size:14px;" onmouseover="this.style.background='var(--background-modifier-hover)'" onmouseout="this.style.background='none'">
+        <i class="fas fa-flag"></i> Bildir
+      </button>
+    `;
+  }
+  
+  return actionsMenu;
+}
+
+function editMessage(messageId, currentContent) {
+  editingMessageId = messageId;
+  const input = document.getElementById('message-input');
+  input.value = currentContent;
+  input.focus();
+  
+  // Düzenleme modunu göster
+  const editBanner = document.createElement('div');
+  editBanner.id = 'edit-banner';
+  editBanner.style.cssText = 'padding:8px 16px;background:var(--bg-accent);display:flex;align-items:center;justify-content:space-between;';
+  editBanner.innerHTML = `
+    <span style="font-size:14px;color:var(--text-muted);">Mesajı düzenliyorsun</span>
+    <button onclick="cancelEdit()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;">İptal</button>
+  `;
+  
+  const inputContainer = document.querySelector('.message-input-container');
+  inputContainer.parentElement.insertBefore(editBanner, inputContainer);
+}
+
+function cancelEdit() {
+  editingMessageId = null;
+  document.getElementById('message-input').value = '';
+  document.getElementById('edit-banner')?.remove();
+}
+
+async function deleteMessage(messageId) {
+  if (!confirm('Bu mesajı silmek istediğinden emin misin?')) return;
+  
+  try {
+    const res = await fetch(`${API_URL}/api/dc/messages/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messageId, userId: currentUser.id })
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      showToast('Mesaj silindi', 'success');
+      socket.emit('message_deleted', { messageId, server: currentServer, channel: currentChannel });
+    } else {
+      showToast(data.error || 'Silinemedi', 'error');
+    }
+  } catch (err) {
+    console.error('Delete message error:', err);
+    showToast('Bağlantı hatası', 'error');
+  }
+}
+
+// ==================== DOSYA/RESİM YÜKLEME ====================
+
+function showFileUploadModal() {
+  const modal = document.getElementById('modal');
+  modal.innerHTML = `
+    <div style="padding:24px;">
+      <h2 style="font-size:24px;font-weight:600;margin-bottom:24px;color:var(--header-primary);">Dosya Yükle</h2>
+      
+      <div style="border:2px dashed var(--text-muted);border-radius:8px;padding:40px;text-align:center;margin-bottom:24px;cursor:pointer;" onclick="document.getElementById('file-input').click()">
+        <i class="fas fa-cloud-upload-alt" style="font-size:48px;color:var(--text-muted);margin-bottom:16px;"></i>
+        <p style="color:var(--text-muted);">Dosya seçmek için tıkla</p>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">Maksimum 10MB</p>
+      </div>
+      
+      <input type="file" id="file-input" style="display:none;" accept="image/*,video/*,.pdf,.doc,.docx" onchange="handleFileSelect(event)">
+      
+      <div id="file-preview" style="display:none;margin-bottom:24px;"></div>
+      
+      <div style="display:flex;gap:12px;">
+        <button onclick="closeModal()" style="flex:1;padding:12px;background:transparent;border:none;border-radius:4px;color:var(--text-normal);font-size:14px;font-weight:600;cursor:pointer;">İptal</button>
+        <button id="upload-btn" onclick="uploadFile()" disabled style="flex:1;padding:12px;background:var(--brand);border:none;border-radius:4px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;opacity:0.5;">Gönder</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('modal-overlay').classList.add('active');
+}
+
+let selectedFile = null;
+
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('Dosya çok büyük (max 10MB)', 'error');
+    return;
+  }
+  
+  selectedFile = file;
+  
+  const preview = document.getElementById('file-preview');
+  preview.style.display = 'block';
+  
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      preview.innerHTML = `<img src="${e.target.result}" style="max-width:100%;max-height:200px;border-radius:8px;">`;
+    };
+    reader.readAsDataURL(file);
+  } else {
+    preview.innerHTML = `
+      <div style="padding:16px;background:var(--bg-secondary);border-radius:8px;display:flex;align-items:center;gap:12px;">
+        <i class="fas fa-file" style="font-size:32px;color:var(--brand);"></i>
+        <div>
+          <div style="font-weight:600;">${file.name}</div>
+          <div style="font-size:12px;color:var(--text-muted);">${(file.size / 1024).toFixed(2)} KB</div>
+        </div>
+      </div>
+    `;
+  }
+  
+  document.getElementById('upload-btn').disabled = false;
+  document.getElementById('upload-btn').style.opacity = '1';
+}
+
+async function uploadFile() {
+  if (!selectedFile) return;
+  
+  const formData = new FormData();
+  formData.append('file', selectedFile);
+  formData.append('userId', currentUser.id);
+  formData.append('server', currentServer);
+  formData.append('channel', currentChannel);
+  
+  try {
+    showToast('Dosya yükleniyor...', 'info');
+    
+    const res = await fetch(`${API_URL}/api/dc/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      showToast('Dosya gönderildi!', 'success');
+      closeModal();
+      
+      // Dosya mesajı gönder
+      const message = {
+        userId: currentUser.id,
+        username: currentUser.displayName || currentUser.username,
+        avatar: currentUser.avatar,
+        server: currentServer,
+        channel: currentChannel,
+        content: '',
+        fileUrl: data.fileUrl,
+        fileType: selectedFile.type,
+        fileName: selectedFile.name,
+        created_at: new Date().toISOString()
+      };
+      
+      socket.emit('send_message', message);
+      selectedFile = null;
+    } else {
+      showToast(data.error || 'Yükleme başarısız', 'error');
+    }
+  } catch (err) {
+    console.error('Upload error:', err);
+    showToast('Yükleme hatası', 'error');
+  }
+}
+
+// ==================== EMOJI PICKER ====================
+
+const emojis = ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '🥲', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '🥸', '😎', '🤓', '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬', '😈', '👿', '💀', '☠️', '💩', '🤡', '👹', '👺', '👻', '👽', '👾', '🤖', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾', '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🫀', '🫁', '🦷', '🦴', '👀', '👁️', '👅', '👄', '💋', '🩸'];
+
+function showEmojiPicker() {
+  const picker = document.createElement('div');
+  picker.id = 'emoji-picker';
+  picker.style.cssText = `
+    position:absolute;
+    bottom:80px;
+    right:16px;
+    width:320px;
+    height:400px;
+    background:var(--bg-tertiary);
+    border-radius:8px;
+    box-shadow:0 8px 16px rgba(0,0,0,0.24);
+    padding:16px;
+    overflow-y:auto;
+    z-index:100;
+    display:grid;
+    grid-template-columns:repeat(8, 1fr);
+    gap:8px;
+    align-content:start;
+  `;
+  
+  emojis.forEach(emoji => {
+    const emojiBtn = document.createElement('button');
+    emojiBtn.textContent = emoji;
+    emojiBtn.style.cssText = 'background:none;border:none;font-size:24px;cursor:pointer;padding:4px;border-radius:4px;transition:background 0.1s;';
+    emojiBtn.onmouseover = () => emojiBtn.style.background = 'var(--background-modifier-hover)';
+    emojiBtn.onmouseout = () => emojiBtn.style.background = 'none';
+    emojiBtn.onclick = () => {
+      const input = document.getElementById('message-input');
+      input.value += emoji;
+      input.focus();
+      picker.remove();
+    };
+    picker.appendChild(emojiBtn);
+  });
+  
+  document.body.appendChild(picker);
+  
+  // Dışarı tıklanınca kapat
+  setTimeout(() => {
+    document.addEventListener('click', function closeEmojiPicker(e) {
+      if (!picker.contains(e.target) && e.target.id !== 'emoji-btn') {
+        picker.remove();
+        document.removeEventListener('click', closeEmojiPicker);
+      }
+    });
+  }, 100);
+}
+
+// Emoji butonuna event listener ekle
+document.getElementById('emoji-btn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const existingPicker = document.getElementById('emoji-picker');
+  if (existingPicker) {
+    existingPicker.remove();
+  } else {
+    showEmojiPicker();
+  }
+});
+
+// Dosya yükleme butonuna event listener ekle
+document.getElementById('attach-btn')?.addEventListener('click', showFileUploadModal);
+
+// Arkadaşlar butonunu header'a ekle
+const friendsBtn = document.createElement('button');
+friendsBtn.className = 'header-btn';
+friendsBtn.title = 'Arkadaşlar';
+friendsBtn.innerHTML = '<i class="fas fa-user-friends"></i>';
+friendsBtn.onclick = () => {
+  loadFriends();
+  setTimeout(showFriendsModal, 300);
+};
+document.querySelector('.chat-header-right')?.insertBefore(friendsBtn, document.querySelector('.chat-header-right').firstChild);
+
+// DM'leri ve arkadaşları yükle
+if (currentUser) {
+  loadDMs();
+  loadFriends();
+}
