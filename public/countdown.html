@@ -337,22 +337,7 @@
     </div>
 
     <h1>DemlikChat Yakında Geliyor!</h1>
-    <p class="subtitle">24 saat içinde hizmetinizde</p>
-
-    <div class="countdown" id="countdown">
-      <div class="countdown-item">
-        <div class="countdown-number" id="hours">00</div>
-        <div class="countdown-label">Saat</div>
-      </div>
-      <div class="countdown-item">
-        <div class="countdown-number" id="minutes">00</div>
-        <div class="countdown-label">Dakika</div>
-      </div>
-      <div class="countdown-item">
-        <div class="countdown-number" id="seconds">00</div>
-        <div class="countdown-label">Saniye</div>
-      </div>
-    </div>
+    <p class="subtitle">Yakında...</p>
 
     <div class="features">
       <div class="feature">
@@ -377,73 +362,8 @@
       </div>
     </div>
 
-    <button class="notify-btn" onclick="notify()">
+    <button class="notify-btn" onclick="alert('DemlikChat yakında açılacak!')">
       <i class="fas fa-bell"></i> Beni Bilgilendir
     </button>
-  </div>
-
-  <script>
-    // Geri sayım bitiş zamanını localStorage'dan al veya yeni oluştur
-    let launchDate;
-    
-    if (!localStorage.getItem('dcLaunchTime')) {
-      // İlk kez açılıyor, 24 saat sonrası için zaman belirle
-      launchDate = new Date();
-      launchDate.setHours(launchDate.getHours() + 24);
-      localStorage.setItem('dcLaunchTime', launchDate.getTime());
-      console.log('Yeni geri sayım başlatıldı:', launchDate);
-    } else {
-      // Daha önce kaydedilmiş zaman varsa onu kullan
-      const savedTime = parseInt(localStorage.getItem('dcLaunchTime'));
-      launchDate = new Date(savedTime);
-      console.log('Kaydedilmiş geri sayım yüklendi:', launchDate);
-    }
-
-    function updateCountdown() {
-      const now = new Date().getTime();
-      const distance = launchDate.getTime() - now;
-
-      if (distance < 0) {
-        // Geri sayım bitti, DemlikChat sayfasına yönlendir
-        console.log('Geri sayım tamamlandı! DemlikChat açılıyor...');
-        localStorage.removeItem('dcLaunchTime'); // Temizle
-        window.location.href = '/demlikchat/app';
-        return;
-      }
-
-      // Saat, dakika, saniye hesapla
-      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-      // DOM'u güncelle
-      document.getElementById('hours').textContent = String(hours).padStart(2, '0');
-      document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
-      document.getElementById('seconds').textContent = String(seconds).padStart(2, '0');
-    }
-
-    // İlk güncelleme
-    updateCountdown();
-    
-    // Her saniye güncelle
-    const countdownInterval = setInterval(updateCountdown, 1000);
-
-    function notify() {
-      const now = new Date().getTime();
-      const distance = launchDate.getTime() - now;
-      const hoursLeft = Math.floor(distance / (1000 * 60 * 60));
-      const minutesLeft = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      
-      alert(`Harika! DemlikChat ${hoursLeft} saat ${minutesLeft} dakika sonra açılacak! 🎉\n\nSeni bilgilendireceğiz!`);
-    }
-
-    // Debug: Geri sayımı sıfırlamak için (geliştirme amaçlı)
-    // localStorage.removeItem('dcLaunchTime');
-    
-    // Sayfa kapatılmadan önce kontrol
-    window.addEventListener('beforeunload', () => {
-      console.log('Sayfa kapatılıyor, geri sayım korundu');
-    });
-  </script>
 </body>
 </html>
