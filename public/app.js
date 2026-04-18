@@ -43,7 +43,10 @@ function playMessageNotificationSound() {
 }
 
 function showMessageNotification(senderName, messageText, senderPhoto, senderId) {
-  // Tarayıcı bildirimi
+  // Ekran bildirimi (Toast) - Her zaman göster
+  showToastNotification(senderName, messageText, senderPhoto, senderId);
+  
+  // Tarayıcı bildirimi - Sadece site arka plandaysa
   if (notificationPermissionGranted && document.hidden) {
     try {
       const notification = new Notification(`${senderName}`, {
@@ -59,7 +62,12 @@ function showMessageNotification(senderName, messageText, senderPhoto, senderId)
         window.focus();
         showPage('messages');
         setTimeout(() => {
-          openChat(senderId, senderName, senderPhoto);
+          if (String(senderId).startsWith('group_')) {
+            const groupId = senderId.replace('group_', '');
+            openGroup(groupId);
+          } else {
+            openChat(senderId, senderName, senderPhoto);
+          }
         }, 300);
         notification.close();
       };
@@ -73,6 +81,85 @@ function showMessageNotification(senderName, messageText, senderPhoto, senderId)
   
   // Ses bildirimi (site açık olsa bile çal)
   playMessageNotificationSound();
+}
+
+function showToastNotification(senderName, messageText, senderPhoto, senderId) {
+  const toast = document.createElement('div');
+  const toastId = 'toast_' + Date.now();
+  toast.id = toastId;
+  toast.style.cssText = `
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 10000;
+    background: var(--yt-spec-raised-background, #212121);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 12px 16px;
+    min-width: 300px;
+    max-width: 400px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    cursor: pointer;
+    animation: slideInRight 0.3s ease-out;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  `;
+  
+  const photoUrl = senderPhoto && senderPhoto !== '?' 
+    ? senderPhoto 
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(senderName)}&background=ff0033&color=fff&size=48`;
+  
+  toast.innerHTML = `
+    <img src="${photoUrl}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(senderName)}&background=ff0033&color=fff&size=48'" />
+    <div style="flex: 1; min-width: 0;">
+      <p style="font-size: 14px; font-weight: 600; color: var(--yt-spec-text-primary, #fff); margin: 0 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${senderName}</p>
+      <p style="font-size: 13px; color: var(--yt-spec-text-secondary, #aaa); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${messageText}</p>
+    </div>
+    <button onclick="event.stopPropagation(); document.getElementById('${toastId}').remove();" style="background: none; border: none; color: var(--yt-spec-text-secondary, #aaa); font-size: 18px; cursor: pointer; padding: 4px; flex-shrink: 0;">×</button>
+  `;
+  
+  // Tıklayınca mesaja git
+  toast.addEventListener('click', () => {
+    if (String(senderId).startsWith('group_')) {
+      const groupId = senderId.replace('group_', '');
+      showPage('groups');
+      setTimeout(() => openGroup(groupId), 300);
+    } else {
+      showPage('messages');
+      setTimeout(() => openChat(senderId, senderName, senderPhoto), 300);
+    }
+    toast.remove();
+  });
+  
+  document.body.appendChild(toast);
+  
+  // Animasyon stili ekle
+  if (!document.getElementById('toastAnimationStyle')) {
+    const style = document.createElement('style');
+    style.id = 'toastAnimationStyle';
+    style.textContent = `
+      @keyframes slideInRight {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  // Diğer toast'ları aşağı kaydır
+  const existingToasts = document.querySelectorAll('[id^="toast_"]');
+  existingToasts.forEach((t, index) => {
+    if (t.id !== toastId) {
+      t.style.top = (80 + (index + 1) * 80) + 'px';
+    }
+  });
 }
 
 async function startGlobalMessageListeners() {

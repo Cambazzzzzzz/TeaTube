@@ -473,27 +473,48 @@ function initSpeakingDetection(stream) {
 
 function initNotificationSounds() {
   // Arama zil sesi (gelen arama) - Direkt ses dosyası
-  ringSound = new Audio('https://media.vocaroo.com/mp3/1gJEC8z2mRY1');
+  ringSound = new Audio();
+  ringSound.src = 'https://media.vocaroo.com/mp3/1gJEC8z2mRY1';
   ringSound.loop = true;
   ringSound.volume = 0.7;
+  ringSound.load();
   
   // Arama sesi (arayan için) - Direkt ses dosyası
-  callSound = new Audio('https://media.vocaroo.com/mp3/1d7VPIDMXCK0');
+  callSound = new Audio();
+  callSound.src = 'https://media.vocaroo.com/mp3/1d7VPIDMXCK0';
   callSound.loop = true;
   callSound.volume = 0.6;
+  callSound.load();
+  
+  console.log('Bildirim sesleri yüklendi');
 }
 
 function playRingSound() {
   if (ringSound) {
     ringSound.currentTime = 0;
-    ringSound.play().catch(e => console.log('Ring ses çalamadı:', e));
+    ringSound.play().then(() => {
+      console.log('Ring sesi çalıyor');
+    }).catch(e => {
+      console.log('Ring ses çalamadı:', e);
+      // Kullanıcı etkileşimi gerekebilir
+      document.addEventListener('click', () => {
+        ringSound.play().catch(console.error);
+      }, { once: true });
+    });
   }
 }
 
 function playCallSound() {
   if (callSound) {
     callSound.currentTime = 0;
-    callSound.play().catch(e => console.log('Call ses çalamadı:', e));
+    callSound.play().then(() => {
+      console.log('Call sesi çalıyor');
+    }).catch(e => {
+      console.log('Call ses çalamadı:', e);
+      document.addEventListener('click', () => {
+        callSound.play().catch(console.error);
+      }, { once: true });
+    });
   }
 }
 
@@ -717,8 +738,13 @@ async function startDirectCall(targetUserId, targetName, targetPhoto) {
 
   // Offer oluştur ve gönder
   try {
-    const offer = await directCallPeer.createOffer();
+    const offer = await directCallPeer.createOffer({
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: false
+    });
     await directCallPeer.setLocalDescription(offer);
+    
+    console.log('Offer oluşturuldu:', offer);
 
     voiceSocket.emit('call:start', {
       callerId: currentUser.id,
@@ -802,10 +828,15 @@ async function acceptDirectCall(callerData) {
   try {
     // Remote description ayarla
     await directCallPeer.setRemoteDescription(new RTCSessionDescription(callerData.offer));
+    console.log('Remote description ayarlandı');
 
     // Answer oluştur
-    const answer = await directCallPeer.createAnswer();
+    const answer = await directCallPeer.createAnswer({
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: false
+    });
     await directCallPeer.setLocalDescription(answer);
+    console.log('Answer oluşturuldu:', answer);
 
     // Answer gönder
     voiceSocket.emit('call:accept', {
