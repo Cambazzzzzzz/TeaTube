@@ -590,8 +590,14 @@ function initVoiceSocket() {
 
   // ICE candidate (1-1)
   voiceSocket.on('call:ice', async (data) => {
+    console.log('← ICE candidate alındı');
     if (directCallPeer && data.candidate) {
-      try { await directCallPeer.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(e) {}
+      try {
+        await directCallPeer.addIceCandidate(new RTCIceCandidate(data.candidate));
+        console.log('✓ ICE candidate eklendi');
+      } catch(e) {
+        console.error('✗ ICE candidate eklenemedi:', e);
+      }
     }
   });
 
@@ -674,17 +680,28 @@ async function startDirectCall(targetUserId, targetName, targetPhoto) {
     return;
   }
 
+  console.log('=== ARAMA BAŞLATILIYOR ===');
+  console.log('Hedef:', targetUserId, targetName);
+
   try {
-    // Mikrofon izni al (seçili cihazla)
+    // 1. Mikrofon izni al
     const constraints = { 
-      audio: selectedInputDevice ? { deviceId: { exact: selectedInputDevice } } : true,
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        deviceId: selectedInputDevice ? { exact: selectedInputDevice } : undefined
+      },
       video: false 
     };
+    
     directCallStream = await navigator.mediaDevices.getUserMedia(constraints);
+    console.log('✓ Mikrofon alındı, tracks:', directCallStream.getTracks().length);
     
     // Konuşma algılamayı başlat
     initSpeakingDetection(directCallStream);
   } catch(e) {
+    console.error('✗ Mikrofon hatası:', e);
     showVoiceToast('Mikrofon erişimi reddedildi!');
     return;
   }
@@ -693,121 +710,55 @@ async function startDirectCall(targetUserId, targetName, targetPhoto) {
   directCallTargetId = targetUserId;
   initVoiceSocket();
 
-  // WebRTC bağlantısı oluştur
-  directCallPeer = new RTCPeerConnection({ iceServers: VOICE_ICE_SERVERS });
+  // 2. WebRTC bağlantısı oluştur
+  const configuration = {
+    iceServers: VOICE_ICE_SERVERS,
+    iceCandidatePoolSize: 10
+  };
+  
+  directCallPeer = new RTCPeerConnection(configuration);
+  console.log('✓ PeerConnection oluşturuldu');
 
-  // Ses track'ini ekle
+  // 3. Ses track'lerini ekle
   directCallStream.getTracks().forEach(track => {
-    directCallPeer.addTrack(track, directCallStream);
+    const sender = directCallPeer.addTrack(track, directCallStream);
+    console.log('✓ Track eklendi:', track.kind, track.id);
   });
 
-  // ICE candidate
+  // 4. ICE candidate handler
   directCallPeer.onicecandidate = (e) => {
     if (e.candidate) {
+      console.log('→ ICE candidate gönderiliyor');
       voiceSocket.emit('call:ice', {
         targetId: targetUserId,
-        candidate: e.candidate
+        candidate: e.candidate.toJSON()
       });
+    } else {
+      console.log('✓ ICE gathering tamamlandı');
     }
   };
 
-  // Karşı tarafın sesi
+  // 5. Connection state monitoring
+  directCallPeer.onconnectionstatechange = () => {
+    console.log('Connection state:', directCallPeer.connectionState);
+    if (directCallPeer.connectionState === 'connected') {
+      console.log('✓✓✓ BAĞLANTI KURULDU ✓✓✓');
+    } else if (directCallPeer.connectionState === 'failed') {
+      console.error('✗✗✗ BAĞLANTI BAŞARISIZ ✗✗✗');
+      endDirectCall();
+      showVoiceToast('Bağlantı kurulamadı!');
+    }
+  };
+
+  // 6. Karşı tarafın sesi
   directCallPeer.ontrack = (e) => {
-    console.log('Direkt arama ses geldi', e.streams);
+    console.log('✓✓✓ SES TRACK GELDİ ✓✓✓', e.streams);
+    
     if (!directCallAudio) {
       directCallAudio = new Audio();
       directCallAudio.autoplay = true;
     }
-    directCallAudio.srcObject = e.streams[0];
-    directCallAudio.volume = 1.0;
     
-    // Seçili çıkış cihazını kullan
-    if (selectedOutputDevice && directCallAudio.setSinkId) {
-      directCallAudio.setSinkId(selectedOutputDevice).catch(e => console.log('setSinkId hatası:', e));
-    }
-    
-    // Manuel play (bazı tarayıcılarda gerekli)
-    directCallAudio.play().catch(e => {
-      console.log('Audio play hatası:', e);
-      // Kullanıcı etkileşimi gerekebilir
-      document.addEventListener('click', () => {
-        directCallAudio.play().catch(console.error);
-      }, { once: true });
-    });
-  };
-
-  // Offer oluştur ve gönder
-  try {
-    const offer = await directCallPeer.createOffer({
-      offerToReceiveAudio: true,
-      offerToReceiveVideo: false
-    });
-    await directCallPeer.setLocalDescription(offer);
-    
-    console.log('Offer oluşturuldu:', offer);
-
-    voiceSocket.emit('call:start', {
-      callerId: currentUser.id,
-      callerName: currentUser.nickname || currentUser.username,
-      callerPhoto: currentUser.profile_photo || '',
-      receiverId: targetUserId,
-      offer: directCallPeer.localDescription
-    });
-
-    showOutgoingCallUI(targetName, targetPhoto);
-    playCallSound();
-
-  } catch(e) {
-    console.error('Arama başlatılamadı:', e);
-    endDirectCall();
-    showVoiceToast('Arama başlatılamadı!');
-  }
-}
-
-async function acceptDirectCall(callerData) {
-  try {
-    // Mikrofon izni al (seçili cihazla)
-    const constraints = { 
-      audio: selectedInputDevice ? { deviceId: { exact: selectedInputDevice } } : true,
-      video: false 
-    };
-    directCallStream = await navigator.mediaDevices.getUserMedia(constraints);
-    
-    // Konuşma algılamayı başlat
-    initSpeakingDetection(directCallStream);
-  } catch(e) {
-    rejectDirectCall('Mikrofon erişimi reddedildi');
-    return;
-  }
-
-  directCallActive = true;
-  directCallTargetId = callerData.callerId;
-
-  // WebRTC bağlantısı oluştur
-  directCallPeer = new RTCPeerConnection({ iceServers: VOICE_ICE_SERVERS });
-
-  // Ses track'ini ekle
-  directCallStream.getTracks().forEach(track => {
-    directCallPeer.addTrack(track, directCallStream);
-  });
-
-  // ICE candidate
-  directCallPeer.onicecandidate = (e) => {
-    if (e.candidate) {
-      voiceSocket.emit('call:ice', {
-        targetId: callerData.callerId,
-        candidate: e.candidate
-      });
-    }
-  };
-
-  // Karşı tarafın sesi
-  directCallPeer.ontrack = (e) => {
-    console.log('Kabul edilen arama ses geldi', e.streams);
-    if (!directCallAudio) {
-      directCallAudio = new Audio();
-      directCallAudio.autoplay = true;
-    }
     directCallAudio.srcObject = e.streams[0];
     directCallAudio.volume = 1.0;
     
@@ -817,8 +768,139 @@ async function acceptDirectCall(callerData) {
     }
     
     // Manuel play
-    directCallAudio.play().catch(e => {
-      console.log('Audio play hatası:', e);
+    directCallAudio.play().then(() => {
+      console.log('✓ Audio çalıyor');
+    }).catch(e => {
+      console.error('✗ Audio play hatası:', e);
+      // Kullanıcı etkileşimi gerekebilir
+      document.addEventListener('click', () => {
+        directCallAudio.play().catch(console.error);
+      }, { once: true });
+    });
+  };
+
+  // 7. Offer oluştur ve gönder
+  try {
+    const offer = await directCallPeer.createOffer({
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: false
+    });
+    
+    await directCallPeer.setLocalDescription(offer);
+    console.log('✓ Offer oluşturuldu ve local description ayarlandı');
+
+    voiceSocket.emit('call:start', {
+      callerId: currentUser.id,
+      callerName: currentUser.nickname || currentUser.username,
+      callerPhoto: currentUser.profile_photo || '',
+      receiverId: targetUserId,
+      offer: offer
+    });
+    
+    console.log('→ Offer gönderildi');
+
+    showOutgoingCallUI(targetName, targetPhoto);
+    playCallSound();
+
+  } catch(e) {
+    console.error('✗ Offer oluşturma hatası:', e);
+    endDirectCall();
+    showVoiceToast('Arama başlatılamadı!');
+  }
+}
+
+async function acceptDirectCall(callerData) {
+  console.log('=== ARAMA KABUL EDİLİYOR ===');
+  console.log('Arayan:', callerData.callerId, callerData.callerName);
+  
+  try {
+    // 1. Mikrofon izni al
+    const constraints = { 
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        deviceId: selectedInputDevice ? { exact: selectedInputDevice } : undefined
+      },
+      video: false 
+    };
+    
+    directCallStream = await navigator.mediaDevices.getUserMedia(constraints);
+    console.log('✓ Mikrofon alındı, tracks:', directCallStream.getTracks().length);
+    
+    // Konuşma algılamayı başlat
+    initSpeakingDetection(directCallStream);
+  } catch(e) {
+    console.error('✗ Mikrofon hatası:', e);
+    rejectDirectCall('Mikrofon erişimi reddedildi');
+    return;
+  }
+
+  directCallActive = true;
+  directCallTargetId = callerData.callerId;
+
+  // 2. WebRTC bağlantısı oluştur
+  const configuration = {
+    iceServers: VOICE_ICE_SERVERS,
+    iceCandidatePoolSize: 10
+  };
+  
+  directCallPeer = new RTCPeerConnection(configuration);
+  console.log('✓ PeerConnection oluşturuldu');
+
+  // 3. Ses track'lerini ekle
+  directCallStream.getTracks().forEach(track => {
+    const sender = directCallPeer.addTrack(track, directCallStream);
+    console.log('✓ Track eklendi:', track.kind, track.id);
+  });
+
+  // 4. ICE candidate handler
+  directCallPeer.onicecandidate = (e) => {
+    if (e.candidate) {
+      console.log('→ ICE candidate gönderiliyor');
+      voiceSocket.emit('call:ice', {
+        targetId: callerData.callerId,
+        candidate: e.candidate.toJSON()
+      });
+    } else {
+      console.log('✓ ICE gathering tamamlandı');
+    }
+  };
+
+  // 5. Connection state monitoring
+  directCallPeer.onconnectionstatechange = () => {
+    console.log('Connection state:', directCallPeer.connectionState);
+    if (directCallPeer.connectionState === 'connected') {
+      console.log('✓✓✓ BAĞLANTI KURULDU ✓✓✓');
+    } else if (directCallPeer.connectionState === 'failed') {
+      console.error('✗✗✗ BAĞLANTI BAŞARISIZ ✗✗✗');
+      endDirectCall();
+      showVoiceToast('Bağlantı kurulamadı!');
+    }
+  };
+
+  // 6. Karşı tarafın sesi
+  directCallPeer.ontrack = (e) => {
+    console.log('✓✓✓ SES TRACK GELDİ ✓✓✓', e.streams);
+    
+    if (!directCallAudio) {
+      directCallAudio = new Audio();
+      directCallAudio.autoplay = true;
+    }
+    
+    directCallAudio.srcObject = e.streams[0];
+    directCallAudio.volume = 1.0;
+    
+    // Seçili çıkış cihazını kullan
+    if (selectedOutputDevice && directCallAudio.setSinkId) {
+      directCallAudio.setSinkId(selectedOutputDevice).catch(e => console.log('setSinkId hatası:', e));
+    }
+    
+    // Manuel play
+    directCallAudio.play().then(() => {
+      console.log('✓ Audio çalıyor');
+    }).catch(e => {
+      console.error('✗ Audio play hatası:', e);
       document.addEventListener('click', () => {
         directCallAudio.play().catch(console.error);
       }, { once: true });
@@ -826,30 +908,33 @@ async function acceptDirectCall(callerData) {
   };
 
   try {
-    // Remote description ayarla
+    // 7. Remote description ayarla
     await directCallPeer.setRemoteDescription(new RTCSessionDescription(callerData.offer));
-    console.log('Remote description ayarlandı');
+    console.log('✓ Remote description ayarlandı');
 
-    // Answer oluştur
+    // 8. Answer oluştur
     const answer = await directCallPeer.createAnswer({
       offerToReceiveAudio: true,
       offerToReceiveVideo: false
     });
+    
     await directCallPeer.setLocalDescription(answer);
-    console.log('Answer oluşturuldu:', answer);
+    console.log('✓ Answer oluşturuldu ve local description ayarlandı');
 
-    // Answer gönder
+    // 9. Answer gönder
     voiceSocket.emit('call:accept', {
       callerId: callerData.callerId,
-      answer: directCallPeer.localDescription
+      answer: answer
     });
+    
+    console.log('→ Answer gönderildi');
 
     stopAllSounds();
     hideIncomingCallUI();
     showActiveCallUI();
 
   } catch(e) {
-    console.error('Arama kabul edilemedi:', e);
+    console.error('✗ Arama kabul hatası:', e);
     rejectDirectCall('Teknik hata');
   }
 }

@@ -70,7 +70,10 @@ io.on('connection', (socket) => {
 
   socket.on('call:ice', (data) => {
     const targetSocketId = onlineUsers.get(String(data.targetId));
-    if (targetSocketId) io.to(targetSocketId).emit('call:ice', { candidate: data.candidate });
+    if (targetSocketId) {
+      console.log('ICE candidate iletiliyor:', data.targetId);
+      io.to(targetSocketId).emit('call:ice', { candidate: data.candidate });
+    }
   });
 
   // ==================== GRUP SESLI ODA ====================
