@@ -929,3 +929,33 @@ try {
 } catch(e) {}
 
 
+
+// ==================== INSTAGRAM TARZI YORUM SİSTEMİ ====================
+
+// Instagram tarzı yorum sistemi için yeni kolonlar
+try {
+  db.prepare('ALTER TABLE comments ADD COLUMN is_edited INTEGER DEFAULT 0').run();
+  console.log('✓ is_edited kolonu eklendi');
+} catch(e) {}
+
+try {
+  db.prepare('ALTER TABLE comments ADD COLUMN edited_at DATETIME').run();
+  console.log('✓ edited_at kolonu eklendi');
+} catch(e) {}
+
+try {
+  db.prepare('ALTER TABLE comments ADD COLUMN mention_users TEXT').run(); // JSON array of mentioned user IDs
+  console.log('✓ mention_users kolonu eklendi');
+} catch(e) {}
+
+try {
+  db.prepare('ALTER TABLE comments ADD COLUMN reply_to_user_id INTEGER').run(); // Hangi kullanıcıya yanıt
+  console.log('✓ reply_to_user_id kolonu eklendi');
+} catch(e) {}
+
+// Mevcut yorumlar için NULL değerleri düzelt
+try {
+  db.prepare('UPDATE comments SET is_edited = 0 WHERE is_edited IS NULL').run();
+} catch(e) {}
+
+console.log('✓ Instagram tarzı yorum sistemi hazır!');

@@ -1275,6 +1275,9 @@ function _openMobileChatDirect(friendId, friendName, friendPhoto) {
           <p style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${friendName}</p>
           <p id="chatStatus" style="font-size:12px;color:var(--yt-spec-text-secondary);"></p>
         </div>
+        <button onclick="startDirectCall('${friendId}','${friendName.replace(/'/g,"\\'")}','${friendPhoto}')" title="Sesli Arama" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:8px;font-size:18px;flex-shrink:0;">
+          <i class="fas fa-phone"></i>
+        </button>
       </div>
       <div id="selectToolbar" class="select-toolbar" style="display:none;">
         <button onclick="exitSelectMode()" style="background:none;border:none;color:inherit;cursor:pointer;padding:4px 8px;font-size:18px;"><i class="fas fa-times"></i></button>

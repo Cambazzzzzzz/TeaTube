@@ -1,5 +1,5 @@
-﻿// ==================== SESLI SOHBET - TeaTube ====================
-// Socket.IO + WebRTC ile grup sesli oda sistemi
+﻿// ==================== SESLI SOHBET + 1-1 ARAMA - TeaTube ====================
+// Socket.IO + WebRTC ile grup sesli oda sistemi + direkt arama
 
 let voiceSocket = null;
 let voiceStream = null;       // Kendi mikrofon stream'i
@@ -9,10 +9,54 @@ let voiceRoomId = null;       // Aktif oda (groupId)
 let voiceIsMuted = false;
 let voiceMembers = {};        // { userId: { nickname, photo, isMuted } }
 
+// 1-1 Arama değişkenleri
+let directCallActive = false;
+let directCallPeer = null;
+let directCallStream = null;
+let directCallAudio = null;
+let directCallTargetId = null;
+
+// Bildirim sesleri
+let ringSound = null;
+let callSound = null;
+
 const VOICE_ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' }
 ];
+
+// ==================== BILDIRIM SESLERI ====================
+
+function initNotificationSounds() {
+  // Arama zil sesi (gelen arama)
+  ringSound = new Audio('https://vocaroo.com/embed/1gJEC8z2mRY1');
+  ringSound.loop = true;
+  ringSound.volume = 0.7;
+  
+  // Arama sesi (arayan için)
+  callSound = new Audio('https://vocaroo.com/embed/1d7VPIDMXCK0');
+  callSound.loop = true;
+  callSound.volume = 0.6;
+}
+
+function playRingSound() {
+  if (ringSound) {
+    ringSound.currentTime = 0;
+    ringSound.play().catch(e => console.log('Ring ses çalamadı:', e));
+  }
+}
+
+function playCallSound() {
+  if (callSound) {
+    callSound.currentTime = 0;
+    callSound.play().catch(e => console.log('Call ses çalamadı:', e));
+  }
+}
+
+function stopAllSounds() {
+  if (ringSound) { ringSound.pause(); ringSound.currentTime = 0; }
+  if (callSound) { callSound.pause(); callSound.currentTime = 0; }
+}
 
 // ==================== SOCKET BAGLANTISI ====================
 
@@ -28,11 +72,64 @@ function initVoiceSocket() {
   voiceSocket.on('connect', () => {
     console.log('Voice socket bağlandı:', voiceSocket.id);
     if (currentUser) voiceSocket.emit('register', currentUser.id);
+    initNotificationSounds();
   });
 
   voiceSocket.on('disconnect', () => {
     console.log('Voice socket bağlantısı kesildi');
   });
+
+  // ==================== 1-1 ARAMA EVENTLERI ====================
+
+  // Gelen arama
+  voiceSocket.on('call:incoming', (data) => {
+    console.log('Gelen arama:', data);
+    showIncomingCallUI(data);
+    playRingSound();
+  });
+
+  // Arama kabul edildi
+  voiceSocket.on('call:accepted', async (data) => {
+    console.log('Arama kabul edildi');
+    stopAllSounds();
+    if (directCallPeer) {
+      await directCallPeer.setRemoteDescription(new RTCSessionDescription(data.answer));
+      showActiveCallUI();
+    }
+  });
+
+  // Arama reddedildi
+  voiceSocket.on('call:rejected', (data) => {
+    console.log('Arama reddedildi:', data.reason);
+    stopAllSounds();
+    endDirectCall();
+    showVoiceToast('Arama reddedildi');
+  });
+
+  // Arama sonlandı
+  voiceSocket.on('call:ended', () => {
+    console.log('Arama sonlandı');
+    stopAllSounds();
+    endDirectCall();
+    showVoiceToast('Arama sonlandı');
+  });
+
+  // Arama yapılamadı
+  voiceSocket.on('call:unavailable', (data) => {
+    console.log('Kullanıcı çevrimdışı:', data.receiverId);
+    stopAllSounds();
+    endDirectCall();
+    showVoiceToast('Kullanıcı çevrimdışı');
+  });
+
+  // ICE candidate (1-1)
+  voiceSocket.on('call:ice', async (data) => {
+    if (directCallPeer && data.candidate) {
+      try { await directCallPeer.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(e) {}
+    }
+  });
+
+  // ==================== GRUP SESLI ODA EVENTLERI ====================
 
   // Odadaki mevcut üyeler (katılınca gelir)
   voiceSocket.on('voice:room-members', async (members) => {
@@ -65,20 +162,20 @@ function initVoiceSocket() {
     showVoiceToast(`${m ? m.nickname : 'Biri'} odadan ayrıldı`);
   });
 
-  // WebRTC offer geldi
+  // WebRTC offer geldi (grup)
   voiceSocket.on('voice:offer', async (data) => {
     console.log('Offer geldi:', data.fromUserId);
     await handleVoiceOffer(data.fromUserId, data.offer);
   });
 
-  // WebRTC answer geldi
+  // WebRTC answer geldi (grup)
   voiceSocket.on('voice:answer', async (data) => {
     console.log('Answer geldi:', data.fromUserId);
     const pc = voicePeers[data.fromUserId];
     if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
   });
 
-  // ICE candidate geldi
+  // ICE candidate geldi (grup)
   voiceSocket.on('voice:ice', async (data) => {
     const pc = voicePeers[data.fromUserId];
     if (pc && data.candidate) {
@@ -95,12 +192,340 @@ function initVoiceSocket() {
   });
 }
 
-// ==================== ODAYA KATIL ====================
+// ==================== 1-1 DIREKT ARAMA ====================
+
+async function startDirectCall(targetUserId, targetName, targetPhoto) {
+  if (directCallActive || voiceRoomId) {
+    showVoiceToast('Zaten bir arama aktif!');
+    return;
+  }
+
+  try {
+    // Mikrofon izni al
+    directCallStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch(e) {
+    showVoiceToast('Mikrofon erişimi reddedildi!');
+    return;
+  }
+
+  directCallActive = true;
+  directCallTargetId = targetUserId;
+  initVoiceSocket();
+
+  // WebRTC bağlantısı oluştur
+  directCallPeer = new RTCPeerConnection({ iceServers: VOICE_ICE_SERVERS });
+
+  // Ses track'ini ekle
+  directCallStream.getTracks().forEach(track => {
+    directCallPeer.addTrack(track, directCallStream);
+  });
+
+  // ICE candidate
+  directCallPeer.onicecandidate = (e) => {
+    if (e.candidate) {
+      voiceSocket.emit('call:ice', {
+        targetId: targetUserId,
+        candidate: e.candidate
+      });
+    }
+  };
+
+  // Karşı tarafın sesi
+  directCallPeer.ontrack = (e) => {
+    console.log('Direkt arama ses geldi');
+    directCallAudio = new Audio();
+    directCallAudio.srcObject = e.streams[0];
+    directCallAudio.autoplay = true;
+  };
+
+  // Offer oluştur ve gönder
+  try {
+    const offer = await directCallPeer.createOffer();
+    await directCallPeer.setLocalDescription(offer);
+
+    voiceSocket.emit('call:start', {
+      callerId: currentUser.id,
+      callerName: currentUser.nickname || currentUser.username,
+      callerPhoto: currentUser.profile_photo || '',
+      receiverId: targetUserId,
+      offer: directCallPeer.localDescription
+    });
+
+    showOutgoingCallUI(targetName, targetPhoto);
+    playCallSound();
+
+  } catch(e) {
+    console.error('Arama başlatılamadı:', e);
+    endDirectCall();
+    showVoiceToast('Arama başlatılamadı!');
+  }
+}
+
+async function acceptDirectCall(callerData) {
+  try {
+    // Mikrofon izni al
+    directCallStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch(e) {
+    rejectDirectCall('Mikrofon erişimi reddedildi');
+    return;
+  }
+
+  directCallActive = true;
+  directCallTargetId = callerData.callerId;
+
+  // WebRTC bağlantısı oluştur
+  directCallPeer = new RTCPeerConnection({ iceServers: VOICE_ICE_SERVERS });
+
+  // Ses track'ini ekle
+  directCallStream.getTracks().forEach(track => {
+    directCallPeer.addTrack(track, directCallStream);
+  });
+
+  // ICE candidate
+  directCallPeer.onicecandidate = (e) => {
+    if (e.candidate) {
+      voiceSocket.emit('call:ice', {
+        targetId: callerData.callerId,
+        candidate: e.candidate
+      });
+    }
+  };
+
+  // Karşı tarafın sesi
+  directCallPeer.ontrack = (e) => {
+    console.log('Kabul edilen arama ses geldi');
+    directCallAudio = new Audio();
+    directCallAudio.srcObject = e.streams[0];
+    directCallAudio.autoplay = true;
+  };
+
+  try {
+    // Remote description ayarla
+    await directCallPeer.setRemoteDescription(new RTCSessionDescription(callerData.offer));
+
+    // Answer oluştur
+    const answer = await directCallPeer.createAnswer();
+    await directCallPeer.setLocalDescription(answer);
+
+    // Answer gönder
+    voiceSocket.emit('call:accept', {
+      callerId: callerData.callerId,
+      answer: directCallPeer.localDescription
+    });
+
+    stopAllSounds();
+    hideIncomingCallUI();
+    showActiveCallUI();
+
+  } catch(e) {
+    console.error('Arama kabul edilemedi:', e);
+    rejectDirectCall('Teknik hata');
+  }
+}
+
+function rejectDirectCall(reason = 'Reddedildi') {
+  if (directCallTargetId) {
+    voiceSocket.emit('call:reject', {
+      callerId: directCallTargetId,
+      reason: reason
+    });
+  }
+  stopAllSounds();
+  hideIncomingCallUI();
+  endDirectCall();
+}
+
+function endDirectCall() {
+  if (directCallTargetId) {
+    voiceSocket.emit('call:end', { targetId: directCallTargetId });
+  }
+
+  // Bağlantıları temizle
+  if (directCallPeer) {
+    directCallPeer.close();
+    directCallPeer = null;
+  }
+
+  if (directCallStream) {
+    directCallStream.getTracks().forEach(t => t.stop());
+    directCallStream = null;
+  }
+
+  if (directCallAudio) {
+    directCallAudio.srcObject = null;
+    directCallAudio = null;
+  }
+
+  directCallActive = false;
+  directCallTargetId = null;
+
+  stopAllSounds();
+  hideIncomingCallUI();
+  hideOutgoingCallUI();
+  hideActiveCallUI();
+}
+
+// ==================== 1-1 ARAMA UI ====================
+
+function showIncomingCallUI(callerData) {
+  hideAllCallUIs();
+  
+  const ui = document.createElement('div');
+  ui.id = 'incomingCallUI';
+  ui.style.cssText = `
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0,0,0,0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  `;
+
+  const photoUrl = callerData.callerPhoto && callerData.callerPhoto !== '?' 
+    ? callerData.callerPhoto 
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(callerData.callerName)}&background=ff0033&color=fff&size=128`;
+
+  ui.innerHTML = `
+    <div style="text-align: center;">
+      <div style="margin-bottom: 20px;">
+        <img src="${photoUrl}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #1db954;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(callerData.callerName)}&background=ff0033&color=fff&size=128'" />
+      </div>
+      <h2 style="font-size: 24px; margin-bottom: 8px;">${callerData.callerName}</h2>
+      <p style="font-size: 16px; color: #aaa; margin-bottom: 40px;">Gelen Arama...</p>
+      <div style="display: flex; gap: 40px; justify-content: center;">
+        <button onclick="rejectDirectCall()" style="
+          width: 70px; height: 70px; border-radius: 50%; border: none;
+          background: #ff4444; color: #fff; font-size: 24px; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+        ">
+          <i class="fas fa-phone-slash"></i>
+        </button>
+        <button onclick="acceptDirectCall(${JSON.stringify(callerData).replace(/"/g, '&quot;')})" style="
+          width: 70px; height: 70px; border-radius: 50%; border: none;
+          background: #1db954; color: #fff; font-size: 24px; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+        ">
+          <i class="fas fa-phone"></i>
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(ui);
+}
+
+function showOutgoingCallUI(targetName, targetPhoto) {
+  hideAllCallUIs();
+  
+  const ui = document.createElement('div');
+  ui.id = 'outgoingCallUI';
+  ui.style.cssText = `
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0,0,0,0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  `;
+
+  const photoUrl = targetPhoto && targetPhoto !== '?' 
+    ? targetPhoto 
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(targetName)}&background=ff0033&color=fff&size=128`;
+
+  ui.innerHTML = `
+    <div style="text-align: center;">
+      <div style="margin-bottom: 20px;">
+        <img src="${photoUrl}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #1db954;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(targetName)}&background=ff0033&color=fff&size=128'" />
+      </div>
+      <h2 style="font-size: 24px; margin-bottom: 8px;">${targetName}</h2>
+      <p style="font-size: 16px; color: #aaa; margin-bottom: 40px;">Aranıyor...</p>
+      <button onclick="endDirectCall()" style="
+        width: 70px; height: 70px; border-radius: 50%; border: none;
+        background: #ff4444; color: #fff; font-size: 24px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+      ">
+        <i class="fas fa-phone-slash"></i>
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(ui);
+}
+
+function showActiveCallUI() {
+  hideAllCallUIs();
+  
+  const ui = document.createElement('div');
+  ui.id = 'activeCallUI';
+  ui.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    background: #1a1a2e;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 200px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  `;
+
+  ui.innerHTML = `
+    <div style="width: 8px; height: 8px; background: #1db954; border-radius: 50%; animation: voicePulse 1.5s infinite;"></div>
+    <span style="flex: 1; font-size: 14px; color: #fff;">Arama Aktif</span>
+    <button onclick="endDirectCall()" style="
+      width: 32px; height: 32px; border-radius: 50%; border: none;
+      background: #ff4444; color: #fff; font-size: 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    ">
+      <i class="fas fa-phone-slash"></i>
+    </button>
+  `;
+
+  document.body.appendChild(ui);
+}
+
+function hideIncomingCallUI() {
+  const ui = document.getElementById('incomingCallUI');
+  if (ui) ui.remove();
+}
+
+function hideOutgoingCallUI() {
+  const ui = document.getElementById('outgoingCallUI');
+  if (ui) ui.remove();
+}
+
+function hideActiveCallUI() {
+  const ui = document.getElementById('activeCallUI');
+  if (ui) ui.remove();
+}
+
+function hideAllCallUIs() {
+  hideIncomingCallUI();
+  hideOutgoingCallUI();
+  hideActiveCallUI();
+}
+
+// ==================== GRUP SESLI ODA ====================
 
 async function joinVoiceRoom(groupId, groupName) {
   if (voiceRoomId) {
     if (String(voiceRoomId) === String(groupId)) return; // Zaten bu odadasın
     await leaveVoiceRoom(); // Başka odadaysa çık
+  }
+
+  if (directCallActive) {
+    showVoiceToast('Önce aramayı sonlandırın!');
+    return;
   }
 
   try {
@@ -140,8 +565,6 @@ async function joinVoiceRoom(groupId, groupName) {
   updateVoiceUI();
 }
 
-// ==================== ODADAN AYRIL ====================
-
 async function leaveVoiceRoom() {
   if (!voiceRoomId) return;
 
@@ -164,7 +587,7 @@ async function leaveVoiceRoom() {
   hideVoicePanel();
 }
 
-// ==================== WEBRTC ====================
+// ==================== WEBRTC (GRUP) ====================
 
 function createPeerConnection(targetUserId) {
   if (voicePeers[targetUserId]) return voicePeers[targetUserId];
