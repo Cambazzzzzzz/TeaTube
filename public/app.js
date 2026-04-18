@@ -20,6 +20,12 @@ function initMessageNotifications() {
   // Bildirim sesini yükle - Direkt ses dosyası
   messageNotificationSound = new Audio('https://media.vocaroo.com/mp3/135Nxz6kVvI8');
   messageNotificationSound.volume = 0.7;
+  messageNotificationSound.preload = 'auto';
+  messageNotificationSound.load();
+  
+  messageNotificationSound.addEventListener('canplaythrough', () => {
+    console.log('Mesaj bildirim sesi yüklendi');
+  });
   
   // Bildirim izni iste
   if ('Notification' in window && Notification.permission === 'default') {
@@ -38,7 +44,23 @@ function initMessageNotifications() {
 function playMessageNotificationSound() {
   if (messageNotificationSound) {
     messageNotificationSound.currentTime = 0;
-    messageNotificationSound.play().catch(e => console.log('Bildirim sesi çalamadı:', e));
+    const playPromise = messageNotificationSound.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        console.log('Mesaj bildirim sesi çalıyor');
+      }).catch(e => {
+        console.log('Bildirim sesi çalamadı:', e);
+        // Kullanıcı etkileşimi gerekebilir
+        const playOnInteraction = () => {
+          messageNotificationSound.play().then(() => {
+            console.log('Bildirim sesi kullanıcı etkileşimi ile çaldı');
+          }).catch(console.error);
+        };
+        
+        document.addEventListener('click', playOnInteraction, { once: true });
+        document.addEventListener('touchstart', playOnInteraction, { once: true });
+      });
+    }
   }
 }
 
@@ -194,7 +216,7 @@ async function startGlobalMessageListeners() {
               const now = Date.now();
               if (now - msgTime < 10000) { // 10 saniye içinde
                 // Bildirim göster
-                const messageText = msg.text || (msg.imageUrl ? '📷 Fotoğraf' : (msg.videoShare ? '🎥 Video' : 'Yeni mesaj'));
+                const messageText = msg.text ? decodeURIComponent(msg.text) : (msg.imageUrl ? '📷 Fotoğraf' : (msg.videoShare ? '🎥 Video' : 'Yeni mesaj'));
                 showMessageNotification(
                   friend.nickname || friend.username,
                   messageText,
@@ -237,7 +259,7 @@ async function startGlobalMessageListeners() {
               const now = Date.now();
               if (now - msgTime < 10000) { // 10 saniye içinde
                 // Bildirim göster
-                const messageText = msg.text || (msg.imageUrl ? '📷 Fotoğraf' : 'Yeni mesaj');
+                const messageText = msg.text ? decodeURIComponent(msg.text) : (msg.imageUrl ? '📷 Fotoğraf' : 'Yeni mesaj');
                 showMessageNotification(
                   `${msg.userName} (${group.name})`,
                   messageText,
@@ -468,7 +490,7 @@ function showMobileProfileSheet() {
         { icon:'fa-bookmark', label:'Kaydedilenler', page:'saved' },
         { icon:'fa-history', label:'Geçmiş', page:'history' },
         { icon:'fa-layer-group', label:'Gruplar', page:'groups' },
-        { icon:'fa-music', label:'TeaSocial Music', page:'ts-music' },
+        { icon:'fa-music', label:'TS Music', page:'ts-music' },
         { icon:'fa-brain', label:'Algoritmam', page:'algorithm' },
         { icon:'fa-cog', label:'Ayarlar', page:'settings' },
       ].map(item => `
@@ -540,7 +562,7 @@ function toggleMobileSearch() {
   } else {
     center.style.display = 'flex';
     center.style.position = 'fixed';
-    center.style.top = 'var(--ytd-masthead-height)';
+    center.style.top = 'var(--ytd-masthead-height, 56px)';
     center.style.left = '0';
     center.style.right = '0';
     center.style.transform = 'none';
@@ -548,10 +570,27 @@ function toggleMobileSearch() {
     center.style.padding = '8px 12px';
     center.style.zIndex = '2021';
     center.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
-    setTimeout(() => document.getElementById('searchInput')?.focus(), 100);
+    center.style.width = '100%';
+    center.style.boxSizing = 'border-box';
+    
+    // Arama kutusunu mobil için optimize et
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.style.width = '100%';
+      searchInput.style.maxWidth = 'none';
+    }
+    
+    setTimeout(() => {
+      const input = document.getElementById('searchInput');
+      if (input) {
+        input.focus();
+        input.click(); // Mobil klavyeyi açmak için
+      }
+    }, 100);
+    
     const overlay = document.createElement('div');
     overlay.id = 'searchOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:2020;';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:2020;background:rgba(0,0,0,0.5);';
     overlay.addEventListener('click', () => {
       center.style.display = 'none';
       overlay.remove();
@@ -1588,7 +1627,7 @@ function _openMobileChatDirect(friendId, friendName, friendPhoto) {
                 <p style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${msg.videoShare.title}</p>
               </div>
             </div>
-          ` : msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width:200px;max-height:200px;border-radius:10px;display:block;" />` : `<p style="white-space:pre-wrap;">${msg.text}</p>`}
+          ` : msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width:200px;max-height:200px;border-radius:10px;display:block;" />` : `<p style="white-space:pre-wrap;">${decodeURIComponent(msg.text || '')}</p>`}
           <div class="chat-meta">${time} ${readIcon}</div>
         </div>
         ${isMe ? `<img src="${getProfilePhotoUrl(currentUser.profile_photo)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;align-self:flex-end;margin-left:6px;" />` : ''}
@@ -1636,7 +1675,7 @@ function listenLastMessage(friendId, friendName) {
       const msg = child.val();
       const isMe = msg.senderId == currentUser.id;
       const deleted = isMe ? msg.deletedForSender : msg.deletedForReceiver;
-      el.textContent = deleted ? '' : (isMe ? 'Sen: ' : '') + (msg.text || (msg.imageUrl ? '📷 Fotoğraf' : ''));
+      el.textContent = deleted ? '' : (isMe ? 'Sen: ' : '') + (msg.text ? decodeURIComponent(msg.text) : (msg.imageUrl ? '📷 Fotoğraf' : ''));
     });
   });
 
@@ -2083,10 +2122,14 @@ async function sendMessage(friendId) {
   }
 
   const msgsRef = window.firebaseRef(window.firebaseDB, `chats/${chatId}/messages`);
+  
+  // Türkçe karakter encoding sorunu için text'i encode et
+  const encodedText = encodeURIComponent(text);
+  
   const msgData = {
     senderId: currentUser.id,
     receiverId: friendId,
-    text,
+    text: encodedText, // Encoded text gönder
     timestamp: Date.now(),
     read: false,
     deletedForSender: false,
@@ -2545,7 +2588,7 @@ function openFloatingChat(friendId, friendName, friendPhoto) {
       div.innerHTML = `
         ${!isMe ? `<img src="${avatarSrc}" class="float-msg-avatar" />` : ''}
         <div class="float-bubble">
-          <p style="white-space:pre-wrap;margin:0;">${msg.text}</p>
+          <p style="white-space:pre-wrap;margin:0;">${decodeURIComponent(msg.text || '')}</p>
           <span class="float-meta">${time}</span>
         </div>
         ${isMe ? `<img src="${avatarSrc}" class="float-msg-avatar" />` : ''}
@@ -7979,7 +8022,7 @@ function renderTSMusicHome(data, isArtist, hasPending, isRejected, status) {
   pageContent.innerHTML = `
     <div style="padding-bottom:120px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <h2 style="font-size:22px;font-weight:700"><i class="fas fa-music" style="color:#1db954;margin-right:8px"></i>TeaSocial Music</h2>
+        <h2 style="font-size:22px;font-weight:700"><i class="fas fa-music" style="color:#1db954;margin-right:8px"></i>TS Music</h2>
         <div style="display:flex;gap:8px">
           <button class="yt-btn" onclick="showTSMusicSearch()" style="background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)"><i class="fas fa-search"></i></button>
           <button class="yt-btn" onclick="loadSongWritingsPage()" style="background:rgba(255,255,255,0.08);color:var(--yt-spec-text-primary)" title="Yazılan Şarkılar"><i class="fas fa-book-open"></i></button>
@@ -8325,7 +8368,7 @@ async function loadMySongsPage() {
           <i class="fas fa-music" style="font-size:48px;color:rgba(255,255,255,0.1);margin-bottom:16px;display:block"></i>
           <p style="font-size:16px;font-weight:600;margin-bottom:8px">Artist değilsin</p>
           <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:20px">Şarkı yükleyebilmek için artist başvurusu yapman gerekiyor.</p>
-          <button class="yt-btn" onclick="showPage('ts-music')">TeaSocial Music'e Git</button>
+          <button class="yt-btn" onclick="showPage('ts-music')">TS Music'e Git</button>
         </div>`;
       return;
     }
@@ -8805,7 +8848,7 @@ async function addSongToTSPlaylist(playlistId, songId) {
 function showArtistApplyModal() {
   showModal(`
     <h3 style="margin-bottom:16px">Artist Başvurusu</h3>
-    <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:16px">TeaSocial Music'te şarkı yükleyebilmek için artist başvurusu yapman gerekiyor.</p>
+    <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:16px">TS Music'te şarkı yükleyebilmek için artist başvurusu yapman gerekiyor.</p>
     <div class="yt-form-group"><label class="yt-form-label">Mahlas (Artist Adı) *</label><input id="applyArtistName" class="yt-input" placeholder="Sahne adın / mahlasın" /></div>
     <div class="yt-form-group">
       <label class="yt-form-label">Örnek Şarkı (MP3/WAV) *</label>
@@ -9274,7 +9317,7 @@ function loadGroupMessages(groupId, members) {
           <div style="max-width:70%;${isMe ? 'align-items:flex-end' : 'align-items:flex-start'};display:flex;flex-direction:column;gap:2px">
             ${!isMe ? `<div style="display:flex;align-items:center;gap:3px;margin-bottom:2px"><span style="font-size:11px;font-weight:600;color:var(--yt-spec-text-secondary)">${senderName}</span>${roleIcon}</div>` : ''}
             ${msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width:200px;border-radius:10px;cursor:pointer" onclick="event.stopPropagation();window.open('${msg.imageUrl}')" />` : ''}
-            ${msg.text ? `<div style="background:${isMe ? 'var(--yt-spec-brand-background-solid)' : 'var(--yt-spec-raised-background)'};padding:8px 12px;border-radius:${isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};font-size:14px;line-height:1.4;word-break:break-word">${msg.text}</div>` : ''}
+            ${msg.text ? `<div style="background:${isMe ? 'var(--yt-spec-brand-background-solid)' : 'var(--yt-spec-raised-background)'};padding:8px 12px;border-radius:${isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};font-size:14px;line-height:1.4;word-break:break-word">${decodeURIComponent(msg.text)}</div>` : ''}
             <span style="font-size:10px;color:var(--yt-spec-text-secondary)">${time}</span>
           </div>
         </div>`;

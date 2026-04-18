@@ -477,6 +477,7 @@ function initNotificationSounds() {
   ringSound.src = 'https://media.vocaroo.com/mp3/1gJEC8z2mRY1';
   ringSound.loop = true;
   ringSound.volume = 0.7;
+  ringSound.preload = 'auto';
   ringSound.load();
   
   // Arama sesi (arayan için) - Direkt ses dosyası
@@ -484,7 +485,17 @@ function initNotificationSounds() {
   callSound.src = 'https://media.vocaroo.com/mp3/1d7VPIDMXCK0';
   callSound.loop = true;
   callSound.volume = 0.6;
+  callSound.preload = 'auto';
   callSound.load();
+  
+  // Sesleri önceden yükle
+  ringSound.addEventListener('canplaythrough', () => {
+    console.log('Ring sesi yüklendi');
+  });
+  
+  callSound.addEventListener('canplaythrough', () => {
+    console.log('Call sesi yüklendi');
+  });
   
   console.log('Bildirim sesleri yüklendi');
 }
@@ -492,29 +503,48 @@ function initNotificationSounds() {
 function playRingSound() {
   if (ringSound) {
     ringSound.currentTime = 0;
-    ringSound.play().then(() => {
-      console.log('Ring sesi çalıyor');
-    }).catch(e => {
-      console.log('Ring ses çalamadı:', e);
-      // Kullanıcı etkileşimi gerekebilir
-      document.addEventListener('click', () => {
-        ringSound.play().catch(console.error);
-      }, { once: true });
-    });
+    const playPromise = ringSound.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        console.log('Ring sesi çalıyor');
+      }).catch(e => {
+        console.log('Ring ses çalamadı:', e);
+        // Kullanıcı etkileşimi gerekebilir - birden fazla yöntem dene
+        const playOnInteraction = () => {
+          ringSound.play().then(() => {
+            console.log('Ring sesi kullanıcı etkileşimi ile çaldı');
+          }).catch(console.error);
+        };
+        
+        document.addEventListener('click', playOnInteraction, { once: true });
+        document.addEventListener('touchstart', playOnInteraction, { once: true });
+        document.addEventListener('keydown', playOnInteraction, { once: true });
+      });
+    }
   }
 }
 
 function playCallSound() {
   if (callSound) {
     callSound.currentTime = 0;
-    callSound.play().then(() => {
-      console.log('Call sesi çalıyor');
-    }).catch(e => {
-      console.log('Call ses çalamadı:', e);
-      document.addEventListener('click', () => {
-        callSound.play().catch(console.error);
-      }, { once: true });
-    });
+    const playPromise = callSound.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        console.log('Call sesi çalıyor');
+      }).catch(e => {
+        console.log('Call ses çalamadı:', e);
+        // Kullanıcı etkileşimi gerekebilir - birden fazla yöntem dene
+        const playOnInteraction = () => {
+          callSound.play().then(() => {
+            console.log('Call sesi kullanıcı etkileşimi ile çaldı');
+          }).catch(console.error);
+        };
+        
+        document.addEventListener('click', playOnInteraction, { once: true });
+        document.addEventListener('touchstart', playOnInteraction, { once: true });
+        document.addEventListener('keydown', playOnInteraction, { once: true });
+      });
+    }
   }
 }
 
@@ -757,6 +787,7 @@ async function startDirectCall(targetUserId, targetName, targetPhoto) {
     if (!directCallAudio) {
       directCallAudio = new Audio();
       directCallAudio.autoplay = true;
+      directCallAudio.playsInline = true; // Mobil için
     }
     
     directCallAudio.srcObject = e.streams[0];
@@ -767,16 +798,28 @@ async function startDirectCall(targetUserId, targetName, targetPhoto) {
       directCallAudio.setSinkId(selectedOutputDevice).catch(e => console.log('setSinkId hatası:', e));
     }
     
-    // Manuel play
-    directCallAudio.play().then(() => {
-      console.log('✓ Audio çalıyor');
-    }).catch(e => {
-      console.error('✗ Audio play hatası:', e);
-      // Kullanıcı etkileşimi gerekebilir
-      document.addEventListener('click', () => {
-        directCallAudio.play().catch(console.error);
-      }, { once: true });
-    });
+    // Manuel play - daha agresif yaklaşım
+    const playAudio = () => {
+      directCallAudio.play().then(() => {
+        console.log('✓ Audio çalıyor');
+      }).catch(e => {
+        console.error('✗ Audio play hatası:', e);
+        // Kullanıcı etkileşimi gerekebilir - birden fazla deneme
+        setTimeout(() => {
+          directCallAudio.play().catch(console.error);
+        }, 500);
+      });
+    };
+    
+    // Hemen çalmaya çalış
+    playAudio();
+    
+    // Stream ready olduğunda tekrar dene
+    e.streams[0].addEventListener('addtrack', playAudio);
+    
+    // Kullanıcı etkileşimi ile de dene
+    document.addEventListener('click', playAudio, { once: true });
+    document.addEventListener('touchstart', playAudio, { once: true });
   };
 
   // 7. Offer oluştur ve gönder
@@ -886,6 +929,7 @@ async function acceptDirectCall(callerData) {
     if (!directCallAudio) {
       directCallAudio = new Audio();
       directCallAudio.autoplay = true;
+      directCallAudio.playsInline = true; // Mobil için
     }
     
     directCallAudio.srcObject = e.streams[0];
@@ -896,15 +940,28 @@ async function acceptDirectCall(callerData) {
       directCallAudio.setSinkId(selectedOutputDevice).catch(e => console.log('setSinkId hatası:', e));
     }
     
-    // Manuel play
-    directCallAudio.play().then(() => {
-      console.log('✓ Audio çalıyor');
-    }).catch(e => {
-      console.error('✗ Audio play hatası:', e);
-      document.addEventListener('click', () => {
-        directCallAudio.play().catch(console.error);
-      }, { once: true });
-    });
+    // Manuel play - daha agresif yaklaşım
+    const playAudio = () => {
+      directCallAudio.play().then(() => {
+        console.log('✓ Audio çalıyor');
+      }).catch(e => {
+        console.error('✗ Audio play hatası:', e);
+        // Kullanıcı etkileşimi gerekebilir - birden fazla deneme
+        setTimeout(() => {
+          directCallAudio.play().catch(console.error);
+        }, 500);
+      });
+    };
+    
+    // Hemen çalmaya çalış
+    playAudio();
+    
+    // Stream ready olduğunda tekrar dene
+    e.streams[0].addEventListener('addtrack', playAudio);
+    
+    // Kullanıcı etkileşimi ile de dene
+    document.addEventListener('click', playAudio, { once: true });
+    document.addEventListener('touchstart', playAudio, { once: true });
   };
 
   try {
