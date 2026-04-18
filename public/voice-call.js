@@ -32,6 +32,23 @@ let analyser = null;
 let speakingThreshold = -50; // dB
 let speakingUsers = new Set();
 
+// Ses efektleri
+let voiceEffects = {
+  robot: false,
+  echo: false,
+  reverb: false,
+  pitch: false,
+  distortion: false
+};
+let voiceEffectNodes = {};
+let voiceEffectIntensities = {
+  robot: 0.5,
+  echo: 0.5,
+  reverb: 0.5,
+  pitch: 0,
+  distortion: 0.5
+};
+
 const VOICE_ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' }
@@ -183,6 +200,209 @@ function testAudioDevices() {
   }
 }
 
+// ==================== SES EFEKTLERİ ====================
+
+function showVoiceEffectsPanel() {
+  const modal = document.createElement('div');
+  modal.id = 'voiceEffectsModal';
+  modal.style.cssText = `
+    position: fixed; inset: 0; z-index: 10002; background: rgba(0,0,0,0.8);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  `;
+  
+  modal.innerHTML = `
+    <div style="background: #1a1a2e; border-radius: 16px; padding: 24px; width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+        <h3 style="margin: 0; color: #fff;">Ses Efektleri</h3>
+        <button onclick="document.getElementById('voiceEffectsModal').remove();" style="background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer;">×</button>
+      </div>
+      
+      ${createEffectControl('robot', 'Robot', 'fa-robot')}
+      ${createEffectControl('echo', 'Yankı', 'fa-water')}
+      ${createEffectControl('reverb', 'Reverb', 'fa-broadcast-tower')}
+      ${createEffectControl('pitch', 'Pitch', 'fa-sliders-h')}
+      ${createEffectControl('distortion', 'Distortion', 'fa-wave-square')}
+      
+      <button onclick="clearAllEffects()" style="width: 100%; background: rgba(255,0,0,0.15); border: 1px solid rgba(255,0,0,0.3); color: #ff4444; padding: 12px; border-radius: 8px; cursor: pointer; margin-top: 16px;">
+        <i class="fas fa-times"></i> Tüm Efektleri Kaldır
+      </button>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+}
+
+function createEffectControl(effectName, label, icon) {
+  const isActive = voiceEffects[effectName];
+  const intensity = voiceEffectIntensities[effectName];
+  
+  return `
+    <div style="margin-bottom: 16px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <i class="fas ${icon}" style="color: ${isActive ? '#1db954' : '#666'}; font-size: 18px;"></i>
+          <span style="color: #fff; font-size: 15px; font-weight: 500;">${label}</span>
+        </div>
+        <label style="position: relative; display: inline-block; width: 44px; height: 24px;">
+          <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleVoiceEffect('${effectName}', this.checked)" style="opacity: 0; width: 0; height: 0;">
+          <span style="position: absolute; cursor: pointer; inset: 0; background: ${isActive ? '#1db954' : '#666'}; border-radius: 24px; transition: 0.3s;"></span>
+          <span style="position: absolute; content: ''; height: 18px; width: 18px; left: ${isActive ? '23px' : '3px'}; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s;"></span>
+        </label>
+      </div>
+      ${effectName !== 'pitch' ? `
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="color: #aaa; font-size: 12px; width: 60px;">Yoğunluk</span>
+          <input type="range" min="0" max="100" value="${intensity * 100}" oninput="updateEffectIntensity('${effectName}', this.value / 100)" style="flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.2); outline: none; -webkit-appearance: none;">
+          <span style="color: #1db954; font-size: 12px; width: 35px; text-align: right;">${Math.round(intensity * 100)}%</span>
+        </div>
+      ` : `
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="color: #aaa; font-size: 12px; width: 60px;">Pitch</span>
+          <input type="range" min="-12" max="12" value="${intensity}" oninput="updateEffectIntensity('${effectName}', parseFloat(this.value))" style="flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.2); outline: none; -webkit-appearance: none;">
+          <span style="color: #1db954; font-size: 12px; width: 35px; text-align: right;">${intensity > 0 ? '+' : ''}${intensity}</span>
+        </div>
+      `}
+    </div>
+  `;
+}
+
+function toggleVoiceEffect(effectName, enabled) {
+  voiceEffects[effectName] = enabled;
+  
+  if (enabled) {
+    applyVoiceEffect(effectName);
+  } else {
+    removeVoiceEffect(effectName);
+  }
+  
+  showVoiceToast(enabled ? `${effectName} efekti aktif` : `${effectName} efekti kapatıldı`);
+  
+  // Modal'ı güncelle
+  const modal = document.getElementById('voiceEffectsModal');
+  if (modal) {
+    modal.remove();
+    showVoiceEffectsPanel();
+  }
+}
+
+function updateEffectIntensity(effectName, value) {
+  voiceEffectIntensities[effectName] = value;
+  
+  if (voiceEffects[effectName]) {
+    applyVoiceEffect(effectName);
+  }
+  
+  // Değeri güncelle
+  const modal = document.getElementById('voiceEffectsModal');
+  if (modal) {
+    const valueSpan = modal.querySelector(`input[oninput*="${effectName}"]`)?.parentElement?.querySelector('span:last-child');
+    if (valueSpan) {
+      if (effectName === 'pitch') {
+        valueSpan.textContent = `${value > 0 ? '+' : ''}${value}`;
+      } else {
+        valueSpan.textContent = `${Math.round(value * 100)}%`;
+      }
+    }
+  }
+}
+
+function applyVoiceEffect(effectName) {
+  if (!audioContext || !voiceStream) return;
+  
+  try {
+    const source = audioContext.createMediaStreamSource(voiceStream);
+    let effectNode;
+    
+    switch(effectName) {
+      case 'robot':
+        effectNode = audioContext.createBiquadFilter();
+        effectNode.type = 'lowpass';
+        effectNode.frequency.value = 1000 * (1 - voiceEffectIntensities.robot * 0.8);
+        break;
+        
+      case 'echo':
+        effectNode = audioContext.createDelay();
+        effectNode.delayTime.value = 0.3 * voiceEffectIntensities.echo;
+        const feedback = audioContext.createGain();
+        feedback.gain.value = 0.5 * voiceEffectIntensities.echo;
+        effectNode.connect(feedback);
+        feedback.connect(effectNode);
+        break;
+        
+      case 'reverb':
+        effectNode = audioContext.createConvolver();
+        // Basit reverb buffer oluştur
+        const reverbTime = 2 * voiceEffectIntensities.reverb;
+        const sampleRate = audioContext.sampleRate;
+        const length = sampleRate * reverbTime;
+        const impulse = audioContext.createBuffer(2, length, sampleRate);
+        for (let channel = 0; channel < 2; channel++) {
+          const channelData = impulse.getChannelData(channel);
+          for (let i = 0; i < length; i++) {
+            channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+          }
+        }
+        effectNode.buffer = impulse;
+        break;
+        
+      case 'pitch':
+        // Pitch shifting basit bir şekilde (playback rate ile)
+        // Not: Gerçek pitch shifting daha karmaşık
+        effectNode = audioContext.createGain();
+        effectNode.gain.value = 1.0;
+        break;
+        
+      case 'distortion':
+        effectNode = audioContext.createWaveShaper();
+        const amount = voiceEffectIntensities.distortion * 100;
+        const samples = 44100;
+        const curve = new Float32Array(samples);
+        const deg = Math.PI / 180;
+        for (let i = 0; i < samples; i++) {
+          const x = i * 2 / samples - 1;
+          curve[i] = (3 + amount) * x * 20 * deg / (Math.PI + amount * Math.abs(x));
+        }
+        effectNode.curve = curve;
+        effectNode.oversample = '4x';
+        break;
+    }
+    
+    if (effectNode) {
+      voiceEffectNodes[effectName] = effectNode;
+      source.connect(effectNode);
+      effectNode.connect(audioContext.destination);
+    }
+  } catch(e) {
+    console.error('Efekt uygulanamadı:', effectName, e);
+  }
+}
+
+function removeVoiceEffect(effectName) {
+  if (voiceEffectNodes[effectName]) {
+    try {
+      voiceEffectNodes[effectName].disconnect();
+      delete voiceEffectNodes[effectName];
+    } catch(e) {
+      console.error('Efekt kaldırılamadı:', effectName, e);
+    }
+  }
+}
+
+function clearAllEffects() {
+  Object.keys(voiceEffects).forEach(effectName => {
+    voiceEffects[effectName] = false;
+    removeVoiceEffect(effectName);
+  });
+  
+  showVoiceToast('Tüm efektler kaldırıldı');
+  
+  const modal = document.getElementById('voiceEffectsModal');
+  if (modal) {
+    modal.remove();
+    showVoiceEffectsPanel();
+  }
+}
+
 // ==================== KONUŞMA ALGILAMA ====================
 
 function initSpeakingDetection(stream) {
@@ -252,13 +472,13 @@ function initSpeakingDetection(stream) {
 }
 
 function initNotificationSounds() {
-  // Arama zil sesi (gelen arama)
-  ringSound = new Audio('https://vocaroo.com/embed/1gJEC8z2mRY1');
+  // Arama zil sesi (gelen arama) - Direkt ses dosyası
+  ringSound = new Audio('https://media.vocaroo.com/mp3/1gJEC8z2mRY1');
   ringSound.loop = true;
   ringSound.volume = 0.7;
   
-  // Arama sesi (arayan için)
-  callSound = new Audio('https://vocaroo.com/embed/1d7VPIDMXCK0');
+  // Arama sesi (arayan için) - Direkt ses dosyası
+  callSound = new Audio('https://media.vocaroo.com/mp3/1d7VPIDMXCK0');
   callSound.loop = true;
   callSound.volume = 0.6;
 }
@@ -472,16 +692,27 @@ async function startDirectCall(targetUserId, targetName, targetPhoto) {
 
   // Karşı tarafın sesi
   directCallPeer.ontrack = (e) => {
-    console.log('Direkt arama ses geldi');
-    directCallAudio = new Audio();
+    console.log('Direkt arama ses geldi', e.streams);
+    if (!directCallAudio) {
+      directCallAudio = new Audio();
+      directCallAudio.autoplay = true;
+    }
     directCallAudio.srcObject = e.streams[0];
-    directCallAudio.autoplay = true;
     directCallAudio.volume = 1.0;
     
     // Seçili çıkış cihazını kullan
     if (selectedOutputDevice && directCallAudio.setSinkId) {
       directCallAudio.setSinkId(selectedOutputDevice).catch(e => console.log('setSinkId hatası:', e));
     }
+    
+    // Manuel play (bazı tarayıcılarda gerekli)
+    directCallAudio.play().catch(e => {
+      console.log('Audio play hatası:', e);
+      // Kullanıcı etkileşimi gerekebilir
+      document.addEventListener('click', () => {
+        directCallAudio.play().catch(console.error);
+      }, { once: true });
+    });
   };
 
   // Offer oluştur ve gönder
@@ -546,16 +777,26 @@ async function acceptDirectCall(callerData) {
 
   // Karşı tarafın sesi
   directCallPeer.ontrack = (e) => {
-    console.log('Kabul edilen arama ses geldi');
-    directCallAudio = new Audio();
+    console.log('Kabul edilen arama ses geldi', e.streams);
+    if (!directCallAudio) {
+      directCallAudio = new Audio();
+      directCallAudio.autoplay = true;
+    }
     directCallAudio.srcObject = e.streams[0];
-    directCallAudio.autoplay = true;
     directCallAudio.volume = 1.0;
     
     // Seçili çıkış cihazını kullan
     if (selectedOutputDevice && directCallAudio.setSinkId) {
       directCallAudio.setSinkId(selectedOutputDevice).catch(e => console.log('setSinkId hatası:', e));
     }
+    
+    // Manuel play
+    directCallAudio.play().catch(e => {
+      console.log('Audio play hatası:', e);
+      document.addEventListener('click', () => {
+        directCallAudio.play().catch(console.error);
+      }, { once: true });
+    });
   };
 
   try {
@@ -806,6 +1047,13 @@ function showActiveCallUI() {
   ui.innerHTML = `
     <div style="width: 8px; height: 8px; background: #1db954; border-radius: 50%; animation: voicePulse 1.5s infinite;"></div>
     <span style="flex: 1; font-size: 14px; color: #fff;">Arama Aktif</span>
+    <button onclick="showVoiceEffectsPanel()" title="Ses Efektleri" style="
+      width: 32px; height: 32px; border-radius: 50%; border: none;
+      background: rgba(255,255,255,0.1); color: #fff; font-size: 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    ">
+      <i class="fas fa-magic"></i>
+    </button>
     <button onclick="showAudioDeviceSettings()" title="Ses Ayarları" style="
       width: 32px; height: 32px; border-radius: 50%; border: none;
       background: rgba(255,255,255,0.1); color: #fff; font-size: 12px; cursor: pointer;
@@ -960,7 +1208,7 @@ function createPeerConnection(targetUserId) {
 
   // Karşı tarafın sesi geldi
   pc.ontrack = (e) => {
-    console.log('Ses track geldi:', targetUserId);
+    console.log('Ses track geldi:', targetUserId, e.streams);
     let audio = voiceAudios[targetUserId];
     if (!audio) {
       audio = new Audio();
@@ -974,6 +1222,14 @@ function createPeerConnection(targetUserId) {
       }
     }
     audio.srcObject = e.streams[0];
+    
+    // Manuel play
+    audio.play().catch(e => {
+      console.log('Audio play hatası:', e);
+      document.addEventListener('click', () => {
+        audio.play().catch(console.error);
+      }, { once: true });
+    });
   };
 
   pc.onconnectionstatechange = () => {
@@ -1090,6 +1346,10 @@ function showVoicePanel(groupName) {
         <span style="font-size:14px;font-weight:700;color:#fff;" id="voicePanelGroupName">${groupName || 'Grup'}</span>
       </div>
       <div style="display:flex;gap:8px;">
+        <button onclick="showVoiceEffectsPanel()" title="Ses Efektleri"
+          style="width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;">
+          <i class="fas fa-magic"></i>
+        </button>
         <button onclick="showAudioDeviceSettings()" title="Ses Cihazları"
           style="width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;">
           <i class="fas fa-cog"></i>

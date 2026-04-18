@@ -17,8 +17,8 @@ let notificationPermissionGranted = false;
 let globalMessageListeners = {}; // Tüm arkadaşlar için mesaj dinleyicileri
 
 function initMessageNotifications() {
-  // Bildirim sesini yükle
-  messageNotificationSound = new Audio('https://vocaroo.com/embed/135Nxz6kVvI8');
+  // Bildirim sesini yükle - Direkt ses dosyası
+  messageNotificationSound = new Audio('https://media.vocaroo.com/mp3/135Nxz6kVvI8');
   messageNotificationSound.volume = 0.7;
   
   // Bildirim izni iste
