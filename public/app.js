@@ -10,6 +10,168 @@ let currentChannel = null;
 let currentPage = 'home';
 let sidebarOpen = true;
 
+// ==================== MESAJ BİLDİRİM SİSTEMİ ====================
+let messageNotificationSound = null;
+let lastNotifiedMessages = new Set(); // Aynı mesajı tekrar bildirmemek için
+let notificationPermissionGranted = false;
+let globalMessageListeners = {}; // Tüm arkadaşlar için mesaj dinleyicileri
+
+function initMessageNotifications() {
+  // Bildirim sesini yükle
+  messageNotificationSound = new Audio('https://vocaroo.com/embed/135Nxz6kVvI8');
+  messageNotificationSound.volume = 0.7;
+  
+  // Bildirim izni iste
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().then(permission => {
+      notificationPermissionGranted = permission === 'granted';
+      console.log('Bildirim izni:', permission);
+    });
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    notificationPermissionGranted = true;
+  }
+  
+  // Tüm arkadaşlar için mesaj dinleyicilerini başlat
+  startGlobalMessageListeners();
+}
+
+function playMessageNotificationSound() {
+  if (messageNotificationSound) {
+    messageNotificationSound.currentTime = 0;
+    messageNotificationSound.play().catch(e => console.log('Bildirim sesi çalamadı:', e));
+  }
+}
+
+function showMessageNotification(senderName, messageText, senderPhoto, senderId) {
+  // Tarayıcı bildirimi
+  if (notificationPermissionGranted && document.hidden) {
+    try {
+      const notification = new Notification(`${senderName}`, {
+        body: messageText || '📷 Fotoğraf',
+        icon: senderPhoto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(senderName),
+        badge: '/favicon.ico',
+        tag: 'teatube-message-' + senderId,
+        requireInteraction: false,
+        silent: false
+      });
+      
+      notification.onclick = () => {
+        window.focus();
+        showPage('messages');
+        setTimeout(() => {
+          openChat(senderId, senderName, senderPhoto);
+        }, 300);
+        notification.close();
+      };
+      
+      // 5 saniye sonra otomatik kapat
+      setTimeout(() => notification.close(), 5000);
+    } catch(e) {
+      console.log('Bildirim gösterilemedi:', e);
+    }
+  }
+  
+  // Ses bildirimi (site açık olsa bile çal)
+  playMessageNotificationSound();
+}
+
+async function startGlobalMessageListeners() {
+  if (!window.firebaseDB || !currentUser) return;
+  
+  try {
+    // Tüm arkadaşları al
+    const res = await fetch(`${API_URL}/friends/${currentUser.id}`);
+    const friends = await res.json();
+    
+    friends.forEach(friend => {
+      const friendId = friend.friend_id;
+      const chatId = getChatId(currentUser.id, friendId);
+      
+      // Bu arkadaş için zaten dinleyici varsa atla
+      if (globalMessageListeners[friendId]) return;
+      
+      const msgsRef = window.firebaseRef(window.firebaseDB, `chats/${chatId}/messages`);
+      const listener = window.firebaseOnValue(msgsRef, snap => {
+        snap.forEach(child => {
+          const msg = child.val();
+          const msgId = child.key;
+          
+          // Sadece karşı taraftan gelen mesajlar
+          if (msg.senderId != currentUser.id) {
+            // Bu mesajı daha önce bildirdik mi?
+            if (!lastNotifiedMessages.has(msgId)) {
+              lastNotifiedMessages.add(msgId);
+              
+              // Mesaj yeni mi kontrol et (son 10 saniye içinde)
+              const msgTime = msg.timestamp || 0;
+              const now = Date.now();
+              if (now - msgTime < 10000) { // 10 saniye içinde
+                // Bildirim göster
+                const messageText = msg.text || (msg.imageUrl ? '📷 Fotoğraf' : (msg.videoShare ? '🎥 Video' : 'Yeni mesaj'));
+                showMessageNotification(
+                  friend.nickname || friend.username,
+                  messageText,
+                  friend.profile_photo,
+                  friendId
+                );
+              }
+            }
+          }
+        });
+      });
+      
+      globalMessageListeners[friendId] = listener;
+    });
+    
+    // Grup mesajları için dinleyiciler
+    const groupsRes = await fetch(`${API_URL}/groups/user/${currentUser.id}`);
+    const groups = await groupsRes.json();
+    
+    groups.forEach(group => {
+      const groupId = group.id;
+      
+      // Bu grup için zaten dinleyici varsa atla
+      if (globalMessageListeners['group_' + groupId]) return;
+      
+      const msgsRef = window.firebaseRef(window.firebaseDB, `group_chats/${groupId}/messages`);
+      const listener = window.firebaseOnValue(msgsRef, snap => {
+        snap.forEach(child => {
+          const msg = child.val();
+          const msgId = child.key;
+          
+          // Sadece başkalarından gelen mesajlar
+          if (msg.userId != currentUser.id) {
+            // Bu mesajı daha önce bildirdik mi?
+            if (!lastNotifiedMessages.has(msgId)) {
+              lastNotifiedMessages.add(msgId);
+              
+              // Mesaj yeni mi kontrol et (son 10 saniye içinde)
+              const msgTime = msg.timestamp || 0;
+              const now = Date.now();
+              if (now - msgTime < 10000) { // 10 saniye içinde
+                // Bildirim göster
+                const messageText = msg.text || (msg.imageUrl ? '📷 Fotoğraf' : 'Yeni mesaj');
+                showMessageNotification(
+                  `${msg.userName} (${group.name})`,
+                  messageText,
+                  group.photo_url,
+                  'group_' + groupId
+                );
+              }
+            }
+          }
+        });
+      });
+      
+      globalMessageListeners['group_' + groupId] = listener;
+    });
+    
+    console.log('Global mesaj dinleyicileri başlatıldı:', friends.length, 'arkadaş,', groups.length, 'grup');
+  } catch(e) {
+    console.error('Global mesaj dinleyicileri başlatılamadı:', e);
+  }
+}
+
 // Mobil alt navigasyon
 function mobileNavTo(page) {
   document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
@@ -671,6 +833,9 @@ async function loadUserData() {
         // Diğer işlemler - hata olsa bile devam et
         loadNotifications().catch(() => console.log('Bildirimler yüklenemedi'));
         loadActiveAnnouncements().catch(() => console.log('Duyurular yüklenemedi'));
+
+        // Mesaj bildirim sistemini başlat
+        initMessageNotifications();
 
         // Socket.IO bağlantısını başlat (sesli arama için)
         try { initVoiceSocket(); } catch(e) { console.log('Voice socket başlatılamadı'); }
@@ -1591,6 +1756,9 @@ function _openChatDirect(friendId, friendName, friendPhoto) {
         <p style="font-size:15px; font-weight:600;">${friendName}</p>
         <p id="chatStatus" style="font-size:12px; color:var(--yt-spec-text-secondary);"></p>
       </div>
+      <button class="yt-icon-button" onclick="startDirectCall('${friendId}','${friendName.replace(/'/g,"\\'")}','${friendPhoto}')" title="Sesli Arama">
+        <i class="fas fa-phone" style="font-size:14px;"></i>
+      </button>
       <button class="yt-icon-button" onclick="openFloatingChat(${friendId},'${friendName}','${friendPhoto}')" title="Mini pencere">
         <i class="fas fa-external-link-alt" style="font-size:14px;"></i>
       </button>

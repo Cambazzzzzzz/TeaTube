@@ -7,7 +7,7 @@ let voicePeers = {};          // { userId: RTCPeerConnection }
 let voiceAudios = {};         // { userId: HTMLAudioElement }
 let voiceRoomId = null;       // Aktif oda (groupId)
 let voiceIsMuted = false;
-let voiceMembers = {};        // { userId: { nickname, photo, isMuted } }
+let voiceMembers = {};        // { userId: { nickname, photo, isMuted, isSpeaking } }
 
 // 1-1 Arama değişkenleri
 let directCallActive = false;
@@ -20,12 +20,236 @@ let directCallTargetId = null;
 let ringSound = null;
 let callSound = null;
 
+// Ses cihazları
+let audioInputDevices = [];
+let audioOutputDevices = [];
+let selectedInputDevice = null;
+let selectedOutputDevice = null;
+
+// Konuşma algılama
+let audioContext = null;
+let analyser = null;
+let speakingThreshold = -50; // dB
+let speakingUsers = new Set();
+
 const VOICE_ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' }
 ];
 
-// ==================== BILDIRIM SESLERI ====================
+// ==================== SES CİHAZI YÖNETİMİ ====================
+
+async function loadAudioDevices() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    audioInputDevices = devices.filter(d => d.kind === 'audioinput');
+    audioOutputDevices = devices.filter(d => d.kind === 'audiooutput');
+    
+    // Varsayılan cihazları seç
+    if (!selectedInputDevice && audioInputDevices.length > 0) {
+      selectedInputDevice = audioInputDevices[0].deviceId;
+    }
+    if (!selectedOutputDevice && audioOutputDevices.length > 0) {
+      selectedOutputDevice = audioOutputDevices[0].deviceId;
+    }
+    
+    console.log('Ses cihazları yüklendi:', { input: audioInputDevices.length, output: audioOutputDevices.length });
+  } catch(e) {
+    console.error('Ses cihazları yüklenemedi:', e);
+  }
+}
+
+function showAudioDeviceSettings() {
+  const modal = document.createElement('div');
+  modal.id = 'audioDeviceModal';
+  modal.style.cssText = `
+    position: fixed; inset: 0; z-index: 10001; background: rgba(0,0,0,0.8);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  `;
+  
+  modal.innerHTML = `
+    <div style="background: #1a1a2e; border-radius: 16px; padding: 24px; width: 100%; max-width: 400px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+        <h3 style="margin: 0; color: #fff;">Ses Cihazları</h3>
+        <button onclick="document.getElementById('audioDeviceModal').remove();" style="background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer;">×</button>
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; color: #aaa; font-size: 13px; margin-bottom: 6px;">Mikrofon</label>
+        <select id="inputDeviceSelect" onchange="changeInputDevice(this.value)" style="width: 100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 10px; color: #fff; font-size: 14px;">
+          ${audioInputDevices.map(d => `<option value="${d.deviceId}" ${d.deviceId === selectedInputDevice ? 'selected' : ''}>${d.label || 'Mikrofon ' + (audioInputDevices.indexOf(d) + 1)}</option>`).join('')}
+        </select>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; color: #aaa; font-size: 13px; margin-bottom: 6px;">Hoparlör</label>
+        <select id="outputDeviceSelect" onchange="changeOutputDevice(this.value)" style="width: 100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 10px; color: #fff; font-size: 14px;">
+          ${audioOutputDevices.map(d => `<option value="${d.deviceId}" ${d.deviceId === selectedOutputDevice ? 'selected' : ''}>${d.label || 'Hoparlör ' + (audioOutputDevices.indexOf(d) + 1)}</option>`).join('')}
+        </select>
+      </div>
+      
+      <button onclick="testAudioDevices()" style="width: 100%; background: #1db954; border: none; color: #fff; padding: 12px; border-radius: 8px; font-size: 14px; cursor: pointer; margin-bottom: 8px;">
+        <i class="fas fa-volume-up"></i> Test Et
+      </button>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+}
+
+async function changeInputDevice(deviceId) {
+  selectedInputDevice = deviceId;
+  
+  // Aktif stream varsa yeniden başlat
+  if (voiceStream || directCallStream) {
+    try {
+      const constraints = { 
+        audio: { deviceId: { exact: deviceId } },
+        video: false 
+      };
+      
+      const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      // Eski stream'i durdur
+      if (voiceStream) {
+        voiceStream.getTracks().forEach(t => t.stop());
+        voiceStream = newStream;
+      }
+      if (directCallStream) {
+        directCallStream.getTracks().forEach(t => t.stop());
+        directCallStream = newStream;
+      }
+      
+      // Peer bağlantılarını güncelle
+      Object.values(voicePeers).forEach(pc => {
+        const sender = pc.getSenders().find(s => s.track && s.track.kind === 'audio');
+        if (sender) {
+          sender.replaceTrack(newStream.getAudioTracks()[0]);
+        }
+      });
+      
+      if (directCallPeer) {
+        const sender = directCallPeer.getSenders().find(s => s.track && s.track.kind === 'audio');
+        if (sender) {
+          sender.replaceTrack(newStream.getAudioTracks()[0]);
+        }
+      }
+      
+      showVoiceToast('Mikrofon değiştirildi');
+    } catch(e) {
+      console.error('Mikrofon değiştirilemedi:', e);
+      showVoiceToast('Mikrofon değiştirilemedi!');
+    }
+  }
+}
+
+async function changeOutputDevice(deviceId) {
+  selectedOutputDevice = deviceId;
+  
+  // Tüm audio elementlerinin çıkış cihazını değiştir
+  try {
+    Object.values(voiceAudios).forEach(audio => {
+      if (audio.setSinkId) {
+        audio.setSinkId(deviceId).catch(e => console.log('setSinkId hatası:', e));
+      }
+    });
+    
+    if (directCallAudio && directCallAudio.setSinkId) {
+      directCallAudio.setSinkId(deviceId).catch(e => console.log('setSinkId hatası:', e));
+    }
+    
+    showVoiceToast('Hoparlör değiştirildi');
+  } catch(e) {
+    console.error('Hoparlör değiştirilemedi:', e);
+  }
+}
+
+function testAudioDevices() {
+  // Test sesi çal
+  const testAudio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+  testAudio.volume = 0.3;
+  
+  if (selectedOutputDevice && testAudio.setSinkId) {
+    testAudio.setSinkId(selectedOutputDevice).then(() => {
+      testAudio.play();
+      showVoiceToast('Test sesi çalınıyor...');
+    }).catch(e => {
+      testAudio.play();
+      showVoiceToast('Test sesi çalınıyor (varsayılan cihaz)...');
+    });
+  } else {
+    testAudio.play();
+    showVoiceToast('Test sesi çalınıyor...');
+  }
+}
+
+// ==================== KONUŞMA ALGILAMA ====================
+
+function initSpeakingDetection(stream) {
+  try {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(analyser);
+    
+    analyser.fftSize = 256;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    function detectSpeaking() {
+      if (!analyser) return;
+      
+      analyser.getByteFrequencyData(dataArray);
+      let sum = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        sum += dataArray[i];
+      }
+      const average = sum / bufferLength;
+      const decibels = 20 * Math.log10(average / 255);
+      
+      const isSpeaking = decibels > speakingThreshold;
+      const wasAlreadySpeaking = speakingUsers.has(currentUser.id);
+      
+      if (isSpeaking && !wasAlreadySpeaking) {
+        speakingUsers.add(currentUser.id);
+        if (voiceMembers[currentUser.id]) {
+          voiceMembers[currentUser.id].isSpeaking = true;
+        }
+        updateVoiceUI();
+        
+        // Diğer kullanıcılara bildir
+        if (voiceSocket && voiceRoomId) {
+          voiceSocket.emit('voice:speaking-changed', {
+            groupId: voiceRoomId,
+            userId: currentUser.id,
+            isSpeaking: true
+          });
+        }
+      } else if (!isSpeaking && wasAlreadySpeaking) {
+        speakingUsers.delete(currentUser.id);
+        if (voiceMembers[currentUser.id]) {
+          voiceMembers[currentUser.id].isSpeaking = false;
+        }
+        updateVoiceUI();
+        
+        // Diğer kullanıcılara bildir
+        if (voiceSocket && voiceRoomId) {
+          voiceSocket.emit('voice:speaking-changed', {
+            groupId: voiceRoomId,
+            userId: currentUser.id,
+            isSpeaking: false
+          });
+        }
+      }
+      
+      requestAnimationFrame(detectSpeaking);
+    }
+    
+    detectSpeaking();
+  } catch(e) {
+    console.error('Konuşma algılama başlatılamadı:', e);
+  }
+}
 
 function initNotificationSounds() {
   // Arama zil sesi (gelen arama)
@@ -73,6 +297,7 @@ function initVoiceSocket() {
     console.log('Voice socket bağlandı:', voiceSocket.id);
     if (currentUser) voiceSocket.emit('register', currentUser.id);
     initNotificationSounds();
+    loadAudioDevices(); // Ses cihazlarını yükle
   });
 
   voiceSocket.on('disconnect', () => {
@@ -190,6 +415,14 @@ function initVoiceSocket() {
       updateVoiceUI();
     }
   });
+
+  // Konuşma durumu değişti
+  voiceSocket.on('voice:speaking-changed', (data) => {
+    if (voiceMembers[data.userId]) {
+      voiceMembers[data.userId].isSpeaking = data.isSpeaking;
+      updateVoiceUI();
+    }
+  });
 }
 
 // ==================== 1-1 DIREKT ARAMA ====================
@@ -201,8 +434,15 @@ async function startDirectCall(targetUserId, targetName, targetPhoto) {
   }
 
   try {
-    // Mikrofon izni al
-    directCallStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    // Mikrofon izni al (seçili cihazla)
+    const constraints = { 
+      audio: selectedInputDevice ? { deviceId: { exact: selectedInputDevice } } : true,
+      video: false 
+    };
+    directCallStream = await navigator.mediaDevices.getUserMedia(constraints);
+    
+    // Konuşma algılamayı başlat
+    initSpeakingDetection(directCallStream);
   } catch(e) {
     showVoiceToast('Mikrofon erişimi reddedildi!');
     return;
@@ -236,6 +476,12 @@ async function startDirectCall(targetUserId, targetName, targetPhoto) {
     directCallAudio = new Audio();
     directCallAudio.srcObject = e.streams[0];
     directCallAudio.autoplay = true;
+    directCallAudio.volume = 1.0;
+    
+    // Seçili çıkış cihazını kullan
+    if (selectedOutputDevice && directCallAudio.setSinkId) {
+      directCallAudio.setSinkId(selectedOutputDevice).catch(e => console.log('setSinkId hatası:', e));
+    }
   };
 
   // Offer oluştur ve gönder
@@ -263,8 +509,15 @@ async function startDirectCall(targetUserId, targetName, targetPhoto) {
 
 async function acceptDirectCall(callerData) {
   try {
-    // Mikrofon izni al
-    directCallStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    // Mikrofon izni al (seçili cihazla)
+    const constraints = { 
+      audio: selectedInputDevice ? { deviceId: { exact: selectedInputDevice } } : true,
+      video: false 
+    };
+    directCallStream = await navigator.mediaDevices.getUserMedia(constraints);
+    
+    // Konuşma algılamayı başlat
+    initSpeakingDetection(directCallStream);
   } catch(e) {
     rejectDirectCall('Mikrofon erişimi reddedildi');
     return;
@@ -297,6 +550,12 @@ async function acceptDirectCall(callerData) {
     directCallAudio = new Audio();
     directCallAudio.srcObject = e.streams[0];
     directCallAudio.autoplay = true;
+    directCallAudio.volume = 1.0;
+    
+    // Seçili çıkış cihazını kullan
+    if (selectedOutputDevice && directCallAudio.setSinkId) {
+      directCallAudio.setSinkId(selectedOutputDevice).catch(e => console.log('setSinkId hatası:', e));
+    }
   };
 
   try {
@@ -356,8 +615,16 @@ function endDirectCall() {
     directCallAudio = null;
   }
 
+  // Audio context temizle
+  if (audioContext && audioContext.state !== 'closed') {
+    audioContext.close().catch(e => console.log('AudioContext kapatma hatası:', e));
+    audioContext = null;
+    analyser = null;
+  }
+
   directCallActive = false;
   directCallTargetId = null;
+  speakingUsers.clear();
 
   stopAllSounds();
   hideIncomingCallUI();
@@ -390,24 +657,28 @@ function showIncomingCallUI(callerData) {
 
   ui.innerHTML = `
     <div style="text-align: center;">
-      <div style="margin-bottom: 20px;">
+      <div style="margin-bottom: 20px; position: relative;">
+        <div class="incoming-ring-animation" style="position: absolute; inset: -12px; border-radius: 50%; border: 3px solid #1db954; opacity: 0; animation: ringPulse 2s ease-out infinite;"></div>
+        <div class="incoming-ring-animation" style="position: absolute; inset: -12px; border-radius: 50%; border: 3px solid #1db954; opacity: 0; animation: ringPulse 2s ease-out infinite 1s;"></div>
         <img src="${photoUrl}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #1db954;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(callerData.callerName)}&background=ff0033&color=fff&size=128'" />
       </div>
       <h2 style="font-size: 24px; margin-bottom: 8px;">${callerData.callerName}</h2>
-      <p style="font-size: 16px; color: #aaa; margin-bottom: 40px;">Gelen Arama...</p>
+      <p style="font-size: 16px; color: #1db954; margin-bottom: 40px; animation: blink 1.5s infinite;">Gelen Arama...</p>
       <div style="display: flex; gap: 40px; justify-content: center;">
         <button onclick="rejectDirectCall()" style="
           width: 70px; height: 70px; border-radius: 50%; border: none;
           background: #ff4444; color: #fff; font-size: 24px; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
-        ">
+          transition: transform 0.2s;
+        " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
           <i class="fas fa-phone-slash"></i>
         </button>
         <button onclick="acceptDirectCall(${JSON.stringify(callerData).replace(/"/g, '&quot;')})" style="
           width: 70px; height: 70px; border-radius: 50%; border: none;
           background: #1db954; color: #fff; font-size: 24px; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
-        ">
+          transition: transform 0.2s;
+        " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
           <i class="fas fa-phone"></i>
         </button>
       </div>
@@ -415,6 +686,29 @@ function showIncomingCallUI(callerData) {
   `;
 
   document.body.appendChild(ui);
+  
+  // Animasyon stilleri ekle
+  if (!document.getElementById('incomingCallAnimationStyle')) {
+    const style = document.createElement('style');
+    style.id = 'incomingCallAnimationStyle';
+    style.textContent = `
+      @keyframes ringPulse {
+        0% { 
+          transform: scale(1); 
+          opacity: 0.8; 
+        }
+        100% { 
+          transform: scale(1.5); 
+          opacity: 0; 
+        }
+      }
+      @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
 }
 
 function showOutgoingCallUI(targetName, targetPhoto) {
@@ -440,11 +734,19 @@ function showOutgoingCallUI(targetName, targetPhoto) {
 
   ui.innerHTML = `
     <div style="text-align: center;">
-      <div style="margin-bottom: 20px;">
+      <div style="margin-bottom: 20px; position: relative;">
         <img src="${photoUrl}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #1db954;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(targetName)}&background=ff0033&color=fff&size=128'" />
+        <div class="calling-animation" style="position: absolute; inset: -8px; border-radius: 50%; border: 2px solid transparent; border-top: 2px solid #1db954; animation: spin 1s linear infinite;"></div>
       </div>
       <h2 style="font-size: 24px; margin-bottom: 8px;">${targetName}</h2>
-      <p style="font-size: 16px; color: #aaa; margin-bottom: 40px;">Aranıyor...</p>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 40px;">
+        <span style="font-size: 16px; color: #aaa;">Aranıyor</span>
+        <div class="waiting-dots">
+          <span style="animation: waitingDot 1.4s infinite; animation-delay: 0s;">.</span>
+          <span style="animation: waitingDot 1.4s infinite; animation-delay: 0.2s;">.</span>
+          <span style="animation: waitingDot 1.4s infinite; animation-delay: 0.4s;">.</span>
+        </div>
+      </div>
       <button onclick="endDirectCall()" style="
         width: 70px; height: 70px; border-radius: 50%; border: none;
         background: #ff4444; color: #fff; font-size: 24px; cursor: pointer;
@@ -456,6 +758,28 @@ function showOutgoingCallUI(targetName, targetPhoto) {
   `;
 
   document.body.appendChild(ui);
+  
+  // Animasyon stilleri ekle
+  if (!document.getElementById('callingAnimationStyle')) {
+    const style = document.createElement('style');
+    style.id = 'callingAnimationStyle';
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      @keyframes waitingDot {
+        0%, 60%, 100% { opacity: 0.3; }
+        30% { opacity: 1; }
+      }
+      .waiting-dots span {
+        font-size: 20px;
+        color: #1db954;
+        font-weight: bold;
+      }
+    `;
+    document.head.appendChild(style);
+  }
 }
 
 function showActiveCallUI() {
@@ -475,13 +799,20 @@ function showActiveCallUI() {
     display: flex;
     align-items: center;
     gap: 12px;
-    min-width: 200px;
+    min-width: 240px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.5);
   `;
 
   ui.innerHTML = `
     <div style="width: 8px; height: 8px; background: #1db954; border-radius: 50%; animation: voicePulse 1.5s infinite;"></div>
     <span style="flex: 1; font-size: 14px; color: #fff;">Arama Aktif</span>
+    <button onclick="showAudioDeviceSettings()" title="Ses Ayarları" style="
+      width: 32px; height: 32px; border-radius: 50%; border: none;
+      background: rgba(255,255,255,0.1); color: #fff; font-size: 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    ">
+      <i class="fas fa-cog"></i>
+    </button>
     <button onclick="endDirectCall()" style="
       width: 32px; height: 32px; border-radius: 50%; border: none;
       background: #ff4444; color: #fff; font-size: 12px; cursor: pointer;
@@ -529,8 +860,15 @@ async function joinVoiceRoom(groupId, groupName) {
   }
 
   try {
-    // Mikrofon izni al
-    voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    // Mikrofon izni al (seçili cihazla)
+    const constraints = { 
+      audio: selectedInputDevice ? { deviceId: { exact: selectedInputDevice } } : true,
+      video: false 
+    };
+    voiceStream = await navigator.mediaDevices.getUserMedia(constraints);
+    
+    // Konuşma algılamayı başlat
+    initSpeakingDetection(voiceStream);
   } catch(e) {
     showVoiceToast('Mikrofon erişimi reddedildi!');
     return;
@@ -558,6 +896,7 @@ async function joinVoiceRoom(groupId, groupName) {
     nickname: currentUser.nickname || currentUser.username,
     photo: currentUser.profile_photo || '',
     isMuted: false,
+    isSpeaking: false,
     isSelf: true
   };
 
@@ -579,10 +918,18 @@ async function leaveVoiceRoom() {
     voiceStream = null;
   }
 
+  // Audio context temizle
+  if (audioContext && audioContext.state !== 'closed') {
+    audioContext.close().catch(e => console.log('AudioContext kapatma hatası:', e));
+    audioContext = null;
+    analyser = null;
+  }
+
   voiceRoomId = null;
   voiceMembers = {};
   voicePeers = {};
   voiceAudios = {};
+  speakingUsers.clear();
 
   hideVoicePanel();
 }
@@ -618,7 +965,13 @@ function createPeerConnection(targetUserId) {
     if (!audio) {
       audio = new Audio();
       audio.autoplay = true;
+      audio.volume = 1.0;
       voiceAudios[targetUserId] = audio;
+      
+      // Seçili çıkış cihazını kullan
+      if (selectedOutputDevice && audio.setSinkId) {
+        audio.setSinkId(selectedOutputDevice).catch(e => console.log('setSinkId hatası:', e));
+      }
     }
     audio.srcObject = e.streams[0];
   };
@@ -737,6 +1090,10 @@ function showVoicePanel(groupName) {
         <span style="font-size:14px;font-weight:700;color:#fff;" id="voicePanelGroupName">${groupName || 'Grup'}</span>
       </div>
       <div style="display:flex;gap:8px;">
+        <button onclick="showAudioDeviceSettings()" title="Ses Cihazları"
+          style="width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;">
+          <i class="fas fa-cog"></i>
+        </button>
         <button id="voiceMuteBtn" onclick="toggleVoiceMute()" title="Mikrofonu Kapat"
           style="width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;">
           <i class="fas fa-microphone"></i>
@@ -760,7 +1117,28 @@ function showVoicePanel(groupName) {
         50% { opacity:0.5; transform:scale(1.3); }
       }
       .voice-member-card { transition: all 0.2s; }
-      .voice-member-card.speaking { box-shadow: 0 0 0 2px #1db954; }
+      .voice-member-card.speaking { 
+        box-shadow: 0 0 0 3px #1db954; 
+        transform: scale(1.05);
+      }
+      .speaking-indicator {
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        border: 3px solid transparent;
+        border-top: 3px solid #1db954;
+        animation: speakingPulse 1s ease-in-out infinite;
+      }
+      @keyframes speakingPulse {
+        0%, 100% { 
+          transform: scale(1); 
+          opacity: 1; 
+        }
+        50% { 
+          transform: scale(1.1); 
+          opacity: 0.7; 
+        }
+      }
     `;
     document.head.appendChild(style);
   }
@@ -784,15 +1162,18 @@ function updateVoiceUI() {
   list.innerHTML = members.map(m => {
     const isSelf = String(m.userId) === String(currentUser.id);
     const photoUrl = m.photo && m.photo !== '?' ? m.photo : `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nickname)}&background=ff0033&color=fff&size=64`;
+    const isSpeaking = m.isSpeaking || false;
+    
     return `
-      <div class="voice-member-card" style="
+      <div class="voice-member-card ${isSpeaking ? 'speaking' : ''}" style="
         display:flex;flex-direction:column;align-items:center;gap:6px;
         background:rgba(255,255,255,0.06);border-radius:12px;padding:10px 14px;
         min-width:72px;position:relative;
         ${m.isMuted ? 'opacity:0.7;' : ''}
       ">
         <div style="position:relative;">
-          <img src="${photoUrl}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid ${m.isMuted ? '#ff4444' : '#1db954'};" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.nickname)}&background=ff0033&color=fff&size=64'" />
+          <img src="${photoUrl}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid ${m.isMuted ? '#ff4444' : (isSpeaking ? '#1db954' : '#666')};" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(m.nickname)}&background=ff0033&color=fff&size=64'" />
+          ${isSpeaking ? '<div class="speaking-indicator"></div>' : ''}
           ${m.isMuted ? '<div style="position:absolute;bottom:-2px;right:-2px;background:#ff4444;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:8px;"><i class="fas fa-microphone-slash" style="color:#fff;"></i></div>' : ''}
         </div>
         <span style="font-size:11px;color:#ddd;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;">

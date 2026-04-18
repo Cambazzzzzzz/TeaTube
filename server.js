@@ -163,6 +163,21 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Konuşma durumu değişti
+  socket.on('voice:speaking-changed', (data) => {
+    // data: { groupId, userId, isSpeaking }
+    const roomKey = String(data.groupId);
+    const room = voiceRooms.get(roomKey);
+    if (room && room.has(String(data.userId))) {
+      const member = room.get(String(data.userId));
+      member.isSpeaking = data.isSpeaking;
+    }
+    socket.to('voice_' + roomKey).emit('voice:speaking-changed', {
+      userId: String(data.userId),
+      isSpeaking: data.isSpeaking
+    });
+  });
+
   // Odadan ayrıl
   socket.on('voice:leave', (data) => {
     const roomKey = String(data.groupId);
