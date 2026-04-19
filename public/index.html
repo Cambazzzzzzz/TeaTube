@@ -367,9 +367,9 @@
       document.head.appendChild(script);
     }
     
-    // Sıralı script yükleme - cache bypass ile
+    // Sıralı script yükleme - cache bypass ile - YENİ URL
     const timestamp = Date.now();
-    loadScript('/app.js?v=' + timestamp, () => {
+    loadScript('/teatube-app.js?v=' + timestamp, () => {
       loadScript('/song-writing.js?v=' + timestamp, () => {
         loadScript('/voice-call.js?v=' + timestamp, () => {
           console.log('🎉 Tüm scriptler yüklendi!');

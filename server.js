@@ -246,6 +246,24 @@ app.use((req, res, next) => {
 // ==================== STATIC DOSYALAR - EN ÖNCELİKLİ ====================
 // Önemli: Bu route'lar API'den ÖNCE gelmeli
 
+// app.js için özel route - farklı URL ile
+app.get('/teatube-app.js', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'app.js');
+  console.log('🎯 /teatube-app.js istendi, dosya yolu:', filePath);
+  console.log('🎯 Dosya var mı?', fs.existsSync(filePath));
+  
+  if (fs.existsSync(filePath)) {
+    console.log('✅ teatube-app.js bulundu, gönderiliyor');
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    return res.sendFile(filePath);
+  }
+  console.log('❌ teatube-app.js bulunamadı!');
+  res.status(404).send('teatube-app.js not found');
+});
+
 // app.js için özel route
 app.get('/app.js', (req, res) => {
   const filePath = path.join(__dirname, 'public', 'app.js');
