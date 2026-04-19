@@ -338,25 +338,52 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/app.js"></script>
-  <script src="/song-writing.js"></script>
-  <script src="/voice-call.js"></script>
   <script>
-    // HATA KONTROLÜ
+    // HATA KONTROLÜ VE DEBUG
     window.addEventListener('error', function(e) {
       console.error('🔥 JAVASCRIPT HATASI:', e.message, e.filename, e.lineno);
-      alert('JavaScript Hatası: ' + e.message);
+      console.error('Stack:', e.error?.stack);
+      
+      // Eğer app.js yüklenmediyse özel mesaj
+      if (e.filename && e.filename.includes('app.js')) {
+        console.error('❌ APP.JS YÜKLEME HATASI!');
+        alert('APP.JS yükleme hatası: ' + e.message);
+      }
     });
     
-    // APP.JS YÜKLEME KONTROLÜ
-    setTimeout(() => {
-      if (typeof login === 'undefined') {
-        console.error('❌ app.js yüklenmedi! login fonksiyonu bulunamadı');
-        alert('HATA: app.js yüklenmedi! Sayfayı yenileyin.');
-      } else {
-        console.log('✅ app.js başarıyla yüklendi');
-      }
-    }, 1000);
+    // Script yükleme kontrolü
+    function loadScript(src, callback) {
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = () => {
+        console.log('✅ Script yüklendi:', src);
+        if (callback) callback();
+      };
+      script.onerror = (e) => {
+        console.error('❌ Script yüklenemedi:', src, e);
+        alert('Script yüklenemedi: ' + src);
+      };
+      document.head.appendChild(script);
+    }
+    
+    // Sıralı script yükleme
+    loadScript('/app.js', () => {
+      loadScript('/song-writing.js', () => {
+        loadScript('/voice-call.js', () => {
+          console.log('🎉 Tüm scriptler yüklendi!');
+          
+          // APP.JS YÜKLEME KONTROLÜ
+          setTimeout(() => {
+            if (typeof login === 'undefined') {
+              console.error('❌ app.js yüklenmedi! login fonksiyonu bulunamadı');
+              alert('HATA: app.js yüklenmedi! Sayfayı yenileyin.');
+            } else {
+              console.log('✅ app.js başarıyla yüklendi');
+            }
+          }, 1000);
+        });
+      });
+    });
 
     // Service Worker
     if ('serviceWorker' in navigator) {

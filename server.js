@@ -224,16 +224,29 @@ migrateAdminPassword().catch(err => console.error('Migration error:', err));
 
 app.set('trust proxy', true);
 
-app.use(cors());
+// CORS ayarları
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 // Static dosya servisi - güçlü yapılandırma
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1d',
   etag: false,
-  setHeaders: (res, path) => {
-    if (path.endsWith('.js')) {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js')) {
       res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+    if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
+    }
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
     }
   }
 }));
