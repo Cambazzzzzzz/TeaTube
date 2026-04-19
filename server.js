@@ -388,14 +388,9 @@ app.use('/api/*', (req, res) => {
   res.status(404).json({ error: 'API endpoint bulunamadı' });
 });
 
-// Diğer tüm route'lar için ana sayfayı döndür (SPA routing)
-app.get('*', (req, res) => {
-  // Static dosya değilse ana sayfayı döndür
-  if (!req.path.includes('.')) {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  } else {
-    res.status(404).send('Dosya bulunamadı');
-  }
+// 404 handler - sadece API route'ları için
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint bulunamadı' });
 });
 
 // Error handler
