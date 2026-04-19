@@ -337,18 +337,49 @@ app.get('/bcics', (req, res) => {
 
 // Debug route - static dosya kontrolü
 app.get('/debug/files', (req, res) => {
-  const fs = require('fs');
   const publicPath = path.join(__dirname, 'public');
   try {
     const files = fs.readdirSync(publicPath);
+    const appJsPath = path.join(publicPath, 'app.js');
+    const appJsExists = fs.existsSync(appJsPath);
+    
+    // app.js içeriğinin ilk 100 karakterini oku
+    let appJsPreview = '';
+    if (appJsExists) {
+      const content = fs.readFileSync(appJsPath, 'utf-8');
+      appJsPreview = content.substring(0, 100);
+    }
+    
     res.json({
+      __dirname,
       publicPath,
       files,
-      appJsExists: fs.existsSync(path.join(publicPath, 'app.js')),
-      appJsSize: fs.existsSync(path.join(publicPath, 'app.js')) ? fs.statSync(path.join(publicPath, 'app.js')).size : 0
+      appJsExists,
+      appJsSize: appJsExists ? fs.statSync(appJsPath).size : 0,
+      appJsPreview,
+      cwd: process.cwd(),
+      env: {
+        NODE_ENV: process.env.NODE_ENV,
+        PORT: process.env.PORT
+      }
     });
   } catch (err) {
-    res.json({ error: err.message });
+    res.json({ error: err.message, stack: err.stack });
+  }
+});
+
+// Test route - direkt app.js servisi
+app.get('/test-app-js', (req, res) => {
+  const appJsPath = path.join(__dirname, 'public', 'app.js');
+  console.log('TEST: app.js istendi');
+  console.log('TEST: Dosya yolu:', appJsPath);
+  console.log('TEST: Dosya var mı?', fs.existsSync(appJsPath));
+  
+  if (fs.existsSync(appJsPath)) {
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.sendFile(appJsPath);
+  } else {
+    res.status(404).send('app.js bulunamadı!');
   }
 });
 
