@@ -227,8 +227,16 @@ app.set('trust proxy', true);
 app.use(cors());
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ extended: true, limit: '200mb' }));
-// Static dosya servisi - mutlak yol kullan
-app.use(express.static(path.join(__dirname, 'public')));
+// Static dosya servisi - güçlü yapılandırma
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1d',
+  etag: false,
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    }
+  }
+}));
 
 
 // API route'larına UTF-8 charset ekle
@@ -257,6 +265,27 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Static dosyalar için explicit route'lar
+app.get('/app.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.sendFile(path.join(__dirname, 'public', 'app.js'));
+});
+
+app.get('/song-writing.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.sendFile(path.join(__dirname, 'public', 'song-writing.js'));
+});
+
+app.get('/voice-call.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.sendFile(path.join(__dirname, 'public', 'voice-call.js'));
+});
+
+app.get('/style-premium.css', (req, res) => {
+  res.setHeader('Content-Type', 'text/css; charset=utf-8');
+  res.sendFile(path.join(__dirname, 'public', 'style-premium.css'));
+});
+
 
 
 // Admin giri� sayfas�
@@ -267,6 +296,23 @@ app.get('/administans', (req, res) => {
 // Admin paneli
 app.get('/bcics', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'bcics.html'));
+});
+
+// Debug route - static dosya kontrolü
+app.get('/debug/files', (req, res) => {
+  const fs = require('fs');
+  const publicPath = path.join(__dirname, 'public');
+  try {
+    const files = fs.readdirSync(publicPath);
+    res.json({
+      publicPath,
+      files,
+      appJsExists: fs.existsSync(path.join(publicPath, 'app.js')),
+      appJsSize: fs.existsSync(path.join(publicPath, 'app.js')) ? fs.statSync(path.join(publicPath, 'app.js')).size : 0
+    });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
 });
 
 // 404 handler
