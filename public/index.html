@@ -368,9 +368,10 @@
     }
     
     // Sıralı script yükleme - cache bypass ile
-    loadScript('/app.js', () => {
-      loadScript('/song-writing.js', () => {
-        loadScript('/voice-call.js', () => {
+    const timestamp = Date.now();
+    loadScript('/app.js?v=' + timestamp, () => {
+      loadScript('/song-writing.js?v=' + timestamp, () => {
+        loadScript('/voice-call.js?v=' + timestamp, () => {
           console.log('🎉 Tüm scriptler yüklendi!');
           
           // APP.JS YÜKLEME KONTROLÜ
