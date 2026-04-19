@@ -244,7 +244,49 @@ app.use((req, res, next) => {
 });
 
 // ==================== STATIC DOSYALAR - EN ÖNCELİKLİ ====================
-// JS dosyaları
+// Önemli: Bu route'lar API'den ÖNCE gelmeli
+
+// app.js için özel route
+app.get('/app.js', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'app.js');
+  console.log('🎯 /app.js istendi, dosya yolu:', filePath);
+  console.log('🎯 Dosya var mı?', fs.existsSync(filePath));
+  
+  if (fs.existsSync(filePath)) {
+    console.log('✅ app.js bulundu, gönderiliyor');
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    return res.sendFile(filePath);
+  }
+  console.log('❌ app.js bulunamadı!');
+  res.status(404).send('app.js not found');
+});
+
+// song-writing.js için özel route
+app.get('/song-writing.js', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'song-writing.js');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    return res.sendFile(filePath);
+  }
+  res.status(404).send('song-writing.js not found');
+});
+
+// voice-call.js için özel route
+app.get('/voice-call.js', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'voice-call.js');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    return res.sendFile(filePath);
+  }
+  res.status(404).send('voice-call.js not found');
+});
+
+// Genel JS dosyaları için regex route
 app.get(/\.js$/, (req, res, next) => {
   const filePath = path.join(__dirname, 'public', req.path);
   console.log('JS dosyası istendi:', req.path, '-> Dosya yolu:', filePath);
