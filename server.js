@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const db = require('./src/database');
 const routes = require('./src/routes');
 const adminRoutes = require('./src/routes-admin');
@@ -224,67 +225,80 @@ migrateAdminPassword().catch(err => console.error('Migration error:', err));
 
 app.set('trust proxy', true);
 
-// CORS ayarları
+// CORS - en başta
 app.use(cors({
   origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
-app.use(express.json({ limit: '200mb' }));
-app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 
-// Logging middleware
+// Body parser - sadece API route'ları için
+app.use('/api', express.json({ limit: '200mb' }));
+app.use('/api', express.urlencoded({ extended: true, limit: '200mb' }));
+
+// Logging
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log(`${req.method} ${req.path}`);
   next();
 });
 
-// Static dosyalar için özel route'lar - API'den ÖNCE
-app.get('*.js', (req, res, next) => {
+// ==================== STATIC DOSYALAR - EN ÖNCELİKLİ ====================
+// JS dosyaları
+app.get(/\.js$/, (req, res, next) => {
   const filePath = path.join(__dirname, 'public', req.path);
-  const fs = require('fs');
+  console.log('JS dosyası istendi:', req.path, '-> Dosya yolu:', filePath);
+  
   if (fs.existsSync(filePath)) {
+    console.log('✅ JS dosyası bulundu, gönderiliyor');
     res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    res.sendFile(filePath);
-  } else {
-    next();
+    res.setHeader('Cache-Control', 'no-cache');
+    return res.sendFile(filePath);
   }
+  console.log('❌ JS dosyası bulunamadı');
+  next();
 });
 
-app.get('*.css', (req, res, next) => {
+// CSS dosyaları
+app.get(/\.css$/, (req, res, next) => {
   const filePath = path.join(__dirname, 'public', req.path);
-  const fs = require('fs');
   if (fs.existsSync(filePath)) {
     res.setHeader('Content-Type', 'text/css; charset=utf-8');
-    res.sendFile(filePath);
-  } else {
-    next();
+    return res.sendFile(filePath);
   }
+  next();
 });
 
-app.get('*.png', (req, res, next) => {
+// Resim dosyaları
+app.get(/\.(png|jpg|jpeg|gif|ico)$/, (req, res, next) => {
   const filePath = path.join(__dirname, 'public', req.path);
-  const fs = require('fs');
   if (fs.existsSync(filePath)) {
-    res.sendFile(filePath);
-  } else {
-    next();
+    return res.sendFile(filePath);
   }
+  next();
 });
 
-app.get('*.json', (req, res, next) => {
+// JSON dosyaları
+app.get(/\.json$/, (req, res, next) => {
   const filePath = path.join(__dirname, 'public', req.path);
-  const fs = require('fs');
   if (fs.existsSync(filePath)) {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.sendFile(filePath);
-  } else {
-    next();
+    return res.sendFile(filePath);
   }
+  next();
 });
 
-// Static klasör servisi
+// HTML dosyaları
+app.get(/\.html$/, (req, res, next) => {
+  const filePath = path.join(__dirname, 'public', req.path);
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.sendFile(filePath);
+  }
+  next();
+});
+
+// Fallback static middleware
 app.use(express.static(path.join(__dirname, 'public')));
 
 
