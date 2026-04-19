@@ -118,9 +118,10 @@
           <button id="uploadPlusBtn" onclick="showMobileUploadMenu()" style="background:none;border:none;color:var(--yt-spec-brand-background-solid);cursor:pointer;font-size:22px;padding:4px 8px;display:none;">
             <i class="fas fa-plus-square"></i>
           </button>
-          <!-- TS Music kısayolu (mobil) -->
-          <button id="tsMusicHeaderBtn" onclick="showPage('ts-music')" style="background:none;border:none;cursor:pointer;padding:4px 6px;display:none;align-items:center;justify-content:center;">
+          <!-- TS Music kısayolu (mobil) - Sanatçı sayfam -->
+          <button id="tsMusicHeaderBtn" onclick="showPage('my-songs')" style="background:none;border:none;cursor:pointer;padding:4px 6px;display:none;align-items:center;justify-content:center;position:relative;">
             <i class="fas fa-music" style="font-size:20px;color:#1db954;"></i>
+            <i class="fas fa-plus" style="position:absolute;top:2px;right:2px;font-size:8px;color:#1db954;background:var(--yt-spec-base-background);border-radius:50%;padding:1px;"></i>
           </button>
         </div>
 
@@ -145,9 +146,9 @@
             <i class="fas fa-layer-group"></i>
             <span id="groupNavBadge" class="badge" style="display:none;"></span>
           </button>
-          <!-- Mobil: arama butonu -->
-          <button class="yt-icon-button mobile-only" onclick="toggleMobileSearch()" title="Ara">
-            <i class="fas fa-search"></i>
+          <!-- Mobil: içerik ekleme butonu -->
+          <button class="yt-icon-button mobile-only" onclick="showMobileUploadMenu()" title="İçerik Ekle">
+            <i class="fas fa-plus"></i>
           </button>
           <!-- Bildirimler - hem mobil hem masaüstü -->
           <button class="yt-icon-button" onclick="showPage('notifications')" style="position:relative;">
@@ -288,7 +289,7 @@
         <i class="fas fa-paper-plane"></i>
         <span id="mobileNavMsgBadge" class="badge" style="display:none;position:absolute;top:4px;right:4px;"></span>
       </button>
-      <!-- TS Music -->
+      <!-- TS Music - Direkt TS Music sayfasına -->
       <button class="mbb-btn" onclick="showPage('ts-music')" id="mbb-tsmusic" style="position:relative;">
         <i class="fas fa-music" style="font-size:18px;color:var(--yt-spec-text-secondary);"></i>
       </button>

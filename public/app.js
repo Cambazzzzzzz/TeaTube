@@ -1526,52 +1526,77 @@ function switchMsgTab(tab) {
 
 // Mobil tam ekran chat
 function openMobileChat(friendId, friendName, friendPhoto) {
-  console.log('openMobileChat çağrıldı:', friendId, friendName, friendPhoto);
+  console.log('🔥 openMobileChat çağrıldı:', { friendId, friendName, friendPhoto });
+  console.log('🔥 currentUser:', currentUser);
+  console.log('🔥 window.firebaseDB:', !!window.firebaseDB);
+  
+  // Parametreleri kontrol et
+  if (!friendId || !friendName) {
+    console.error('❌ Eksik parametreler:', { friendId, friendName });
+    showToast('Hatalı mesaj parametreleri', 'error');
+    return;
+  }
   
   // Profil fotoğrafı yoksa varsayılan kullan
   friendPhoto = friendPhoto && friendPhoto !== '?' && friendPhoto !== 'null' ? friendPhoto : getProfilePhotoUrl(null);
+  console.log('🔥 İşlenmiş friendPhoto:', friendPhoto);
   
   if (!window.firebaseDB) {
-    console.log('Firebase bekleniyor...');
+    console.log('⏳ Firebase bekleniyor...');
     showToast('Bağlantı kuruluyor...', 'info');
-    document.addEventListener('firebaseReady', () => openMobileChat(friendId, friendName, friendPhoto), { once: true });
+    document.addEventListener('firebaseReady', () => {
+      console.log('🔥 Firebase hazır, tekrar deneniyor...');
+      openMobileChat(friendId, friendName, friendPhoto);
+    }, { once: true });
     return;
   }
 
-  console.log('Engel kontrolü yapılıyor...');
+  console.log('🔥 Engel kontrolü yapılıyor...');
   // Engel kontrolü
   fetch(`${API_URL}/is-blocked/${currentUser.id}/${friendId}`)
-    .then(r => r.json())
+    .then(r => {
+      console.log('🔥 Engel kontrolü response status:', r.status);
+      return r.json();
+    })
     .then(d => {
-      console.log('Engel kontrolü sonucu:', d);
+      console.log('🔥 Engel kontrolü sonucu:', d);
       if (d.isBlocked) {
+        console.log('🚫 Kullanıcı engellenmiş');
         showBlockedChatWarning(friendId, friendName, friendPhoto, true);
       } else {
+        console.log('✅ Kullanıcı engellenmemiş, chat açılıyor...');
         _openMobileChatDirect(friendId, friendName, friendPhoto);
       }
     })
     .catch(e => {
-      console.error('Engel kontrolü hatası:', e);
+      console.error('❌ Engel kontrolü hatası:', e);
+      console.log('🔄 Hata olmasına rağmen chat açılmaya çalışılıyor...');
       _openMobileChatDirect(friendId, friendName, friendPhoto);
     });
 }
 
 function _openMobileChatDirect(friendId, friendName, friendPhoto) {
-  console.log('_openMobileChatDirect çağrıldı:', friendId, friendName, friendPhoto);
+  console.log('🔥 _openMobileChatDirect çağrıldı:', { friendId, friendName, friendPhoto });
   
   const chatId = getChatId(currentUser.id, friendId);
+  console.log('🔥 Chat ID hesaplandı:', chatId);
+  
   const pageContent = document.getElementById('pageContent');
   
   if (!pageContent) {
-    console.error('pageContent bulunamadı!');
+    console.error('❌ pageContent bulunamadı!');
+    showToast('Sayfa içeriği bulunamadı!', 'error');
     return;
   }
   
+  console.log('✅ pageContent bulundu');
   currentChatFriendId = friendId;
-  console.log('Chat ID:', chatId);
+  console.log('🔥 currentChatFriendId ayarlandı:', currentChatFriendId);
 
   try {
-    pageContent.innerHTML = `
+    console.log('🔥 HTML içeriği oluşturuluyor...');
+    
+    const htmlContent = `
       <div class="mobile-chat-fullscreen">
         <div class="mobile-chat-header">
           <button onclick="loadMessagesPage()" style="background:none;border:none;color:var(--yt-spec-text-primary);cursor:pointer;padding:8px 12px 8px 4px;font-size:20px;flex-shrink:0;">
@@ -1615,9 +1640,12 @@ function _openMobileChatDirect(friendId, friendName, friendPhoto) {
       </div>
     `;
     
-    console.log('HTML içeriği oluşturuldu');
+    console.log('🔥 HTML içeriği hazırlandı, DOM\'a ekleniyor...');
+    pageContent.innerHTML = htmlContent;
+    console.log('✅ HTML içeriği DOM\'a eklendi');
+    
   } catch(e) {
-    console.error('HTML oluşturma hatası:', e);
+    console.error('❌ HTML oluşturma hatası:', e);
     showToast('Mesaj açılamadı: ' + e.message, 'error');
     return;
   }
@@ -8403,9 +8431,16 @@ async function loadMySongsPage() {
       pageContent.innerHTML = `
         <div style="text-align:center;padding:60px 20px">
           <i class="fas fa-music" style="font-size:48px;color:rgba(255,255,255,0.1);margin-bottom:16px;display:block"></i>
-          <p style="font-size:16px;font-weight:600;margin-bottom:8px">Artist değilsin</p>
-          <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:20px">Şarkı yükleyebilmek için artist başvurusu yapman gerekiyor.</p>
-          <button class="yt-btn" onclick="showPage('ts-music')">TS Music'e Git</button>
+          <p style="font-size:16px;font-weight:600;margin-bottom:8px">Sanatçı Değilsin</p>
+          <p style="font-size:13px;color:var(--yt-spec-text-secondary);margin-bottom:20px">Şarkı yükleyebilmek için sanatçı başvurusu yapman gerekiyor.</p>
+          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+            <button class="yt-btn" onclick="showArtistApplicationModal()" style="background:#1db954;color:#000;font-weight:700;">
+              <i class="fas fa-star" style="margin-right:6px;"></i>Sanatçı Ol
+            </button>
+            <button class="yt-btn" onclick="showPage('ts-music')" style="background:rgba(255,255,255,0.1);">
+              <i class="fas fa-music" style="margin-right:6px;"></i>TS Music'e Git
+            </button>
+          </div>
         </div>`;
       return;
     }
@@ -8448,6 +8483,98 @@ function editMySong(songId, title, coverUrl, genre, lyrics) {
     <div class="yt-form-group"><label class="yt-form-label">Şarkı Sözleri</label><textarea id="editSongLyrics" class="yt-input" style="height:80px;resize:vertical">${lyrics}</textarea></div>
     <div style="display:flex;gap:8px;margin-top:8px">
       <button class="yt-btn" onclick="saveMySongEdit(${songId})" style="flex:1">Kaydet</button>
+      <button class="yt-btn" onclick="closeModal()" style="background:rgba(255,255,255,0.1);flex:1">İptal</button>
+    </div>
+  `);
+}
+
+function showArtistApplicationModal() {
+  showModal(`
+    <h3 style="margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+      <i class="fas fa-star" style="color:#1db954;"></i>Sanatçı Başvurusu
+    </h3>
+    <p style="font-size:14px;color:var(--yt-spec-text-secondary);margin-bottom:20px;line-height:1.5;">
+      Sanatçı olarak şarkı yükleyebilmek için aşağıdaki bilgileri doldur. Başvurun incelendikten sonra onaylanacak.
+    </p>
+    <div class="yt-form-group">
+      <label class="yt-form-label">Sanatçı Adın</label>
+      <input id="artistName" class="yt-input" placeholder="Sahne adın veya gerçek adın" maxlength="50" />
+    </div>
+    <div class="yt-form-group">
+      <label class="yt-form-label">Müzik Türün</label>
+      <select id="artistGenre" class="yt-input">
+        <option value="">Seç...</option>
+        <option value="Pop">Pop</option>
+        <option value="Rock">Rock</option>
+        <option value="Hip-Hop">Hip-Hop</option>
+        <option value="R&B">R&B</option>
+        <option value="Electronic">Electronic</option>
+        <option value="Jazz">Jazz</option>
+        <option value="Classical">Classical</option>
+        <option value="Folk">Folk</option>
+        <option value="Alternative">Alternative</option>
+        <option value="Other">Diğer</option>
+      </select>
+    </div>
+    <div class="yt-form-group">
+      <label class="yt-form-label">Hakkında (Opsiyonel)</label>
+      <textarea id="artistBio" class="yt-input" style="height:80px;resize:vertical;" placeholder="Müzik geçmişin, tarzın hakkında kısa bilgi..." maxlength="500"></textarea>
+    </div>
+    <div class="yt-form-group">
+      <label class="yt-form-label">Sosyal Medya Linkleri (Opsiyonel)</label>
+      <input id="artistSocial" class="yt-input" placeholder="Instagram, YouTube, Spotify vb. linkler" />
+    </div>
+    <div style="display:flex;gap:8px;margin-top:20px;">
+      <button class="yt-btn" onclick="submitArtistApplication()" style="flex:1;background:#1db954;color:#000;font-weight:700;">
+        <i class="fas fa-paper-plane" style="margin-right:6px;"></i>Başvuru Gönder
+      </button>
+      <button class="yt-btn" onclick="closeModal()" style="background:rgba(255,255,255,0.1);flex:1;">İptal</button>
+    </div>
+  `);
+}
+
+async function submitArtistApplication() {
+  const artistName = document.getElementById('artistName')?.value?.trim();
+  const artistGenre = document.getElementById('artistGenre')?.value;
+  const artistBio = document.getElementById('artistBio')?.value?.trim();
+  const artistSocial = document.getElementById('artistSocial')?.value?.trim();
+  
+  if (!artistName) {
+    showToast('Sanatçı adını gir', 'error');
+    return;
+  }
+  
+  if (!artistGenre) {
+    showToast('Müzik türünü seç', 'error');
+    return;
+  }
+  
+  try {
+    const res = await fetch(`${API_URL}/music/artist-application`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser.id,
+        artistName,
+        genre: artistGenre,
+        bio: artistBio,
+        socialLinks: artistSocial
+      })
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      closeModal();
+      showToast('Başvurun gönderildi! İnceleme süreci 1-3 gün sürer.', 'success');
+    } else {
+      showToast('Hata: ' + (data.error || 'Başvuru gönderilemedi'), 'error');
+    }
+  } catch(e) {
+    console.error('Artist başvuru hatası:', e);
+    showToast('Bir hata oluştu!', 'error');
+  }
+}
       <button class="yt-btn yt-btn-secondary" onclick="closeModal()">İptal</button>
     </div>
   `);
