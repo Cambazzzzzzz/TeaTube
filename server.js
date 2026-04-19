@@ -233,20 +233,26 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ extended: true, limit: '200mb' }));
-// Static dosya servisi - güçlü yapılandırma
-app.use(express.static(path.join(__dirname, 'public'), {
-  maxAge: '1d',
-  etag: false,
+// Static dosya servisi - Railway için özel yapılandırma
+app.use('/public', express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.js')) {
       res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-      res.setHeader('Cache-Control', 'no-cache');
     }
     if (filePath.endsWith('.css')) {
       res.setHeader('Content-Type', 'text/css; charset=utf-8');
     }
-    if (filePath.endsWith('.html')) {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  }
+}));
+
+// Root static servisi
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    }
+    if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
     }
   }
 }));
@@ -278,27 +284,6 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Static dosyalar için explicit route'lar
-app.get('/app.js', (req, res) => {
-  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-  res.sendFile(path.join(__dirname, 'public', 'app.js'));
-});
-
-app.get('/song-writing.js', (req, res) => {
-  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-  res.sendFile(path.join(__dirname, 'public', 'song-writing.js'));
-});
-
-app.get('/voice-call.js', (req, res) => {
-  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-  res.sendFile(path.join(__dirname, 'public', 'voice-call.js'));
-});
-
-app.get('/style-premium.css', (req, res) => {
-  res.setHeader('Content-Type', 'text/css; charset=utf-8');
-  res.sendFile(path.join(__dirname, 'public', 'style-premium.css'));
-});
-
 
 
 // Admin giri� sayfas�
@@ -328,9 +313,19 @@ app.get('/debug/files', (req, res) => {
   }
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Endpoint bulunamadı' });
+// 404 handler - sadece API route'ları için
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint bulunamadı' });
+});
+
+// Diğer tüm route'lar için ana sayfayı döndür (SPA routing)
+app.get('*', (req, res) => {
+  // Static dosya değilse ana sayfayı döndür
+  if (!req.path.includes('.')) {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  } else {
+    res.status(404).send('Dosya bulunamadı');
+  }
 });
 
 // Error handler
