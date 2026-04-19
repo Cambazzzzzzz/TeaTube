@@ -221,10 +221,6 @@
       </div>
       
       <div class="guide-section">
-        <div class="guide-item" onclick="showPage('favorites')" data-page="favorites">
-          <i class="fas fa-star"></i>
-          <span>Favoriler</span>
-        </div>
         <div class="guide-item" onclick="showPage('saved')" data-page="saved">
           <i class="fas fa-bookmark"></i>
           <span>Kaydedilenler</span>
@@ -247,10 +243,6 @@
       </div>
 
       <div class="guide-section">
-        <div class="guide-item" onclick="showPage('algorithm')" data-page="algorithm">
-          <i class="fas fa-brain"></i>
-          <span>Algoritmam</span>
-        </div>
         <div class="guide-item" onclick="showPage('ts-music')" data-page="ts-music">
           <i class="fas fa-music"></i>
           <span>TS Music</span>
@@ -346,9 +338,9 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="app.js"></script>
-  <script src="song-writing.js"></script>
-  <script src="voice-call.js"></script>
+  <script src="/app.js"></script>
+  <script src="/song-writing.js"></script>
+  <script src="/voice-call.js"></script>
   <script>
     // HATA KONTROLÜ
     window.addEventListener('error', function(e) {

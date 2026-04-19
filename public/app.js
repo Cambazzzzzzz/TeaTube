@@ -486,12 +486,10 @@ function showMobileProfileSheet() {
         { icon:'fa-photo-video', label:'İçeriklerim', page:'my-videos' },
         { icon:'fa-users', label:'Takip Ettiklerim', page:'subscriptions' },
         { icon:'fa-music', label:'Şarkılarım', page:'my-songs' },
-        { icon:'fa-star', label:'Favoriler', page:'favorites' },
         { icon:'fa-bookmark', label:'Kaydedilenler', page:'saved' },
         { icon:'fa-history', label:'Geçmiş', page:'history' },
         { icon:'fa-layer-group', label:'Gruplar', page:'groups' },
         { icon:'fa-music', label:'TS Music', page:'ts-music' },
-        { icon:'fa-brain', label:'Algoritmam', page:'algorithm' },
         { icon:'fa-cog', label:'Ayarlar', page:'settings' },
       ].map(item => `
         <button onclick="document.getElementById('mobileProfileSheet').remove(); showPage('${item.page}');"
@@ -1090,9 +1088,6 @@ function showPage(page) {
     case 'history':
       loadHistoryPage();
       break;
-    case 'algorithm':
-      loadAlgorithmPage();
-      break;
     case 'ts-music':
       loadTSMusicPage();
       break;
@@ -1139,9 +1134,6 @@ function showPage(page) {
       break;
     case 'subscriptions':
       loadSubscriptionsPage();
-      break;
-    case 'favorites':
-      loadFavoritesPage();
       break;
     case 'saved':
       loadSavedPage();

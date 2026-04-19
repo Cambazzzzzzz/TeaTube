@@ -227,7 +227,8 @@ app.set('trust proxy', true);
 app.use(cors());
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ extended: true, limit: '200mb' }));
-app.use(express.static('public'));
+// Static dosya servisi - mutlak yol kullan
+app.use(express.static(path.join(__dirname, 'public')));
 
 
 // API route'larına UTF-8 charset ekle
