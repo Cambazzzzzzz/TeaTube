@@ -233,29 +233,59 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ extended: true, limit: '200mb' }));
-// Static dosya servisi - Railway için özel yapılandırma
-app.use('/public', express.static(path.join(__dirname, 'public'), {
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    }
-    if (filePath.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css; charset=utf-8');
-    }
-  }
-}));
 
-// Root static servisi
-app.use(express.static(path.join(__dirname, 'public'), {
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    }
-    if (filePath.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css; charset=utf-8');
-    }
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
+// Static dosyalar için özel route'lar - API'den ÖNCE
+app.get('*.js', (req, res, next) => {
+  const filePath = path.join(__dirname, 'public', req.path);
+  const fs = require('fs');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.sendFile(filePath);
+  } else {
+    next();
   }
-}));
+});
+
+app.get('*.css', (req, res, next) => {
+  const filePath = path.join(__dirname, 'public', req.path);
+  const fs = require('fs');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'text/css; charset=utf-8');
+    res.sendFile(filePath);
+  } else {
+    next();
+  }
+});
+
+app.get('*.png', (req, res, next) => {
+  const filePath = path.join(__dirname, 'public', req.path);
+  const fs = require('fs');
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    next();
+  }
+});
+
+app.get('*.json', (req, res, next) => {
+  const filePath = path.join(__dirname, 'public', req.path);
+  const fs = require('fs');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.sendFile(filePath);
+  } else {
+    next();
+  }
+});
+
+// Static klasör servisi
+app.use(express.static(path.join(__dirname, 'public')));
 
 
 // API route'larına UTF-8 charset ekle
@@ -265,11 +295,6 @@ app.use('/api', (req, res, next) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     return origJson(data);
   };
-  next();
-});
-
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
 
