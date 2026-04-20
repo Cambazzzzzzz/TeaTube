@@ -372,6 +372,24 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
+// APP.JS'İ API ENDPOINT OLARAK SERVE ET - CACHE BYPASS
+app.get('/api/app-script', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'app.js');
+  console.log('🎯 API /api/app-script istendi');
+  
+  if (fs.existsSync(filePath)) {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.send(content);
+    console.log('✅ app.js API endpoint olarak gönderildi');
+  } else {
+    res.status(404).send('// app.js not found');
+  }
+});
+
 app.use('/api', routes);
 app.use('/api', adminRoutes);
 app.use('/api', musicRoutes);
