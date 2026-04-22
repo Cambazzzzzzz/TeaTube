@@ -635,7 +635,23 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM yüklendi, otomatik giriş kontrol ediliyor...');
   
   const savedUser = localStorage.getItem('Tea_user');
-  if (savedUser) {
+  const timestamp = localStorage.getItem('Tea_user_timestamp');
+  
+  // 30 gün = 30 * 24 * 60 * 60 * 1000 ms
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+  
+  if (savedUser && timestamp) {
+    const age = Date.now() - parseInt(timestamp);
+    
+    if (age > THIRTY_DAYS) {
+      console.log('Oturum süresi dolmuş (30 gün), temizleniyor...');
+      localStorage.removeItem('Tea_user');
+      localStorage.removeItem('Tea_user_timestamp');
+      document.getElementById('authScreen').style.display = 'flex';
+      document.getElementById('mainApp').style.display = 'none';
+      return;
+    }
+    
     try {
       currentUser = JSON.parse(savedUser);
       console.log('Kaydedilmiş kullanıcı bulundu:', currentUser.username);
@@ -648,6 +664,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       console.error('Kaydedilmiş kullanıcı parse hatası:', e);
       localStorage.removeItem('Tea_user');
+      localStorage.removeItem('Tea_user_timestamp');
       document.getElementById('authScreen').style.display = 'flex';
       document.getElementById('mainApp').style.display = 'none';
     }
@@ -880,8 +897,11 @@ async function login() {
     console.log('✅ Login başarılı:', data);
 
     currentUser = data.user;
+    
+    // KALICI KAYIT - 30 gün
     localStorage.setItem('Tea_user', JSON.stringify(currentUser));
-    console.log('💾 User localStorage\'a kaydedildi');
+    localStorage.setItem('Tea_user_timestamp', Date.now().toString());
+    console.log('💾 User localStorage\'a kaydedildi (30 gün)');
     
     // HEMEN ana ekranı göster
     console.log('🚀 Ana ekran gösteriliyor...');
@@ -889,7 +909,9 @@ async function login() {
     document.getElementById('mainApp').style.display = 'block';
     
     // Tema uygula
-    document.body.setAttribute('data-theme', currentUser.theme || 'dark');
+    const theme = currentUser.theme || 'dark';
+    document.body.setAttribute('data-theme', theme);
+    applyTheme(theme);
     
     // Ana sayfayı göster
     showPage('home');
