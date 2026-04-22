@@ -8567,10 +8567,6 @@ async function submitArtistApplication() {
     showToast('Bir hata oluştu!', 'error');
   }
 }
-      <button class="yt-btn yt-btn-secondary" onclick="closeModal()">İptal</button>
-    </div>
-  `);
-}
 
 async function saveMySongEdit(songId) {
   const title = document.getElementById('editSongTitle')?.value.trim();
@@ -8757,7 +8753,7 @@ async function showMyPlaylists() {
       </div>`);
   } catch(e) { showToast('Hata', 'error'); }
 }
-
+  
 async function createTSPlaylist() {
   const name = document.getElementById('newPlaylistName')?.value.trim();
   if (!name) return;
