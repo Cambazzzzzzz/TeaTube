@@ -2377,10 +2377,11 @@ body {
 
 /* Tam ekran chat */
 .mobile-chat-fullscreen {
-  position: fixed;
-  inset: 0;
-  top: 56px; /* header yüksekliği */
-  bottom: 60px; /* alt nav */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: var(--yt-spec-base-background, #0f0f0f);
   display: flex;
   flex-direction: column;
