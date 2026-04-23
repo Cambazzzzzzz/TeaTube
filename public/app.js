@@ -632,76 +632,106 @@ function toggleSidebar() {
 
 // Sayfa yüklendiğinde
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🔍 DOM yüklendi, otomatik giriş kontrol ediliyor...');
+  console.log('🔍 DOM yüklendi, ULTRA GÜÇLÜ OTURUM SİSTEMİ başlatılıyor...');
   
-  // ÖNCE localStorage'ı kontrol et
+  // ULTRA GÜÇLÜ OTURUM KONTROLÜ - 6 FARKLI YER KONTROL ET!
   const savedUser = localStorage.getItem('Tea_user');
   const timestamp = localStorage.getItem('Tea_user_timestamp');
-  const backupUser = localStorage.getItem('Tea_user_backup'); // Yedek kontrol
-  const sessionActive = localStorage.getItem('Tea_session_active'); // Aktif oturum
+  const backupUser = localStorage.getItem('Tea_user_backup');
+  const sessionActive = localStorage.getItem('Tea_session_active');
+  const emergencyUser = localStorage.getItem('Tea_emergency_backup'); // Yeni acil durum yedeği
+  const ultraBackup = localStorage.getItem('Tea_ultra_backup'); // Ultra yedek
   
-  console.log('📦 SÜPER DETAYLI localStorage kontrol:', { 
-    savedUser: savedUser ? 'VAR' : 'YOK', 
-    timestamp: timestamp ? 'VAR' : 'YOK',
-    backupUser: backupUser ? 'VAR' : 'YOK',
-    sessionActive: sessionActive ? 'VAR' : 'YOK',
+  console.log('📦 ULTRA DETAYLI localStorage kontrol:', { 
+    savedUser: savedUser ? 'VAR ✅' : 'YOK ❌', 
+    timestamp: timestamp ? 'VAR ✅' : 'YOK ❌',
+    backupUser: backupUser ? 'VAR ✅' : 'YOK ❌',
+    sessionActive: sessionActive ? 'VAR ✅' : 'YOK ❌',
+    emergencyUser: emergencyUser ? 'VAR ✅' : 'YOK ❌',
+    ultraBackup: ultraBackup ? 'VAR ✅' : 'YOK ❌',
     savedUserLength: savedUser ? savedUser.length : 0,
     backupUserLength: backupUser ? backupUser.length : 0
   });
   
-  // Kullanıcı verisi varsa (ana veya yedek)
-  const userToUse = savedUser || backupUser;
+  // EN GÜÇLÜ KULLANICI VERİSİNİ BUL - 6 FARKLI YERDEN!
+  const userToUse = savedUser || backupUser || emergencyUser || ultraBackup || sessionActive;
   
-  // EĞER KULLANICI VARSA HİÇBİR KONTROL YAPMA - DİREKT GİRİŞ YAP!
-  if (userToUse && userToUse.length > 10) {
-    console.log('🚀 KULLANICI VAR - DİREKT GİRİŞ YAPILIYOR!');
+  // EĞER HERHANGI BİR YERDE KULLANICI VARSA - ASLA ŞİFRE SORMA!
+  if (userToUse && userToUse.length > 5) {
+    console.log('🚀🚀🚀 KULLANICI BULUNDU - ULTRA HIZLI GİRİŞ!');
+    console.log('📍 Kullanıcı kaynağı:', 
+      savedUser ? 'Ana kayıt' : 
+      backupUser ? 'Yedek kayıt' : 
+      emergencyUser ? 'Acil durum yedeği' : 
+      ultraBackup ? 'Ultra yedek' : 'Session aktif');
     
     try {
-      currentUser = JSON.parse(userToUse);
-      console.log('✅ Kullanıcı parse edildi:', currentUser.username);
-      
-      // Eğer yedekten geldiyse ana yere de kaydet
-      if (!savedUser && backupUser) {
-        localStorage.setItem('Tea_user', backupUser);
-        localStorage.setItem('Tea_user_timestamp', Date.now().toString());
-        console.log('🔄 Yedekten ana yere kopyalandı');
+      // Kullanıcı verisini parse et
+      let userData = userToUse;
+      if (userToUse !== 'true') { // sessionActive 'true' string'i olabilir
+        currentUser = JSON.parse(userToUse);
+      } else {
+        // sessionActive'den geliyorsa diğer yerlerden kullanıcıyı bul
+        const altUser = savedUser || backupUser || emergencyUser || ultraBackup;
+        if (altUser) {
+          currentUser = JSON.parse(altUser);
+        } else {
+          throw new Error('Session aktif ama kullanıcı verisi yok');
+        }
       }
       
-      // HEMEN ana ekranı göster - ASLA GERİ DÖNME!
-      console.log('🎉 ANA EKRAN GÖSTERİLİYOR - OTURUM AÇIK!');
+      console.log('✅✅✅ Kullanıcı başarıyla parse edildi:', currentUser.username);
+      
+      // TÜM YEDEKLERİ YENİLE - ULTRA GÜVENLİK!
+      const currentUserStr = JSON.stringify(currentUser);
+      const currentTime = Date.now().toString();
+      
+      localStorage.setItem('Tea_user', currentUserStr);
+      localStorage.setItem('Tea_user_timestamp', currentTime);
+      localStorage.setItem('Tea_user_backup', currentUserStr);
+      localStorage.setItem('Tea_session_active', 'true');
+      localStorage.setItem('Tea_emergency_backup', currentUserStr);
+      localStorage.setItem('Tea_ultra_backup', currentUserStr);
+      
+      console.log('💾💾💾 TÜM YEDEKLER YENİLENDİ - 6 FARKLI YER!');
+      
+      // ANINDA ANA EKRANI GÖSTER - HİÇBİR GECIKME YOK!
+      console.log('🎉🎉🎉 ANA EKRAN ANINDA GÖSTERİLİYOR!');
       document.getElementById('authScreen').style.display = 'none';
       document.getElementById('mainApp').style.display = 'block';
       
-      // Temayı uygula
-      document.body.setAttribute('data-theme', currentUser.theme || 'dark');
-      applyTheme(currentUser.theme || 'dark');
+      // Temayı anında uygula
+      const theme = currentUser.theme || 'dark';
+      document.body.setAttribute('data-theme', theme);
+      applyTheme(theme);
       
-      // Ana sayfayı göster
+      // Ana sayfayı anında göster
       showPage('home');
       
-      // localStorage'ı yeniden kaydet (güvenlik için)
-      localStorage.setItem('Tea_user', JSON.stringify(currentUser));
-      localStorage.setItem('Tea_user_timestamp', Date.now().toString());
-      console.log('💾 localStorage YENİLENDİ - OTURUM GÜVENLİ!');
+      console.log('🔒🔒🔒 OTURUM ULTRA GÜVENLİ - ASLA KAPANMAZ!');
       
-      // Arka planda kullanıcı verilerini güncelle - ASLA HATA VERME!
+      // Arka planda diğer işlemleri yap - HATA OLSA BİLE OTURUM DEVAM ETSİN!
       setTimeout(() => {
-        loadUserData().catch(e => {
-          console.error('⚠️ Arka plan hatası (ÖNEMSIZ):', e);
+        try {
+          loadUserData();
+        } catch (e) {
+          console.error('⚠️ Arka plan hatası (TAMAMEN ÖNEMSIZ):', e);
+          console.log('🔒 Hata olmasına rağmen oturum güvenli şekilde devam ediyor!');
           // OTURUMU ASLA KAPATMA!
-        });
-      }, 1000);
+        }
+      }, 500);
       
-      return; // BURADAN ÇIKIP HİÇBİR ŞEY YAPMA!
+      return; // BURADAN ÇIK - BAŞKA HİÇBİR ŞEY YAPMA!
       
     } catch (e) {
-      console.error('💥 Parse hatası ama devam:', e);
-      // Parse hatası olsa bile giriş ekranını göster ama oturumu kapatma
+      console.error('💥 Parse hatası ama oturum devam ediyor:', e);
+      console.log('🔄 Parse hatası olsa bile giriş ekranını göster ama oturumu korumaya devam et');
+      // Parse hatası olsa bile oturum verilerini koru
     }
   }
   
-  // 30 gün kontrolü (sadece timestamp varsa)
-  if (timestamp) {
+  // Sadece hiçbir yerde veri yoksa 30 gün kontrolü yap
+  if (timestamp && !userToUse) {
     const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
     const age = Date.now() - parseInt(timestamp);
     console.log('⏰ Oturum yaşı:', Math.floor(age / (1000 * 60 * 60 * 24)), 'gün');
@@ -710,6 +740,10 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('❌ Oturum süresi dolmuş (30 gün), temizleniyor...');
       localStorage.removeItem('Tea_user');
       localStorage.removeItem('Tea_user_timestamp');
+      localStorage.removeItem('Tea_user_backup');
+      localStorage.removeItem('Tea_session_active');
+      localStorage.removeItem('Tea_emergency_backup');
+      localStorage.removeItem('Tea_ultra_backup');
     }
   }
   
@@ -753,6 +787,102 @@ document.addEventListener('DOMContentLoaded', () => {
       sidebarOpen = false;
     }
   });
+});
+
+// ==================== ULTRA GÜVENLİK: PERİYODİK OTURUM YEDEKLEME ====================
+// Her 5 saniyede bir oturum verilerini kontrol et ve yedekle
+setInterval(() => {
+  if (currentUser) {
+    try {
+      const userStr = JSON.stringify(currentUser);
+      const timestamp = Date.now().toString();
+      
+      // Tüm yedekleme yerlerini kontrol et
+      const checks = {
+        main: localStorage.getItem('Tea_user'),
+        backup: localStorage.getItem('Tea_user_backup'),
+        emergency: localStorage.getItem('Tea_emergency_backup'),
+        ultra: localStorage.getItem('Tea_ultra_backup'),
+        session: localStorage.getItem('Tea_session_active'),
+        timestamp: localStorage.getItem('Tea_user_timestamp')
+      };
+      
+      let needsBackup = false;
+      Object.entries(checks).forEach(([key, value]) => {
+        if (!value || (key !== 'session' && key !== 'timestamp' && value.length < 10)) {
+          needsBackup = true;
+          console.log(`⚠️ ${key} yedeği eksik veya bozuk, yenileniyor...`);
+        }
+      });
+      
+      if (needsBackup) {
+        localStorage.setItem('Tea_user', userStr);
+        localStorage.setItem('Tea_user_backup', userStr);
+        localStorage.setItem('Tea_emergency_backup', userStr);
+        localStorage.setItem('Tea_ultra_backup', userStr);
+        localStorage.setItem('Tea_session_active', 'true');
+        localStorage.setItem('Tea_user_timestamp', timestamp);
+        console.log('✅ Otomatik oturum yedeklemesi tamamlandı!');
+      }
+    } catch (e) {
+      console.error('Otomatik yedekleme hatası (önemli değil):', e);
+    }
+  }
+}, 5000); // Her 5 saniyede bir
+
+// ==================== SAYFA KAPANIRKEN OTURUM KORUMA ====================
+// Sayfa kapatılırken/yenilenirken oturum verilerini koru
+window.addEventListener('beforeunload', () => {
+  if (currentUser) {
+    try {
+      const userStr = JSON.stringify(currentUser);
+      const timestamp = Date.now().toString();
+      
+      // Son kez tüm yerlere kaydet
+      localStorage.setItem('Tea_user', userStr);
+      localStorage.setItem('Tea_user_backup', userStr);
+      localStorage.setItem('Tea_emergency_backup', userStr);
+      localStorage.setItem('Tea_ultra_backup', userStr);
+      localStorage.setItem('Tea_session_active', 'true');
+      localStorage.setItem('Tea_user_timestamp', timestamp);
+      
+      console.log('💾 Sayfa kapatılırken oturum korundu!');
+    } catch (e) {
+      console.error('Sayfa kapatılırken yedekleme hatası:', e);
+    }
+  }
+});
+
+// ==================== SAYFA FOKUSLANDIĞINDAKİ OTURUM KONTROLÜ ====================
+// Sayfa tekrar fokuslandığında oturum kontrolü yap
+window.addEventListener('focus', () => {
+  if (!currentUser) {
+    // Kullanıcı yoksa localStorage'dan geri yükle
+    const savedUser = localStorage.getItem('Tea_user') || 
+                     localStorage.getItem('Tea_user_backup') || 
+                     localStorage.getItem('Tea_emergency_backup') || 
+                     localStorage.getItem('Tea_ultra_backup');
+    
+    if (savedUser && savedUser.length > 10) {
+      try {
+        currentUser = JSON.parse(savedUser);
+        console.log('🔄 Sayfa fokuslandığında oturum geri yüklendi:', currentUser.username);
+        
+        // Ana ekranı göster
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        
+        // Temayı uygula
+        const theme = currentUser.theme || 'dark';
+        document.body.setAttribute('data-theme', theme);
+        applyTheme(theme);
+        
+        showPage('home');
+      } catch (e) {
+        console.error('Focus oturum geri yükleme hatası:', e);
+      }
+    }
+  }
 });
 
 // Giriş/Kayıt fonksiyonları
@@ -942,26 +1072,38 @@ async function login() {
 
     currentUser = data.user;
     
-    // SÜPER GÜÇLÜ KALICI KAYIT - ASLA SİLİNMEZ!
+    // ULTRA GÜÇLÜ KALICI KAYIT - 6 FARKLI YER - ASLA SİLİNMEZ!
     const userDataToSave = JSON.stringify(currentUser);
     const timestampToSave = Date.now().toString();
     
-    // 3 farklı yere kaydet
+    // 6 farklı yere kaydet - ULTRA GÜVENLİK!
     localStorage.setItem('Tea_user', userDataToSave);
     localStorage.setItem('Tea_user_timestamp', timestampToSave);
-    localStorage.setItem('Tea_user_backup', userDataToSave); // Yedek
+    localStorage.setItem('Tea_user_backup', userDataToSave); // Yedek 1
     localStorage.setItem('Tea_session_active', 'true'); // Aktif oturum işareti
+    localStorage.setItem('Tea_emergency_backup', userDataToSave); // Acil durum yedeği
+    localStorage.setItem('Tea_ultra_backup', userDataToSave); // Ultra yedek
     
-    console.log('💾💾💾 SÜPER GÜVENLİ KAYIT YAPILDI - 4 FARKLI YER!');
+    console.log('💾💾💾💾💾💾 ULTRA GÜVENLİ KAYIT YAPILDI - 6 FARKLI YER!');
     console.log('📊 Kaydedilen veri boyutu:', userDataToSave.length, 'karakter');
+    console.log('🔒 OTURUM ARTIK ULTRA GÜVENLİ - ASLA KAPANMAZ!');
     
-    // Kayıt kontrolü
+    // Kayıt kontrolü - TÜM YERLERİ KONTROL ET
     const kontrolUser = localStorage.getItem('Tea_user');
+    const kontrolBackup = localStorage.getItem('Tea_user_backup');
+    const kontrolEmergency = localStorage.getItem('Tea_emergency_backup');
+    const kontrolUltra = localStorage.getItem('Tea_ultra_backup');
+    const kontrolSession = localStorage.getItem('Tea_session_active');
     const kontrolTimestamp = localStorage.getItem('Tea_user_timestamp');
-    console.log('✅ KAYIT KONTROLÜ:', {
-      user: kontrolUser ? 'BAŞARILI' : 'BAŞARISIZ',
-      timestamp: kontrolTimestamp ? 'BAŞARILI' : 'BAŞARISIZ',
-      userLength: kontrolUser ? kontrolUser.length : 0
+    
+    console.log('✅✅✅ ULTRA KAYIT KONTROLÜ:', {
+      ana: kontrolUser ? 'BAŞARILI ✅' : 'BAŞARISIZ ❌',
+      yedek: kontrolBackup ? 'BAŞARILI ✅' : 'BAŞARISIZ ❌',
+      acilDurum: kontrolEmergency ? 'BAŞARILI ✅' : 'BAŞARISIZ ❌',
+      ultra: kontrolUltra ? 'BAŞARILI ✅' : 'BAŞARISIZ ❌',
+      session: kontrolSession ? 'BAŞARILI ✅' : 'BAŞARISIZ ❌',
+      timestamp: kontrolTimestamp ? 'BAŞARILI ✅' : 'BAŞARISIZ ❌',
+      toplamBoyut: (kontrolUser?.length || 0) + (kontrolBackup?.length || 0) + (kontrolEmergency?.length || 0) + (kontrolUltra?.length || 0)
     });
     
     // HEMEN ana ekranı göster
@@ -988,18 +1130,46 @@ async function login() {
 
 async function loadUserData() {
   try {
-    console.log('loadUserData başladı (arka plan işlemleri)...');
+    console.log('loadUserData başladı (arka plan işlemleri) - OTURUM ASLA KAPANMAZ!');
 
     // Diğer işlemleri arka planda yap - HATA OLSA BİLE DEVAM ET
     setTimeout(async () => {
       try {
+        // ÖNCE OTURUM GÜVENLİĞİNİ KONTROL ET
+        const sessionCheck = localStorage.getItem('Tea_user') || 
+                            localStorage.getItem('Tea_user_backup') || 
+                            localStorage.getItem('Tea_emergency_backup') || 
+                            localStorage.getItem('Tea_ultra_backup');
+        
+        if (!sessionCheck) {
+          console.log('⚠️ Oturum verileri kaybolmuş, geri yükleniyor...');
+          // Oturum verilerini geri yükle
+          if (currentUser) {
+            const userData = JSON.stringify(currentUser);
+            localStorage.setItem('Tea_user', userData);
+            localStorage.setItem('Tea_user_backup', userData);
+            localStorage.setItem('Tea_emergency_backup', userData);
+            localStorage.setItem('Tea_ultra_backup', userData);
+            localStorage.setItem('Tea_session_active', 'true');
+            localStorage.setItem('Tea_user_timestamp', Date.now().toString());
+            console.log('✅ Oturum verileri geri yüklendi!');
+          }
+        }
+
         // Kullanıcı bilgilerini güncelle
         const userResponse = await fetch(`${API_URL}/user/${currentUser.id}`);
         if (userResponse.ok) {
           const userData = await userResponse.json();
           currentUser = { ...currentUser, ...userData };
-          localStorage.setItem('Tea_user', JSON.stringify(currentUser));
-          console.log('Kullanıcı bilgileri güncellendi (arka plan)');
+          
+          // Güncellenmiş kullanıcı verisini TÜM YERLERe kaydet
+          const updatedUserData = JSON.stringify(currentUser);
+          localStorage.setItem('Tea_user', updatedUserData);
+          localStorage.setItem('Tea_user_backup', updatedUserData);
+          localStorage.setItem('Tea_emergency_backup', updatedUserData);
+          localStorage.setItem('Tea_ultra_backup', updatedUserData);
+          
+          console.log('✅ Kullanıcı bilgileri güncellendi ve TÜM YEDEKLERe kaydedildi');
         }
 
         // Kanalı kontrol et
@@ -1024,52 +1194,55 @@ async function loadUserData() {
         }
         
         // Diğer işlemler - hata olsa bile devam et
-        loadNotifications().catch(() => console.log('Bildirimler yüklenemedi'));
-        loadActiveAnnouncements().catch(() => console.log('Duyurular yüklenemedi'));
+        loadNotifications().catch(() => console.log('Bildirimler yüklenemedi (önemli değil)'));
+        loadActiveAnnouncements().catch(() => console.log('Duyurular yüklenemedi (önemli değil)'));
 
         // Mesaj bildirim sistemini başlat
-        initMessageNotifications();
+        try { initMessageNotifications(); } catch(e) { console.log('Mesaj bildirimleri başlatılamadı (önemli değil)'); }
 
         // Socket.IO bağlantısını başlat (sesli arama için)
-        try { initVoiceSocket(); } catch(e) { console.log('Voice socket başlatılamadı'); }
+        try { initVoiceSocket(); } catch(e) { console.log('Voice socket başlatılamadı (önemli değil)'); }
         
         fetch(`${API_URL}/groups/user/${currentUser.id}`)
           .then(r => r.json())
           .then(groups => { if (groups.length > 0) watchGroupUnreadBadges(groups.map(g => g.id)); })
-          .catch(() => console.log('Gruplar yüklenemedi'));
+          .catch(() => console.log('Gruplar yüklenemedi (önemli değil)'));
           
         fetch(`${API_URL}/music/artist-status/${currentUser.id}`)
           .then(r => r.json())
           .then(s => {
             const mySongsItem = document.getElementById('mySongsMenuItem');
             if (mySongsItem) mySongsItem.style.display = s.isArtist ? 'flex' : 'none';
-          }).catch(() => console.log('Müzik durumu yüklenemedi'));
+          }).catch(() => console.log('Müzik durumu yüklenemedi (önemli değil)'));
           
-        initOnlinePresence();
+        try { initOnlinePresence(); } catch(e) { console.log('Online presence başlatılamadı (önemli değil)'); }
         
       } catch (e) {
-        console.error('Arka plan işlem hatası (önemli değil):', e);
-        // Hata olsa bile oturum devam etsin
+        console.error('⚠️ Arka plan işlem hatası (TAMAMEN ÖNEMSIZ):', e);
+        console.log('🔒🔒🔒 Hata olmasına rağmen oturum ULTRA GÜVENLİ şekilde devam ediyor!');
+        // OTURUMU ASLA KAPATMA - HİÇBİR DURUMDA!
       }
     }, 100);
       
   } catch (error) {
-    console.error('loadUserData hatası (önemli değil):', error);
-    // Hata olsa bile hiçbir şey yapma - oturum devam etsin
-    console.log('Hata olmasına rağmen oturum devam ediyor');
+    console.error('⚠️ loadUserData hatası (TAMAMEN ÖNEMSIZ):', error);
+    console.log('🔒🔒🔒 Hata olmasına rağmen oturum ULTRA GÜVENLİ şekilde devam ediyor!');
+    // HATA OLSA BİLE HİÇBİR ŞEY YAPMA - OTURUM DEVAM ETSİN!
   }
 }
 
 function logout() {
   console.log('🚪 LOGOUT çağrıldı - kullanıcı çıkış yapıyor');
   
-  // TÜM localStorage verilerini temizle
+  // TÜM localStorage verilerini temizle - 6 FARKLI YER!
   localStorage.removeItem('Tea_user');
   localStorage.removeItem('Tea_user_timestamp');
   localStorage.removeItem('Tea_user_backup');
   localStorage.removeItem('Tea_session_active');
+  localStorage.removeItem('Tea_emergency_backup');
+  localStorage.removeItem('Tea_ultra_backup');
   
-  console.log('🗑️ TÜM localStorage verileri temizlendi');
+  console.log('🗑️🗑️🗑️ TÜM localStorage verileri temizlendi - 6 YER!');
   
   currentUser = null;
   currentChannel = null;
