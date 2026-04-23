@@ -1224,3 +1224,21 @@ try { db.prepare('ALTER TABLE comments ADD COLUMN suspended_by INTEGER').run(); 
 try { db.prepare('ALTER TABLE comments ADD COLUMN suspended_reason TEXT').run(); } catch(e) {}
 
 console.log('✓ Admin yetki sistemi hazır!');
+
+// ==================== MESAJLAR ====================
+
+// Mesajlar tablosu
+db.exec(`
+  CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender_id INTEGER NOT NULL,
+    receiver_id INTEGER NOT NULL,
+    message_text TEXT NOT NULL,
+    is_read INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+console.log('✓ Mesaj sistemi hazır!');
