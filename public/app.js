@@ -637,34 +637,38 @@ document.addEventListener('DOMContentLoaded', () => {
   // ÖNCE localStorage'ı kontrol et
   const savedUser = localStorage.getItem('Tea_user');
   const timestamp = localStorage.getItem('Tea_user_timestamp');
+  const backupUser = localStorage.getItem('Tea_user_backup'); // Yedek kontrol
+  const sessionActive = localStorage.getItem('Tea_session_active'); // Aktif oturum
   
-  console.log('📦 localStorage kontrol:', { 
+  console.log('📦 SÜPER DETAYLI localStorage kontrol:', { 
     savedUser: savedUser ? 'VAR' : 'YOK', 
-    timestamp: timestamp ? 'VAR' : 'YOK' 
+    timestamp: timestamp ? 'VAR' : 'YOK',
+    backupUser: backupUser ? 'VAR' : 'YOK',
+    sessionActive: sessionActive ? 'VAR' : 'YOK',
+    savedUserLength: savedUser ? savedUser.length : 0,
+    backupUserLength: backupUser ? backupUser.length : 0
   });
   
-  // 30 gün = 30 * 24 * 60 * 60 * 1000 ms
-  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+  // Kullanıcı verisi varsa (ana veya yedek)
+  const userToUse = savedUser || backupUser;
   
-  if (savedUser && timestamp) {
-    const age = Date.now() - parseInt(timestamp);
-    console.log('⏰ Oturum yaşı:', Math.floor(age / (1000 * 60 * 60 * 24)), 'gün');
-    
-    if (age > THIRTY_DAYS) {
-      console.log('❌ Oturum süresi dolmuş (30 gün), temizleniyor...');
-      localStorage.removeItem('Tea_user');
-      localStorage.removeItem('Tea_user_timestamp');
-      document.getElementById('authScreen').style.display = 'flex';
-      document.getElementById('mainApp').style.display = 'none';
-      return;
-    }
+  // EĞER KULLANICI VARSA HİÇBİR KONTROL YAPMA - DİREKT GİRİŞ YAP!
+  if (userToUse && userToUse.length > 10) {
+    console.log('🚀 KULLANICI VAR - DİREKT GİRİŞ YAPILIYOR!');
     
     try {
-      currentUser = JSON.parse(savedUser);
-      console.log('✅ Kaydedilmiş kullanıcı bulundu:', currentUser.username);
+      currentUser = JSON.parse(userToUse);
+      console.log('✅ Kullanıcı parse edildi:', currentUser.username);
+      
+      // Eğer yedekten geldiyse ana yere de kaydet
+      if (!savedUser && backupUser) {
+        localStorage.setItem('Tea_user', backupUser);
+        localStorage.setItem('Tea_user_timestamp', Date.now().toString());
+        console.log('🔄 Yedekten ana yere kopyalandı');
+      }
       
       // HEMEN ana ekranı göster - ASLA GERİ DÖNME!
-      console.log('🚀 Ana ekran gösteriliyor (localStorage\'dan)...');
+      console.log('🎉 ANA EKRAN GÖSTERİLİYOR - OTURUM AÇIK!');
       document.getElementById('authScreen').style.display = 'none';
       document.getElementById('mainApp').style.display = 'block';
       
@@ -674,33 +678,45 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Ana sayfayı göster
       showPage('home');
-      console.log('🎉 Ana ekran gösterildi - OTURUM DEVAM EDİYOR!');
       
       // localStorage'ı yeniden kaydet (güvenlik için)
       localStorage.setItem('Tea_user', JSON.stringify(currentUser));
       localStorage.setItem('Tea_user_timestamp', Date.now().toString());
-      console.log('💾 localStorage yenilendi (güvenlik)');
+      console.log('💾 localStorage YENİLENDİ - OTURUM GÜVENLİ!');
       
-      // Arka planda kullanıcı verilerini güncelle - hata olsa bile oturum devam etsin
+      // Arka planda kullanıcı verilerini güncelle - ASLA HATA VERME!
       setTimeout(() => {
         loadUserData().catch(e => {
-          console.error('⚠️ loadUserData hatası (arka plan):', e);
-          console.log('✅ Hata olmasına rağmen oturum devam ediyor');
+          console.error('⚠️ Arka plan hatası (ÖNEMSIZ):', e);
           // OTURUMU ASLA KAPATMA!
         });
-      }, 500);
+      }, 1000);
+      
+      return; // BURADAN ÇIKIP HİÇBİR ŞEY YAPMA!
       
     } catch (e) {
-      console.error('💥 Kaydedilmiş kullanıcı parse hatası:', e);
-      // Parse hatası olsa bile oturumu kapatma, sadece giriş ekranını göster
-      document.getElementById('authScreen').style.display = 'flex';
-      document.getElementById('mainApp').style.display = 'none';
+      console.error('💥 Parse hatası ama devam:', e);
+      // Parse hatası olsa bile giriş ekranını göster ama oturumu kapatma
     }
-  } else {
-    console.log('❌ Kaydedilmiş kullanıcı yok, giriş ekranı gösteriliyor');
-    document.getElementById('authScreen').style.display = 'flex';
-    document.getElementById('mainApp').style.display = 'none';
   }
+  
+  // 30 gün kontrolü (sadece timestamp varsa)
+  if (timestamp) {
+    const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+    const age = Date.now() - parseInt(timestamp);
+    console.log('⏰ Oturum yaşı:', Math.floor(age / (1000 * 60 * 60 * 24)), 'gün');
+    
+    if (age > THIRTY_DAYS) {
+      console.log('❌ Oturum süresi dolmuş (30 gün), temizleniyor...');
+      localStorage.removeItem('Tea_user');
+      localStorage.removeItem('Tea_user_timestamp');
+    }
+  }
+  
+  // Eğer buraya geldiyse kullanıcı yok, giriş ekranını göster
+  console.log('❌ Kullanıcı yok veya geçersiz, giriş ekranı gösteriliyor');
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('mainApp').style.display = 'none';
   
   // Başlangıçta sidebar durumunu ayarla
   if (window.innerWidth <= 1312) {
@@ -926,10 +942,27 @@ async function login() {
 
     currentUser = data.user;
     
-    // KALICI KAYIT - 30 gün
-    localStorage.setItem('Tea_user', JSON.stringify(currentUser));
-    localStorage.setItem('Tea_user_timestamp', Date.now().toString());
-    console.log('💾 User localStorage\'a kaydedildi (30 gün)');
+    // SÜPER GÜÇLÜ KALICI KAYIT - ASLA SİLİNMEZ!
+    const userDataToSave = JSON.stringify(currentUser);
+    const timestampToSave = Date.now().toString();
+    
+    // 3 farklı yere kaydet
+    localStorage.setItem('Tea_user', userDataToSave);
+    localStorage.setItem('Tea_user_timestamp', timestampToSave);
+    localStorage.setItem('Tea_user_backup', userDataToSave); // Yedek
+    localStorage.setItem('Tea_session_active', 'true'); // Aktif oturum işareti
+    
+    console.log('💾💾💾 SÜPER GÜVENLİ KAYIT YAPILDI - 4 FARKLI YER!');
+    console.log('📊 Kaydedilen veri boyutu:', userDataToSave.length, 'karakter');
+    
+    // Kayıt kontrolü
+    const kontrolUser = localStorage.getItem('Tea_user');
+    const kontrolTimestamp = localStorage.getItem('Tea_user_timestamp');
+    console.log('✅ KAYIT KONTROLÜ:', {
+      user: kontrolUser ? 'BAŞARILI' : 'BAŞARISIZ',
+      timestamp: kontrolTimestamp ? 'BAŞARILI' : 'BAŞARISIZ',
+      userLength: kontrolUser ? kontrolUser.length : 0
+    });
     
     // HEMEN ana ekranı göster
     console.log('🚀 Ana ekran gösteriliyor...');
@@ -1029,8 +1062,15 @@ async function loadUserData() {
 
 function logout() {
   console.log('🚪 LOGOUT çağrıldı - kullanıcı çıkış yapıyor');
+  
+  // TÜM localStorage verilerini temizle
   localStorage.removeItem('Tea_user');
   localStorage.removeItem('Tea_user_timestamp');
+  localStorage.removeItem('Tea_user_backup');
+  localStorage.removeItem('Tea_session_active');
+  
+  console.log('🗑️ TÜM localStorage verileri temizlendi');
+  
   currentUser = null;
   currentChannel = null;
   document.getElementById('authScreen').style.display = 'flex';
