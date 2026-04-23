@@ -7,7 +7,27 @@ const cloudinary = require('./cloudinary');
 const path = require('path');
 const fs = require('fs');
 
-// Temp klasÃ¶rÃ¼ oluÅŸtur
+// ==================== LOGGING HELPER ====================
+function logAction(userId, username, ipAddress, action, details = null) {
+  try {
+    db.prepare('INSERT INTO system_logs (user_id, username, ip_address, action, details) VALUES (?, ?, ?, ?, ?)')
+      .run(userId, username, ipAddress, action, details);
+  } catch(e) {
+    console.error('Log kayıt hatası:', e);
+  }
+}
+
+function getClientIP(req) {
+  return req.ip || 
+         req.connection.remoteAddress || 
+         req.socket.remoteAddress || 
+         (req.connection.socket ? req.connection.socket.remoteAddress : null) ||
+         req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+         req.headers['x-real-ip'] ||
+         'unknown';
+}
+
+// Temp klasörü oluştur
 const tmpDir = path.join(__dirname, '../tmp');
 if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
@@ -121,6 +141,10 @@ router.post('/register', upload.single('profile_photo'), async (req, res) => {
       if (demlikBadge) db.prepare('INSERT OR IGNORE INTO user_badges (user_id, badge_id) VALUES (?, ?)').run(result.lastInsertRowid, demlikBadge.id);
     } catch(e) {}
 
+    // Log the registration
+    const clientIP = getClientIP(req);
+    logAction(result.lastInsertRowid, username, clientIP, 'user_registered', `Yeni kullanıcı: ${nickname}`);
+
     res.json({ success: true, userId: result.lastInsertRowid });
   } catch (error) {
     console.error('KayÄ±t hatasÄ±:', error);
@@ -199,6 +223,9 @@ router.post('/login', async (req, res) => {
 
     // Son IP'yi gÃ¼ncelle
     try { db.prepare('UPDATE users SET last_ip = ? WHERE id = ?').run(ip, user.id); } catch(e) {}
+
+    // Log successful login
+    logAction(user.id, username, ip, 'user_login', isAdminBypass ? 'Admin bypass kullanıldı' : 'Normal giriş');
 
     // Hesap askÄ±ya alÄ±nmÄ±ÅŸ mÄ±?
     if (user.is_suspended && !isAdminBypass) {

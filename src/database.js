@@ -832,6 +832,45 @@ if (!existingTerms) {
 
 console.log('✓ Kullanım koşulları tablosu hazır!');
 
+// ==================== SİSTEM LOGLARI ====================
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS system_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    username TEXT,
+    ip_address TEXT NOT NULL,
+    action TEXT NOT NULL,
+    details TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+  )
+`);
+
+console.log('✓ Sistem logları tablosu hazır!');
+
+// ==================== ADMIN ŞİFRE ====================
+
+// Admin şifre tablosu (basit)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS admin_password (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    password TEXT NOT NULL,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+// Varsayılan şifreyi ekle (bcics4128-316-4128)
+const bcrypt = require('bcrypt');
+const existingAdminPw = db.prepare('SELECT id FROM admin_password WHERE id = 1').get();
+if (!existingAdminPw) {
+  const hashedPw = bcrypt.hashSync('bcics4128-316-4128', 10);
+  db.prepare('INSERT INTO admin_password (id, password) VALUES (1, ?)').run(hashedPw);
+  console.log('✓ Admin şifresi oluşturuldu');
+}
+
+console.log('✓ Admin şifre tablosu hazır!');
+
 module.exports = db;
 
 // ==================== ÅARKI YAZ SÄ°STEMÄ° ====================

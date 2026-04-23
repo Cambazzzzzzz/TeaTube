@@ -6,6 +6,7 @@ const fs = require('fs');
 const db = require('./src/database');
 const routes = require('./src/routes');
 const adminRoutes = require('./src/routes-admin');
+const teaTubeAdminRoutes = require('./src/routes-teatube-admin');
 const musicRoutes = require('./src/routes-music');
 const groupRoutes = require('./src/routes-groups');
 const textPostRoutes = require('./src/routes-textposts');
@@ -392,6 +393,7 @@ app.get('/api/app-script', (req, res) => {
 
 app.use('/api', routes);
 app.use('/api', adminRoutes);
+app.use('/api', teaTubeAdminRoutes);
 app.use('/api', musicRoutes);
 app.use('/api', groupRoutes);
 app.use('/api', textPostRoutes);
@@ -411,6 +413,16 @@ app.get('/administans', (req, res) => {
 // Admin paneli
 app.get('/bcics', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'bcics.html'));
+});
+
+// TeaTube Admin Panel - Giriş
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-giris.html'));
+});
+
+// TeaTube Admin Panel - Panel
+app.get('/admin-panel', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-panel.html'));
 });
 
 // Debug route - static dosya kontrolü
