@@ -871,6 +871,106 @@ if (!existingAdminPw) {
 
 console.log('✓ Admin şifre tablosu hazır!');
 
+// ==================== HİSSE SİSTEMİ ====================
+
+// Hisse senetleri tablosu
+db.exec(`
+  CREATE TABLE IF NOT EXISTS stocks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    current_price REAL DEFAULT 100.0,
+    change_percent REAL DEFAULT 0.0,
+    volume INTEGER DEFAULT 0,
+    market_cap REAL DEFAULT 0.0,
+    description TEXT,
+    logo_url TEXT,
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+// Kullanıcı hisse portföyleri
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_portfolios (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    stock_id INTEGER NOT NULL,
+    shares_owned REAL DEFAULT 0.0,
+    average_price REAL DEFAULT 0.0,
+    total_invested REAL DEFAULT 0.0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, stock_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (stock_id) REFERENCES stocks(id) ON DELETE CASCADE
+  )
+`);
+
+// Hisse işlem geçmişi
+db.exec(`
+  CREATE TABLE IF NOT EXISTS stock_transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    stock_id INTEGER NOT NULL,
+    transaction_type TEXT NOT NULL CHECK(transaction_type IN ('buy', 'sell')),
+    shares REAL NOT NULL,
+    price_per_share REAL NOT NULL,
+    total_amount REAL NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (stock_id) REFERENCES stocks(id) ON DELETE CASCADE
+  )
+`);
+
+// Kullanıcı bakiyeleri (hisse alım-satımı için)
+try {
+  db.prepare('ALTER TABLE users ADD COLUMN balance REAL DEFAULT 10000.0').run();
+  console.log('✓ Kullanıcılara balance kolonu eklendi');
+} catch(e) {
+  // Kolon zaten var
+}
+
+// Varsayılan hisse senetlerini ekle
+const defaultStocks = [
+  { symbol: 'TEATUBE', name: 'TeaTube Inc.', current_price: 150.0, description: 'Video paylaşım platformu', logo_url: '/logoteatube.png' },
+  { symbol: 'TECHNO', name: 'Techno Corp', current_price: 85.5, description: 'Teknoloji şirketi', logo_url: null },
+  { symbol: 'GAMING', name: 'Gaming Studios', current_price: 42.3, description: 'Oyun geliştirme şirketi', logo_url: null },
+  { symbol: 'SOCIAL', name: 'Social Media Co', current_price: 78.9, description: 'Sosyal medya platformu', logo_url: null },
+  { symbol: 'CRYPTO', name: 'Crypto Exchange', current_price: 125.7, description: 'Kripto para borsası', logo_url: null },
+  { symbol: 'ECOM', name: 'E-Commerce Ltd', current_price: 95.2, description: 'E-ticaret platformu', logo_url: null },
+  { symbol: 'STREAM', name: 'Streaming Plus', current_price: 67.8, description: 'Video streaming servisi', logo_url: null },
+  { symbol: 'MOBILE', name: 'Mobile Apps Inc', current_price: 33.4, description: 'Mobil uygulama geliştirici', logo_url: null },
+  { symbol: 'CLOUD', name: 'Cloud Services', current_price: 189.6, description: 'Bulut hizmetleri sağlayıcısı', logo_url: null },
+  { symbol: 'AI', name: 'AI Solutions', current_price: 234.1, description: 'Yapay zeka çözümleri', logo_url: null }
+];
+
+const insertStock = db.prepare(`
+  INSERT OR IGNORE INTO stocks (symbol, name, current_price, description, logo_url) 
+  VALUES (?, ?, ?, ?, ?)
+`);
+
+const stockTransaction = db.transaction((stocks) => {
+  for (const stock of stocks) {
+    insertStock.run(stock.symbol, stock.name, stock.current_price, stock.description, stock.logo_url);
+  }
+});
+
+stockTransaction(defaultStocks);
+
+// Mevcut kullanıcılara başlangıç bakiyesi ver (sadece balance NULL olanlar)
+try {
+  const result = db.prepare('UPDATE users SET balance = 10000.0 WHERE balance IS NULL').run();
+  if (result.changes > 0) {
+    console.log(`✓ ${result.changes} kullanıcıya başlangıç bakiyesi verildi`);
+  }
+} catch(e) {
+  console.error('Bakiye güncelleme hatası:', e);
+}
+
+console.log('✓ Hisse sistemi hazır!');
+
 module.exports = db;
 
 // ==================== ÅARKI YAZ SÄ°STEMÄ° ====================

@@ -156,11 +156,20 @@ router.get('/teatube-admin/backup', requireAuth, (req, res) => {
     const friendships = db.prepare('SELECT * FROM friendships').all();
     
     // Kullanıcıları al (şifreler hariç)
-    const users = db.prepare('SELECT id, username, nickname, profile_photo, created_at FROM users').all();
+    const users = db.prepare('SELECT id, username, nickname, profile_photo, created_at, balance FROM users').all();
     
     // Grupları al
     const groups = db.prepare('SELECT * FROM groups').all();
     const groupMembers = db.prepare('SELECT * FROM group_members').all();
+    
+    // HİSSE SİSTEMİ - Hisse senetleri
+    const stocks = db.prepare('SELECT * FROM stocks').all();
+    
+    // HİSSE SİSTEMİ - Kullanıcı portföyleri
+    const userPortfolios = db.prepare('SELECT * FROM user_portfolios').all();
+    
+    // HİSSE SİSTEMİ - Hisse işlem geçmişi
+    const stockTransactions = db.prepare('SELECT * FROM stock_transactions').all();
     
     const backup = {
       version: '1.0',
@@ -170,11 +179,16 @@ router.get('/teatube-admin/backup', requireAuth, (req, res) => {
         friendships,
         users,
         groups,
-        groupMembers
+        groupMembers,
+        // HİSSE SİSTEMİ
+        stocks,
+        userPortfolios,
+        stockTransactions
       }
     };
     
-    logAction(null, 'Admin', clientIP, 'backup_created', `${videos.length} video, ${friendships.length} arkadaşlık`);
+    logAction(null, 'Admin', clientIP, 'backup_created', 
+      `${videos.length} video, ${friendships.length} arkadaşlık, ${stocks.length} hisse, ${userPortfolios.length} portföy`);
     
     res.json(backup);
   } catch(e) {
@@ -200,6 +214,11 @@ router.post('/teatube-admin/restore', requireAuth, (req, res) => {
       db.prepare('DELETE FROM friendships').run();
       db.prepare('DELETE FROM groups').run();
       db.prepare('DELETE FROM group_members').run();
+      
+      // HİSSE SİSTEMİ - Hisse verilerini sil
+      db.prepare('DELETE FROM stocks').run();
+      db.prepare('DELETE FROM user_portfolios').run();
+      db.prepare('DELETE FROM stock_transactions').run();
       
       // Videoları geri yükle
       if (backup.data.videos && backup.data.videos.length > 0) {
@@ -236,6 +255,19 @@ router.post('/teatube-admin/restore', requireAuth, (req, res) => {
         }
       }
       
+      // Kullanıcı bakiyelerini geri yükle
+      if (backup.data.users && backup.data.users.length > 0) {
+        const updateUserBalance = db.prepare(`
+          UPDATE users SET balance = ? WHERE id = ?
+        `);
+        
+        for (const user of backup.data.users) {
+          if (user.balance !== undefined) {
+            updateUserBalance.run(user.balance, user.id);
+          }
+        }
+      }
+      
       // Grupları geri yükle
       if (backup.data.groups && backup.data.groups.length > 0) {
         const insertGroup = db.prepare(`
@@ -269,12 +301,61 @@ router.post('/teatube-admin/restore', requireAuth, (req, res) => {
           );
         }
       }
+      
+      // HİSSE SİSTEMİ - Hisse senetlerini geri yükle
+      if (backup.data.stocks && backup.data.stocks.length > 0) {
+        const insertStock = db.prepare(`
+          INSERT INTO stocks (id, symbol, name, current_price, change_percent, volume, 
+                             market_cap, description, logo_url, is_active, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        
+        for (const stock of backup.data.stocks) {
+          insertStock.run(
+            stock.id, stock.symbol, stock.name, stock.current_price, stock.change_percent,
+            stock.volume, stock.market_cap, stock.description, stock.logo_url, 
+            stock.is_active, stock.created_at, stock.updated_at
+          );
+        }
+      }
+      
+      // HİSSE SİSTEMİ - Kullanıcı portföylerini geri yükle
+      if (backup.data.userPortfolios && backup.data.userPortfolios.length > 0) {
+        const insertPortfolio = db.prepare(`
+          INSERT INTO user_portfolios (id, user_id, stock_id, shares_owned, average_price, 
+                                      total_invested, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        
+        for (const portfolio of backup.data.userPortfolios) {
+          insertPortfolio.run(
+            portfolio.id, portfolio.user_id, portfolio.stock_id, portfolio.shares_owned,
+            portfolio.average_price, portfolio.total_invested, portfolio.created_at, portfolio.updated_at
+          );
+        }
+      }
+      
+      // HİSSE SİSTEMİ - Hisse işlem geçmişini geri yükle
+      if (backup.data.stockTransactions && backup.data.stockTransactions.length > 0) {
+        const insertTransaction = db.prepare(`
+          INSERT INTO stock_transactions (id, user_id, stock_id, transaction_type, shares, 
+                                         price_per_share, total_amount, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        
+        for (const transaction of backup.data.stockTransactions) {
+          insertTransaction.run(
+            transaction.id, transaction.user_id, transaction.stock_id, transaction.transaction_type,
+            transaction.shares, transaction.price_per_share, transaction.total_amount, transaction.created_at
+          );
+        }
+      }
     });
     
     restore();
     
     logAction(null, 'Admin', clientIP, 'backup_restored', 
-      `${backup.data.videos?.length || 0} video, ${backup.data.friendships?.length || 0} arkadaşlık geri yüklendi`);
+      `${backup.data.videos?.length || 0} video, ${backup.data.friendships?.length || 0} arkadaşlık, ${backup.data.stocks?.length || 0} hisse geri yüklendi`);
     
     res.json({ success: true });
   } catch(e) {

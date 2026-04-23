@@ -7,6 +7,7 @@ const db = require('./src/database');
 const routes = require('./src/routes');
 const adminRoutes = require('./src/routes-admin');
 const teaTubeAdminRoutes = require('./src/routes-teatube-admin');
+const stockRoutes = require('./src/routes-stocks');
 const musicRoutes = require('./src/routes-music');
 const groupRoutes = require('./src/routes-groups');
 const textPostRoutes = require('./src/routes-textposts');
@@ -394,6 +395,7 @@ app.get('/api/app-script', (req, res) => {
 app.use('/api', routes);
 app.use('/api', adminRoutes);
 app.use('/api', teaTubeAdminRoutes);
+app.use('/api', stockRoutes);
 app.use('/api', musicRoutes);
 app.use('/api', groupRoutes);
 app.use('/api', textPostRoutes);

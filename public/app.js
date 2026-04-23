@@ -632,19 +632,26 @@ function toggleSidebar() {
 
 // Sayfa yüklendiğinde
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM yüklendi, otomatik giriş kontrol ediliyor...');
+  console.log('🔍 DOM yüklendi, otomatik giriş kontrol ediliyor...');
   
+  // ÖNCE localStorage'ı kontrol et
   const savedUser = localStorage.getItem('Tea_user');
   const timestamp = localStorage.getItem('Tea_user_timestamp');
+  
+  console.log('📦 localStorage kontrol:', { 
+    savedUser: savedUser ? 'VAR' : 'YOK', 
+    timestamp: timestamp ? 'VAR' : 'YOK' 
+  });
   
   // 30 gün = 30 * 24 * 60 * 60 * 1000 ms
   const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
   
   if (savedUser && timestamp) {
     const age = Date.now() - parseInt(timestamp);
+    console.log('⏰ Oturum yaşı:', Math.floor(age / (1000 * 60 * 60 * 24)), 'gün');
     
     if (age > THIRTY_DAYS) {
-      console.log('Oturum süresi dolmuş (30 gün), temizleniyor...');
+      console.log('❌ Oturum süresi dolmuş (30 gün), temizleniyor...');
       localStorage.removeItem('Tea_user');
       localStorage.removeItem('Tea_user_timestamp');
       document.getElementById('authScreen').style.display = 'flex';
@@ -654,10 +661,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     try {
       currentUser = JSON.parse(savedUser);
-      console.log('Kaydedilmiş kullanıcı bulundu:', currentUser.username);
+      console.log('✅ Kaydedilmiş kullanıcı bulundu:', currentUser.username);
       
-      // HEMEN ana ekranı göster - loadUserData hatası olsa bile
-      console.log('Ana ekran gösteriliyor (localStorage\'dan)...');
+      // HEMEN ana ekranı göster - ASLA GERİ DÖNME!
+      console.log('🚀 Ana ekran gösteriliyor (localStorage\'dan)...');
       document.getElementById('authScreen').style.display = 'none';
       document.getElementById('mainApp').style.display = 'block';
       
@@ -667,23 +674,30 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Ana sayfayı göster
       showPage('home');
-      console.log('Ana ekran gösterildi - OTURUM DEVAM EDİYOR!');
+      console.log('🎉 Ana ekran gösterildi - OTURUM DEVAM EDİYOR!');
+      
+      // localStorage'ı yeniden kaydet (güvenlik için)
+      localStorage.setItem('Tea_user', JSON.stringify(currentUser));
+      localStorage.setItem('Tea_user_timestamp', Date.now().toString());
+      console.log('💾 localStorage yenilendi (güvenlik)');
       
       // Arka planda kullanıcı verilerini güncelle - hata olsa bile oturum devam etsin
-      loadUserData().catch(e => {
-        console.error('loadUserData hatası (arka plan):', e);
-        console.log('Hata olmasına rağmen oturum devam ediyor');
-        // OTURUMU KAPATMA! Sadece log at
-      });
+      setTimeout(() => {
+        loadUserData().catch(e => {
+          console.error('⚠️ loadUserData hatası (arka plan):', e);
+          console.log('✅ Hata olmasına rağmen oturum devam ediyor');
+          // OTURUMU ASLA KAPATMA!
+        });
+      }, 500);
+      
     } catch (e) {
-      console.error('Kaydedilmiş kullanıcı parse hatası:', e);
-      localStorage.removeItem('Tea_user');
-      localStorage.removeItem('Tea_user_timestamp');
+      console.error('💥 Kaydedilmiş kullanıcı parse hatası:', e);
+      // Parse hatası olsa bile oturumu kapatma, sadece giriş ekranını göster
       document.getElementById('authScreen').style.display = 'flex';
       document.getElementById('mainApp').style.display = 'none';
     }
   } else {
-    console.log('Kaydedilmiş kullanıcı yok, giriş ekranı gösteriliyor');
+    console.log('❌ Kaydedilmiş kullanıcı yok, giriş ekranı gösteriliyor');
     document.getElementById('authScreen').style.display = 'flex';
     document.getElementById('mainApp').style.display = 'none';
   }
@@ -1014,7 +1028,9 @@ async function loadUserData() {
 }
 
 function logout() {
+  console.log('🚪 LOGOUT çağrıldı - kullanıcı çıkış yapıyor');
   localStorage.removeItem('Tea_user');
+  localStorage.removeItem('Tea_user_timestamp');
   currentUser = null;
   currentChannel = null;
   document.getElementById('authScreen').style.display = 'flex';
@@ -1111,6 +1127,9 @@ function showPage(page) {
       break;
     case 'ts-music':
       loadTSMusicPage();
+      break;
+    case 'stocks':
+      loadStocksPage();
       break;
     case 'song-writings': {
       pageContent.innerHTML = '';
@@ -10284,4 +10303,530 @@ function showArtistProfile(artistId) {
   // Mevcut artist profil fonksiyonunu kullan
   showPage('artist-profile');
   loadArtistProfile(artistId);
+}
+
+// ==================== HİSSE SİSTEMİ ====================
+
+async function loadStocksPage() {
+  const pageContent = document.getElementById('pageContent');
+  
+  pageContent.innerHTML = `
+    <div style="padding: 20px; max-width: 1200px; margin: 0 auto;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+        <i class="fas fa-chart-line" style="color: #ff0033; font-size: 24px;"></i>
+        <h1 style="font-size: 28px; font-weight: 700; color: var(--yt-spec-text-primary);">Hisse Senetleri</h1>
+      </div>
+      
+      <!-- Bakiye ve Portföy Özeti -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div class="stock-card">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <i class="fas fa-wallet" style="color: #22c55e;"></i>
+            <span style="font-size: 14px; color: var(--yt-spec-text-secondary);">Bakiye</span>
+          </div>
+          <div id="user-balance" style="font-size: 24px; font-weight: 700; color: #22c55e;">₺0.00</div>
+        </div>
+        
+        <div class="stock-card">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <i class="fas fa-briefcase" style="color: #3b82f6;"></i>
+            <span style="font-size: 14px; color: var(--yt-spec-text-secondary);">Portföy Değeri</span>
+          </div>
+          <div id="portfolio-value" style="font-size: 24px; font-weight: 700; color: #3b82f6;">₺0.00</div>
+        </div>
+        
+        <div class="stock-card">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <i class="fas fa-chart-line" style="color: #f59e0b;"></i>
+            <span style="font-size: 14px; color: var(--yt-spec-text-secondary);">Toplam Kar/Zarar</span>
+          </div>
+          <div id="total-profit" style="font-size: 24px; font-weight: 700;">₺0.00</div>
+        </div>
+      </div>
+      
+      <!-- Sekmeler -->
+      <div style="display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <button class="stock-tab active" data-tab="market" onclick="switchStockTab('market')">
+          <i class="fas fa-chart-bar"></i> Piyasa
+        </button>
+        <button class="stock-tab" data-tab="portfolio" onclick="switchStockTab('portfolio')">
+          <i class="fas fa-briefcase"></i> Portföyüm
+        </button>
+        <button class="stock-tab" data-tab="transactions" onclick="switchStockTab('transactions')">
+          <i class="fas fa-history"></i> İşlemler
+        </button>
+      </div>
+      
+      <!-- İçerik Alanı -->
+      <div id="stocks-content"></div>
+    </div>
+    
+    <style>
+      .stock-card {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 16px;
+      }
+      
+      .stock-tab {
+        background: transparent;
+        border: none;
+        color: var(--yt-spec-text-secondary);
+        padding: 12px 16px;
+        border-radius: 8px 8px 0 0;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      
+      .stock-tab:hover {
+        background: rgba(255,255,255,0.05);
+        color: var(--yt-spec-text-primary);
+      }
+      
+      .stock-tab.active {
+        background: rgba(255,0,51,0.1);
+        color: #ff0033;
+        border-bottom: 2px solid #ff0033;
+      }
+      
+      .stock-item {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        transition: all 0.2s;
+      }
+      
+      .stock-item:hover {
+        background: rgba(255,255,255,0.06);
+        border-color: rgba(255,255,255,0.15);
+      }
+      
+      .stock-btn {
+        background: #ff0033;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.2s;
+      }
+      
+      .stock-btn:hover {
+        background: #cc0029;
+        transform: translateY(-1px);
+      }
+      
+      .stock-btn.sell {
+        background: #dc2626;
+      }
+      
+      .stock-btn.sell:hover {
+        background: #b91c1c;
+      }
+    </style>
+  `;
+  
+  // Verileri yükle
+  await loadStockData();
+  switchStockTab('market');
+}
+
+async function loadStockData() {
+  try {
+    // Bakiye ve portföy verilerini yükle
+    const [balanceRes, portfolioRes] = await Promise.all([
+      fetch(`${API_URL}/stocks/balance/${currentUser.id}`),
+      fetch(`${API_URL}/stocks/portfolio/${currentUser.id}`)
+    ]);
+    
+    const balance = await balanceRes.json();
+    const portfolio = await portfolioRes.json();
+    
+    // Bakiyeyi göster
+    document.getElementById('user-balance').textContent = `₺${balance.balance.toFixed(2)}`;
+    
+    // Portföy değerini hesapla
+    let totalValue = 0;
+    let totalProfit = 0;
+    
+    portfolio.forEach(item => {
+      totalValue += item.current_value;
+      totalProfit += item.profit_loss;
+    });
+    
+    document.getElementById('portfolio-value').textContent = `₺${totalValue.toFixed(2)}`;
+    
+    const profitEl = document.getElementById('total-profit');
+    profitEl.textContent = `₺${totalProfit.toFixed(2)}`;
+    profitEl.style.color = totalProfit >= 0 ? '#22c55e' : '#ef4444';
+    
+  } catch(e) {
+    console.error('Hisse verileri yüklenemedi:', e);
+  }
+}
+
+function switchStockTab(tab) {
+  // Sekme aktifliğini güncelle
+  document.querySelectorAll('.stock-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  
+  // İçeriği yükle
+  if (tab === 'market') loadMarketTab();
+  else if (tab === 'portfolio') loadPortfolioTab();
+  else if (tab === 'transactions') loadTransactionsTab();
+}
+
+async function loadMarketTab() {
+  const content = document.getElementById('stocks-content');
+  content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--yt-spec-text-secondary);">Yükleniyor...</div>';
+  
+  try {
+    const response = await fetch(`${API_URL}/stocks`);
+    const stocks = await response.json();
+    
+    content.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 18px; font-weight: 600;">Hisse Senetleri</h3>
+        <button class="stock-btn" onclick="updateStockPrices()">
+          <i class="fas fa-sync-alt"></i> Fiyatları Güncelle
+        </button>
+      </div>
+      
+      ${stocks.map(stock => `
+        <div class="stock-item">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              ${stock.logo_url ? 
+                `<img src="${stock.logo_url}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;" />` :
+                `<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#ff0033,#cc0029);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px;">${stock.symbol.charAt(0)}</div>`
+              }
+              <div>
+                <div style="font-weight: 600; font-size: 16px;">${stock.symbol}</div>
+                <div style="color: var(--yt-spec-text-secondary); font-size: 13px;">${stock.name}</div>
+              </div>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="text-align: right;">
+                <div style="font-weight: 600; font-size: 16px;">₺${stock.current_price.toFixed(2)}</div>
+                <div style="font-size: 12px; color: ${stock.change_percent >= 0 ? '#22c55e' : '#ef4444'};">
+                  ${stock.change_percent >= 0 ? '+' : ''}${stock.change_percent.toFixed(2)}%
+                </div>
+              </div>
+              <button class="stock-btn" onclick="showBuyModal(${stock.id}, '${stock.symbol}', ${stock.current_price})">
+                Al
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    `;
+    
+  } catch(e) {
+    content.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;">Hisse senetleri yüklenemedi</div>';
+  }
+}
+
+async function loadPortfolioTab() {
+  const content = document.getElementById('stocks-content');
+  content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--yt-spec-text-secondary);">Yükleniyor...</div>';
+  
+  try {
+    const response = await fetch(`${API_URL}/stocks/portfolio/${currentUser.id}`);
+    const portfolio = await response.json();
+    
+    if (portfolio.length === 0) {
+      content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--yt-spec-text-secondary);">Henüz hisse senedi portföyünüz yok</div>';
+      return;
+    }
+    
+    content.innerHTML = `
+      <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">Portföyüm</h3>
+      
+      ${portfolio.map(item => `
+        <div class="stock-item">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              ${item.logo_url ? 
+                `<img src="${item.logo_url}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;" />` :
+                `<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#ff0033,#cc0029);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px;">${item.symbol.charAt(0)}</div>`
+              }
+              <div>
+                <div style="font-weight: 600; font-size: 16px;">${item.symbol}</div>
+                <div style="color: var(--yt-spec-text-secondary); font-size: 13px;">${item.shares_owned} adet</div>
+              </div>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="text-align: right;">
+                <div style="font-weight: 600; font-size: 16px;">₺${item.current_value.toFixed(2)}</div>
+                <div style="font-size: 12px; color: ${item.profit_loss >= 0 ? '#22c55e' : '#ef4444'};">
+                  ${item.profit_loss >= 0 ? '+' : ''}₺${item.profit_loss.toFixed(2)} (${item.profit_loss_percent.toFixed(1)}%)
+                </div>
+              </div>
+              <button class="stock-btn sell" onclick="showSellModal(${item.stock_id}, '${item.symbol}', ${item.current_price}, ${item.shares_owned})">
+                Sat
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    `;
+    
+  } catch(e) {
+    content.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;">Portföy yüklenemedi</div>';
+  }
+}
+
+async function loadTransactionsTab() {
+  const content = document.getElementById('stocks-content');
+  content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--yt-spec-text-secondary);">Yükleniyor...</div>';
+  
+  try {
+    const response = await fetch(`${API_URL}/stocks/transactions/${currentUser.id}`);
+    const transactions = await response.json();
+    
+    if (transactions.length === 0) {
+      content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--yt-spec-text-secondary);">Henüz işlem geçmişiniz yok</div>';
+      return;
+    }
+    
+    content.innerHTML = `
+      <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">İşlem Geçmişi</h3>
+      
+      ${transactions.map(tx => `
+        <div class="stock-item">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width:40px;height:40px;border-radius:50%;background:${tx.transaction_type === 'buy' ? '#22c55e' : '#ef4444'};display:flex;align-items:center;justify-content:center;color:white;">
+                <i class="fas fa-${tx.transaction_type === 'buy' ? 'plus' : 'minus'}"></i>
+              </div>
+              <div>
+                <div style="font-weight: 600; font-size: 16px;">${tx.symbol} ${tx.transaction_type === 'buy' ? 'Alım' : 'Satım'}</div>
+                <div style="color: var(--yt-spec-text-secondary); font-size: 13px;">${tx.shares} adet × ₺${tx.price_per_share.toFixed(2)}</div>
+              </div>
+            </div>
+            
+            <div style="text-align: right;">
+              <div style="font-weight: 600; font-size: 16px; color: ${tx.transaction_type === 'buy' ? '#ef4444' : '#22c55e'};">
+                ${tx.transaction_type === 'buy' ? '-' : '+'}₺${tx.total_amount.toFixed(2)}
+              </div>
+              <div style="color: var(--yt-spec-text-secondary); font-size: 12px;">
+                ${new Date(tx.created_at).toLocaleDateString('tr-TR')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    `;
+    
+  } catch(e) {
+    content.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;">İşlem geçmişi yüklenemedi</div>';
+  }
+}
+
+function showBuyModal(stockId, symbol, price) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <span class="modal-title">Hisse Al - ${symbol}</span>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div style="padding: 20px;">
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600;">Adet</label>
+          <input type="number" id="buy-shares" min="1" step="1" value="1" 
+                 style="width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(255,255,255,0.05); color: var(--yt-spec-text-primary);" />
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Birim Fiyat:</span>
+            <span>₺${price.toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 16px;">
+            <span>Toplam:</span>
+            <span id="buy-total">₺${price.toFixed(2)}</span>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 12px;">
+          <button onclick="this.closest('.modal-overlay').remove()" 
+                  style="flex: 1; padding: 10px; background: rgba(255,255,255,0.1); border: none; border-radius: 6px; color: var(--yt-spec-text-primary); cursor: pointer;">
+            İptal
+          </button>
+          <button onclick="buyStock(${stockId}, ${price})" 
+                  style="flex: 1; padding: 10px; background: #22c55e; border: none; border-radius: 6px; color: white; cursor: pointer; font-weight: 600;">
+            Satın Al
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Toplam hesaplama
+  const sharesInput = document.getElementById('buy-shares');
+  const totalEl = document.getElementById('buy-total');
+  
+  sharesInput.addEventListener('input', () => {
+    const shares = parseInt(sharesInput.value) || 0;
+    totalEl.textContent = `₺${(shares * price).toFixed(2)}`;
+  });
+}
+
+function showSellModal(stockId, symbol, price, maxShares) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <span class="modal-title">Hisse Sat - ${symbol}</span>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div style="padding: 20px;">
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600;">Adet (Maks: ${maxShares})</label>
+          <input type="number" id="sell-shares" min="1" max="${maxShares}" step="1" value="1" 
+                 style="width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(255,255,255,0.05); color: var(--yt-spec-text-primary);" />
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Birim Fiyat:</span>
+            <span>₺${price.toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 16px;">
+            <span>Toplam:</span>
+            <span id="sell-total">₺${price.toFixed(2)}</span>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 12px;">
+          <button onclick="this.closest('.modal-overlay').remove()" 
+                  style="flex: 1; padding: 10px; background: rgba(255,255,255,0.1); border: none; border-radius: 6px; color: var(--yt-spec-text-primary); cursor: pointer;">
+            İptal
+          </button>
+          <button onclick="sellStock(${stockId}, ${price})" 
+                  style="flex: 1; padding: 10px; background: #ef4444; border: none; border-radius: 6px; color: white; cursor: pointer; font-weight: 600;">
+            Sat
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Toplam hesaplama
+  const sharesInput = document.getElementById('sell-shares');
+  const totalEl = document.getElementById('sell-total');
+  
+  sharesInput.addEventListener('input', () => {
+    const shares = parseInt(sharesInput.value) || 0;
+    totalEl.textContent = `₺${(shares * price).toFixed(2)}`;
+  });
+}
+
+async function buyStock(stockId, pricePerShare) {
+  const shares = parseInt(document.getElementById('buy-shares').value);
+  
+  if (!shares || shares <= 0) {
+    alert('Geçerli bir adet girin');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${API_URL}/stocks/buy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser.id,
+        stockId,
+        shares,
+        pricePerShare
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      document.querySelector('.modal-overlay').remove();
+      await loadStockData();
+      switchStockTab('portfolio');
+      showToast('Hisse başarıyla satın alındı!', 'success');
+    } else {
+      alert(result.error || 'Hisse alınamadı');
+    }
+  } catch(e) {
+    alert('Bağlantı hatası');
+  }
+}
+
+async function sellStock(stockId, pricePerShare) {
+  const shares = parseInt(document.getElementById('sell-shares').value);
+  
+  if (!shares || shares <= 0) {
+    alert('Geçerli bir adet girin');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${API_URL}/stocks/sell`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser.id,
+        stockId,
+        shares,
+        pricePerShare
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      document.querySelector('.modal-overlay').remove();
+      await loadStockData();
+      switchStockTab('portfolio');
+      showToast('Hisse başarıyla satıldı!', 'success');
+    } else {
+      alert(result.error || 'Hisse satılamadı');
+    }
+  } catch(e) {
+    alert('Bağlantı hatası');
+  }
+}
+
+async function updateStockPrices() {
+  try {
+    const response = await fetch(`${API_URL}/stocks/update-prices`, {
+      method: 'POST'
+    });
+    
+    if (response.ok) {
+      await loadStockData();
+      loadMarketTab();
+      showToast('Fiyatlar güncellendi!', 'success');
+    }
+  } catch(e) {
+    showToast('Fiyatlar güncellenemedi', 'error');
+  }
 }
