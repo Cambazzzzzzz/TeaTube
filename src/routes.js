@@ -1983,6 +1983,24 @@ router.get('/search-users', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// Genel kullanıcı arama (arama sayfası için)
+router.get('/users/search', (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+    const users = db.prepare(`
+      SELECT id, username, nickname, profile_photo, is_red_verified
+      FROM users
+      WHERE username LIKE ? OR nickname LIKE ?
+      ORDER BY 
+        CASE WHEN is_red_verified = 1 THEN 0 ELSE 1 END,
+        (SELECT COUNT(*) FROM subscriptions s JOIN channels c ON s.channel_id = c.id WHERE c.user_id = users.id) DESC
+      LIMIT 20
+    `).all(`%${q}%`, `%${q}%`);
+    res.json(users);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ArkadaÅŸlÄ±k durumu kontrol
 router.get('/friendship-status/:userId/:targetId', (req, res) => {
   try {

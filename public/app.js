@@ -1362,9 +1362,6 @@ function showPage(page) {
     case 'ts-music':
       loadTSMusicPage();
       break;
-    case 'stocks':
-      loadStocksPage();
-      break;
     case 'song-writings': {
       pageContent.innerHTML = '';
       ['song-writings-page','my-writings-page','writing-detail-page'].forEach(eid => {
@@ -4925,22 +4922,147 @@ async function search() {
   pageContent.innerHTML = `<div class="yt-loading"><div class="yt-spinner"></div></div>`;
 
   try {
-    const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}&userId=${currentUser.id}`);
-    const videos = await response.json();
+    // PARALEL ARAMA - HER ŞEYİ ARAT!
+    const [videosRes, songsRes, usersRes, groupsRes] = await Promise.allSettled([
+      fetch(`${API_URL}/search?q=${encodeURIComponent(query)}&userId=${currentUser.id}`),
+      fetch(`${API_URL}/music/search?q=${encodeURIComponent(query)}`),
+      fetch(`${API_URL}/users/search?q=${encodeURIComponent(query)}`),
+      fetch(`${API_URL}/groups/search?q=${encodeURIComponent(query)}`)
+    ]);
+
+    // Sonuçları parse et
+    const videos = videosRes.status === 'fulfilled' && videosRes.value.ok ? await videosRes.value.json() : [];
+    const songs = songsRes.status === 'fulfilled' && songsRes.value.ok ? await songsRes.value.json() : [];
+    const users = usersRes.status === 'fulfilled' && usersRes.value.ok ? await usersRes.value.json() : [];
+    const groups = groupsRes.status === 'fulfilled' && groupsRes.value.ok ? await groupsRes.value.json() : [];
+
+    // Sonuç sayıları
+    const totalResults = videos.length + songs.length + users.length + groups.length;
 
     pageContent.innerHTML = `
-      <h2 class="section-header">Arama Sonuçları: "${query}"</h2>
-      <div id="searchResults" class="video-grid"></div>
+      <div style="padding: 20px; max-width: 1200px; margin: 0 auto;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+          <i class="fas fa-search" style="color: #ff0033; font-size: 24px;"></i>
+          <h1 style="font-size: 28px; font-weight: 700; color: var(--yt-spec-text-primary);">Arama: "${query}"</h1>
+        </div>
+        
+        <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+          <span style="background: var(--yt-spec-badge-chip-background); color: var(--yt-spec-text-primary); padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: 500;">
+            ${totalResults} sonuç bulundu
+          </span>
+          ${videos.length > 0 ? `<span style="background: rgba(255,0,51,0.1); color: #ff0033; padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: 500;">${videos.length} Video</span>` : ''}
+          ${songs.length > 0 ? `<span style="background: rgba(29,185,84,0.1); color: #1db954; padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: 500;">${songs.length} Şarkı</span>` : ''}
+          ${users.length > 0 ? `<span style="background: rgba(59,130,246,0.1); color: #3b82f6; padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: 500;">${users.length} Kullanıcı</span>` : ''}
+          ${groups.length > 0 ? `<span style="background: rgba(168,85,247,0.1); color: #a855f7; padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: 500;">${groups.length} Grup</span>` : ''}
+        </div>
+
+        ${totalResults === 0 ? `
+          <div style="text-align: center; padding: 60px 20px; color: var(--yt-spec-text-secondary);">
+            <i class="fas fa-search" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+            <h3 style="font-size: 18px; margin-bottom: 8px;">Sonuç bulunamadı</h3>
+            <p>Farklı anahtar kelimeler deneyin</p>
+          </div>
+        ` : ''}
+
+        <!-- KULLANICILAR -->
+        ${users.length > 0 ? `
+          <div style="margin-bottom: 32px;">
+            <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-users" style="color: #3b82f6;"></i>
+              Kullanıcılar (${users.length})
+            </h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+              ${users.map(user => `
+                <div style="background: var(--yt-spec-raised-background); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s;" onclick="showUserProfile(${user.id})">
+                  <img src="${getProfilePhotoUrl(user.profile_photo)}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;" onerror="onProfilePhotoError(this)" />
+                  <div style="flex: 1; min-width: 0;">
+                    <p style="font-weight: 600; font-size: 15px; margin-bottom: 2px;">${user.nickname}</p>
+                    <p style="font-size: 13px; color: var(--yt-spec-text-secondary);">@${user.username}</p>
+                  </div>
+                  <i class="fas fa-chevron-right" style="color: var(--yt-spec-text-secondary); font-size: 12px;"></i>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- GRUPLAR -->
+        ${groups.length > 0 ? `
+          <div style="margin-bottom: 32px;">
+            <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-layer-group" style="color: #a855f7;"></i>
+              Gruplar (${groups.length})
+            </h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+              ${groups.map(group => `
+                <div style="background: var(--yt-spec-raised-background); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s;" onclick="showPage('groups'); setTimeout(() => openGroup(${group.id}), 300)">
+                  <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #a855f7, #3b82f6); display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-layer-group" style="color: white; font-size: 20px;"></i>
+                  </div>
+                  <div style="flex: 1; min-width: 0;">
+                    <p style="font-weight: 600; font-size: 15px; margin-bottom: 2px;">${group.name}</p>
+                    <p style="font-size: 13px; color: var(--yt-spec-text-secondary);">${group.description || 'Grup açıklaması yok'}</p>
+                  </div>
+                  <i class="fas fa-chevron-right" style="color: var(--yt-spec-text-secondary); font-size: 12px;"></i>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- ŞARKILAR -->
+        ${songs.length > 0 ? `
+          <div style="margin-bottom: 32px;">
+            <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-music" style="color: #1db954;"></i>
+              Şarkılar (${songs.length})
+            </h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px;">
+              ${songs.map(song => `
+                <div style="background: var(--yt-spec-raised-background); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s;" onclick="playTSMusicSong(${song.id})">
+                  <div style="width: 48px; height: 48px; border-radius: 8px; background: linear-gradient(135deg, #1db954, #1ed760); display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-music" style="color: white; font-size: 18px;"></i>
+                  </div>
+                  <div style="flex: 1; min-width: 0;">
+                    <p style="font-weight: 600; font-size: 15px; margin-bottom: 2px;">${song.title}</p>
+                    <p style="font-size: 13px; color: var(--yt-spec-text-secondary);">${song.artist_name}</p>
+                  </div>
+                  <button onclick="event.stopPropagation(); playTSMusicSong(${song.id})" style="background: #1db954; border: none; color: white; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-play" style="font-size: 12px; margin-left: 2px;"></i>
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- VİDEOLAR -->
+        ${videos.length > 0 ? `
+          <div>
+            <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-play-circle" style="color: #ff0033;"></i>
+              Videolar (${videos.length})
+            </h2>
+            <div id="searchVideoResults" class="video-grid"></div>
+          </div>
+        ` : ''}
+      </div>
     `;
 
-    if (videos.length === 0) {
-      document.getElementById('searchResults').innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:40px 0;text-align:center;">Sonuç bulunamadı</p>';
-    } else {
-      displayVideos(videos, 'searchResults');
+    // Videoları göster
+    if (videos.length > 0) {
+      displayVideos(videos, 'searchVideoResults');
     }
+
   } catch (error) {
     console.error('Arama hatası:', error);
-    showToast('Arama yapılırken hata oluştu', 'error');
+    pageContent.innerHTML = `
+      <div style="text-align: center; padding: 60px 20px; color: var(--yt-spec-text-secondary);">
+        <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px; color: #ef4444;"></i>
+        <h3 style="font-size: 18px; margin-bottom: 8px;">Arama yapılırken hata oluştu</h3>
+        <p>Lütfen tekrar deneyin</p>
+      </div>
+    `;
   }
 }
 
