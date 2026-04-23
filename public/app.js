@@ -708,18 +708,22 @@ document.addEventListener('DOMContentLoaded', () => {
       // Ana sayfayı anında göster
       showPage('home');
       
+      // ANINDA ana sayfa içeriğini yükle - HİÇ BEKLEME!
+      try {
+        loadHomeFeed();
+        console.log('🚀 Otomatik giriş - ana sayfa içeriği anında yüklendi!');
+      } catch (e) {
+        console.log('Ana sayfa yükleme hatası (önemli değil):', e);
+      }
+      
       console.log('🔒🔒🔒 OTURUM ULTRA GÜVENLİ - ASLA KAPANMAZ!');
       
-      // Arka planda diğer işlemleri yap - HATA OLSA BİLE OTURUM DEVAM ETSİN!
-      setTimeout(() => {
-        try {
-          loadUserData();
-        } catch (e) {
-          console.error('⚠️ Arka plan hatası (TAMAMEN ÖNEMSIZ):', e);
-          console.log('🔒 Hata olmasına rağmen oturum güvenli şekilde devam ediyor!');
-          // OTURUMU ASLA KAPATMA!
-        }
-      }, 500);
+      // ANINDA arka planda diğer işlemleri başlat - HİÇ BEKLEME!
+      loadUserData().catch(e => {
+        console.error('⚠️ Arka plan hatası (TAMAMEN ÖNEMSIZ):', e);
+        console.log('🔒 Hata olmasına rağmen oturum güvenli şekilde devam ediyor!');
+        // OTURUMU ASLA KAPATMA!
+      });
       
       return; // BURADAN ÇIK - BAŞKA HİÇBİR ŞEY YAPMA!
       
@@ -790,7 +794,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==================== ULTRA GÜVENLİK: PERİYODİK OTURUM YEDEKLEME ====================
-// Her 5 saniyede bir oturum verilerini kontrol et ve yedekle
+// Her 10 saniyede bir oturum verilerini kontrol et ve yedekle
 setInterval(() => {
   if (currentUser) {
     try {
@@ -828,7 +832,7 @@ setInterval(() => {
       console.error('Otomatik yedekleme hatası (önemli değil):', e);
     }
   }
-}, 5000); // Her 5 saniyede bir
+}, 10000); // Her 10 saniyede bir
 
 // ==================== SAYFA KAPANIRKEN OTURUM KORUMA ====================
 // Sayfa kapatılırken/yenilenirken oturum verilerini koru
@@ -878,6 +882,14 @@ window.addEventListener('focus', () => {
         applyTheme(theme);
         
         showPage('home');
+        
+        // ANINDA ana sayfa içeriğini yükle
+        try {
+          loadHomeFeed();
+          console.log('🚀 Focus geri yükleme - ana sayfa içeriği anında yüklendi!');
+        } catch (e) {
+          console.log('Ana sayfa yükleme hatası (önemli değil):', e);
+        }
       } catch (e) {
         console.error('Focus oturum geri yükleme hatası:', e);
       }
@@ -1118,6 +1130,15 @@ async function login() {
     
     // Ana sayfayı göster
     showPage('home');
+    
+    // ANINDA ana sayfa içeriğini yükle - HİÇ BEKLEME!
+    try {
+      loadHomeFeed();
+      console.log('🚀 Ana sayfa içeriği anında yüklendi!');
+    } catch (e) {
+      console.log('Ana sayfa yükleme hatası (önemli değil):', e);
+    }
+    
     console.log('✅ GİRİŞ TAMAMLANDI!');
     
   } catch (error) {
@@ -1132,8 +1153,8 @@ async function loadUserData() {
   try {
     console.log('loadUserData başladı (arka plan işlemleri) - OTURUM ASLA KAPANMAZ!');
 
-    // Diğer işlemleri arka planda yap - HATA OLSA BİLE DEVAM ET
-    setTimeout(async () => {
+    // ANINDA diğer işlemleri yap - HİÇ BEKLEME!
+    (async () => {
       try {
         // ÖNCE OTURUM GÜVENLİĞİNİ KONTROL ET
         const sessionCheck = localStorage.getItem('Tea_user') || 
@@ -1222,7 +1243,7 @@ async function loadUserData() {
         console.log('🔒🔒🔒 Hata olmasına rağmen oturum ULTRA GÜVENLİ şekilde devam ediyor!');
         // OTURUMU ASLA KAPATMA - HİÇBİR DURUMDA!
       }
-    }, 100);
+    })(); // ANINDA çalıştır
       
   } catch (error) {
     console.error('⚠️ loadUserData hatası (TAMAMEN ÖNEMSIZ):', error);
