@@ -1098,3 +1098,129 @@ try {
 } catch(e) {}
 
 console.log('✓ Instagram tarzı yorum sistemi hazır!');
+
+// ==================== ADMİN YETKİ SİSTEMİ ====================
+
+// Kullanıcı rolleri tablosu
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_roles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE,
+    role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('user', 'yetkili', 'moderator', 'admin')),
+    granted_by INTEGER,
+    granted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL
+  )
+`);
+
+// Kullanıcı mute sistemi
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_mutes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    muted_by INTEGER NOT NULL,
+    reason TEXT,
+    muted_until DATETIME,
+    is_permanent INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (muted_by) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+// Kullanıcı ban sistemi
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_bans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    banned_by INTEGER NOT NULL,
+    reason TEXT,
+    banned_until DATETIME,
+    is_permanent INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (banned_by) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+// Bildiri sistemi
+db.exec(`
+  CREATE TABLE IF NOT EXISTS reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    reporter_id INTEGER NOT NULL,
+    reported_content_type TEXT NOT NULL CHECK(reported_content_type IN ('video', 'comment', 'message', 'user', 'group')),
+    reported_content_id INTEGER NOT NULL,
+    reported_user_id INTEGER,
+    reason TEXT NOT NULL,
+    description TEXT,
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'reviewed', 'resolved', 'dismissed')),
+    reviewed_by INTEGER,
+    reviewed_at DATETIME,
+    admin_notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (reported_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+  )
+`);
+
+// Kullanıcı aktivite logları
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_activity_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    action_type TEXT NOT NULL,
+    target_type TEXT,
+    target_id INTEGER,
+    ip_address TEXT,
+    user_agent TEXT,
+    details TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+// Admin aksiyonları logları
+db.exec(`
+  CREATE TABLE IF NOT EXISTS admin_action_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    admin_id INTEGER NOT NULL,
+    action_type TEXT NOT NULL,
+    target_type TEXT,
+    target_id INTEGER,
+    target_user_id INTEGER,
+    old_values TEXT,
+    new_values TEXT,
+    reason TEXT,
+    ip_address TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE SET NULL
+  )
+`);
+
+// Kullanıcılara yeni kolonlar ekle
+try { db.prepare('ALTER TABLE users ADD COLUMN last_login_at DATETIME').run(); } catch(e) {}
+try { db.prepare('ALTER TABLE users ADD COLUMN last_ip TEXT').run(); } catch(e) {}
+try { db.prepare('ALTER TABLE users ADD COLUMN is_muted INTEGER DEFAULT 0').run(); } catch(e) {}
+try { db.prepare('ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0').run(); } catch(e) {}
+try { db.prepare('ALTER TABLE users ADD COLUMN password_hash TEXT').run(); } catch(e) {}
+
+// Videolara yeni kolonlar ekle
+try { db.prepare('ALTER TABLE videos ADD COLUMN admin_notes TEXT').run(); } catch(e) {}
+try { db.prepare('ALTER TABLE videos ADD COLUMN suspended_reason TEXT').run(); } catch(e) {}
+
+// Şarkılara yeni kolonlar ekle
+try { db.prepare('ALTER TABLE songs ADD COLUMN admin_notes TEXT').run(); } catch(e) {}
+try { db.prepare('ALTER TABLE songs ADD COLUMN suspended_reason TEXT').run(); } catch(e) {}
+
+// Gruplara yeni kolonlar ekle
+try { db.prepare('ALTER TABLE groups ADD COLUMN admin_notes TEXT').run(); } catch(e) {}
+
+// Yorumlara yeni kolonlar ekle
+try { db.prepare('ALTER TABLE comments ADD COLUMN is_suspended INTEGER DEFAULT 0').run(); } catch(e) {}
+try { db.prepare('ALTER TABLE comments ADD COLUMN suspended_by INTEGER').run(); } catch(e) {}
+try { db.prepare('ALTER TABLE comments ADD COLUMN suspended_reason TEXT').run(); } catch(e) {}
+
+console.log('✓ Admin yetki sistemi hazır!');
