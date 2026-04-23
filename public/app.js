@@ -655,11 +655,25 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       currentUser = JSON.parse(savedUser);
       console.log('Kaydedilmiş kullanıcı bulundu:', currentUser.username);
+      
+      // HEMEN ana ekranı göster - loadUserData hatası olsa bile
+      console.log('Ana ekran gösteriliyor (localStorage\'dan)...');
+      document.getElementById('authScreen').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+      
+      // Temayı uygula
+      document.body.setAttribute('data-theme', currentUser.theme || 'dark');
+      applyTheme(currentUser.theme || 'dark');
+      
+      // Ana sayfayı göster
+      showPage('home');
+      console.log('Ana ekran gösterildi - OTURUM DEVAM EDİYOR!');
+      
+      // Arka planda kullanıcı verilerini güncelle - hata olsa bile oturum devam etsin
       loadUserData().catch(e => {
-        console.error('loadUserData hatası:', e);
-        // Hata olsa bile giriş ekranını göster
-        document.getElementById('authScreen').style.display = 'flex';
-        document.getElementById('mainApp').style.display = 'none';
+        console.error('loadUserData hatası (arka plan):', e);
+        console.log('Hata olmasına rağmen oturum devam ediyor');
+        // OTURUMU KAPATMA! Sadece log at
       });
     } catch (e) {
       console.error('Kaydedilmiş kullanıcı parse hatası:', e);
@@ -927,21 +941,7 @@ async function login() {
 
 async function loadUserData() {
   try {
-    console.log('loadUserData başladı...');
-    
-    // HEMEN ana ekranı göster - hiçbir şey bekleme!
-    console.log('Ana ekran gösteriliyor...');
-    document.getElementById('authScreen').style.display = 'none';
-    document.getElementById('mainApp').style.display = 'block';
-    
-    // Temayı uygula
-    document.body.setAttribute('data-theme', currentUser.theme || 'dark');
-    applyTheme(currentUser.theme || 'dark');
-    console.log('Tema uygulandı');
-    
-    // Ana sayfayı göster
-    showPage('home');
-    console.log('Ana ekran gösterildi - GİRİŞ TAMAMLANDI!');
+    console.log('loadUserData başladı (arka plan işlemleri)...');
 
     // Diğer işlemleri arka planda yap - HATA OLSA BİLE DEVAM ET
     setTimeout(async () => {
@@ -1002,15 +1002,14 @@ async function loadUserData() {
         
       } catch (e) {
         console.error('Arka plan işlem hatası (önemli değil):', e);
+        // Hata olsa bile oturum devam etsin
       }
     }, 100);
       
   } catch (error) {
-    console.error('Kullanıcı verisi yükleme hatası:', error);
-    // Hata olsa bile ana ekranı göster
-    document.getElementById('authScreen').style.display = 'none';
-    document.getElementById('mainApp').style.display = 'block';
-    showPage('home');
+    console.error('loadUserData hatası (önemli değil):', error);
+    // Hata olsa bile hiçbir şey yapma - oturum devam etsin
+    console.log('Hata olmasına rağmen oturum devam ediyor');
   }
 }
 
