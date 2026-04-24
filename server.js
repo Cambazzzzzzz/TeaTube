@@ -364,6 +364,38 @@ app.get(/\.html$/, (req, res, next) => {
 // Fallback static middleware
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ==================== URL ROUTING - SPA FALLBACK ====================
+// Tüm sayfa route'ları için index.html'i serve et
+const pageRoutes = [
+  '/anasayfa',
+  '/reals',
+  '/shorts',
+  '/tsmusic',
+  '/videolarim',
+  '/sarkilarim',
+  '/kanalim',
+  '/mesajlar',
+  '/arkadaslar',
+  '/gruplar',
+  '/bildirimler',
+  '/ayarlar',
+  '/profil',
+  '/izlenenler',
+  '/gecmis',
+  '/abonelikler',
+  '/kaydedilenler',
+  '/sarki-sozleri',
+  '/sozlerim',
+  '/sozlesme'
+];
+
+pageRoutes.forEach(route => {
+  app.get(route, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  });
+});
+// ==================== URL ROUTING END ====================
+
 
 // API route'larına UTF-8 charset ekle
 app.use('/api', (req, res, next) => {

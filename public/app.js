@@ -736,14 +736,36 @@ document.addEventListener('DOMContentLoaded', () => {
       applyTheme(theme);
       
       // Direkt İçeriklerim sayfasını göster
-      showPage('my-videos');
-      
-      // ANINDA içeriklerim sayfasını yükle - HİÇ BEKLEME!
-      try {
-        loadMyVideosPage();
-        console.log('🚀 Otomatik giriş - içeriklerim sayfası anında yüklendi!');
-      } catch (e) {
-        console.log('İçeriklerim yükleme hatası (önemli değil):', e);
+      // Ama URL'de başka bir sayfa varsa onu aç
+      const urlPage = getPageFromURL();
+      if (urlPage) {
+        showPage(urlPage);
+        try {
+          // URL'deki sayfayı yükle
+          switch(urlPage) {
+            case 'home': loadHomeFeed(); break;
+            case 'ts-music': loadTSMusicPage(); break;
+            case 'my-videos': loadMyVideosPage(); break;
+            case 'my-songs': loadMySongsPage(); break;
+            case 'messages': loadMessagesPage(); break;
+            case 'friends': loadFriendsPage(); break;
+            case 'groups': loadGroupsPage(); break;
+            case 'notifications': loadNotificationsPage(); break;
+            case 'settings': loadSettingsPage(); break;
+            default: loadMyVideosPage(); break;
+          }
+        } catch (e) {
+          console.log('Sayfa yükleme hatası:', e);
+        }
+      } else {
+        // URL'de sayfa yoksa İçeriklerim'i aç
+        showPage('my-videos');
+        try {
+          loadMyVideosPage();
+          console.log('🚀 Otomatik giriş - içeriklerim sayfası anında yüklendi!');
+        } catch (e) {
+          console.log('İçeriklerim yükleme hatası (önemli değil):', e);
+        }
       }
       
       console.log('🔒🔒🔒 OTURUM ULTRA GÜVENLİ - ASLA KAPANMAZ!');
@@ -914,6 +936,12 @@ window.addEventListener('focus', () => {
         showPage('my-videos');
         
         // ANINDA içeriklerim sayfasını yükle
+        // Ama URL'de başka bir sayfa varsa onu aç
+        const urlPage = getPageFromURL();
+        if (urlPage && urlPage !== 'my-videos') {
+          showPage(urlPage);
+        }
+        
         try {
           loadMyVideosPage();
           console.log('🚀 Focus geri yükleme - içeriklerim sayfası anında yüklendi!');
@@ -1159,14 +1187,36 @@ async function login() {
     applyTheme(theme);
     
     // Direkt İçeriklerim sayfasını göster
-    showPage('my-videos');
-    
-    // ANINDA içeriklerim sayfasını yükle
-    try {
-      loadMyVideosPage();
-      console.log('🚀 İçeriklerim sayfası anında yüklendi!');
-    } catch (e) {
-      console.log('İçeriklerim yükleme hatası (önemli değil):', e);
+    // Ama URL'de başka bir sayfa varsa onu aç
+    const urlPage = getPageFromURL();
+    if (urlPage) {
+      showPage(urlPage);
+      try {
+        // URL'deki sayfayı yükle
+        switch(urlPage) {
+          case 'home': loadHomeFeed(); break;
+          case 'ts-music': loadTSMusicPage(); break;
+          case 'my-videos': loadMyVideosPage(); break;
+          case 'my-songs': loadMySongsPage(); break;
+          case 'messages': loadMessagesPage(); break;
+          case 'friends': loadFriendsPage(); break;
+          case 'groups': loadGroupsPage(); break;
+          case 'notifications': loadNotificationsPage(); break;
+          case 'settings': loadSettingsPage(); break;
+          default: loadMyVideosPage(); break;
+        }
+      } catch (e) {
+        console.log('Sayfa yükleme hatası:', e);
+      }
+    } else {
+      // URL'de sayfa yoksa İçeriklerim'i aç
+      showPage('my-videos');
+      try {
+        loadMyVideosPage();
+        console.log('🚀 İçeriklerim sayfası anında yüklendi!');
+      } catch (e) {
+        console.log('İçeriklerim yükleme hatası (önemli değil):', e);
+      }
     }
     
     console.log('✅ GİRİŞ TAMAMLANDI!');
@@ -1302,9 +1352,63 @@ function logout() {
   showLogin();
 }
 
+// ==================== URL ROUTING SİSTEMİ ====================
+const PAGE_ROUTES = {
+  'home': '/anasayfa',
+  'reals': '/reals',
+  'shorts': '/shorts',
+  'ts-music': '/tsmusic',
+  'my-videos': '/videolarim',
+  'my-songs': '/sarkilarim',
+  'my-channel': '/kanalim',
+  'messages': '/mesajlar',
+  'friends': '/arkadaslar',
+  'groups': '/gruplar',
+  'notifications': '/bildirimler',
+  'settings': '/ayarlar',
+  'profile': '/profil',
+  'watched': '/izlenenler',
+  'history': '/gecmis',
+  'subscriptions': '/abonelikler',
+  'saved': '/kaydedilenler',
+  'song-writings': '/sarki-sozleri',
+  'my-writings': '/sozlerim',
+  'terms': '/sozlesme'
+};
+
+// URL'den sayfa adını al
+function getPageFromURL() {
+  const path = window.location.pathname;
+  for (const [page, route] of Object.entries(PAGE_ROUTES)) {
+    if (path === route) return page;
+  }
+  return null;
+}
+
+// Sayfa değiştiğinde URL'i güncelle
+function updateURL(page) {
+  const route = PAGE_ROUTES[page];
+  if (route && window.location.pathname !== route) {
+    window.history.pushState({ page }, '', route);
+  }
+}
+
+// Tarayıcı geri/ileri butonları için
+window.addEventListener('popstate', (event) => {
+  if (event.state && event.state.page) {
+    showPage(event.state.page);
+  } else {
+    const page = getPageFromURL();
+    if (page) showPage(page);
+  }
+});
+
 // Sayfa gösterme
 function showPage(page) {
   currentPage = page;
+  
+  // URL'i güncelle
+  updateURL(page);
 
   // Reals player'ı temizle (fixed position olduğu için diğer sayfaları engelleyebilir)
   if (page !== 'reals' && page !== 'shorts') {
