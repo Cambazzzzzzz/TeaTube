@@ -2306,6 +2306,8 @@ body {
   /* Header sağ — chat+bildirim+profil */
   #end { gap: 6px; display: flex; align-items: center; margin-left: auto; }
   #end .yt-icon-button { width: 36px; height: 36px; font-size: 18px; display: flex; }
+  #end .yt-icon-button i { color: var(--yt-spec-text-primary); }
+  #end .mobile-only i { color: var(--yt-spec-text-primary) !important; }
   #end img { width: 30px !important; height: 30px !important; display: block !important; }
 
   /* Masthead container flex */

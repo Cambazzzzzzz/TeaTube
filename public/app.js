@@ -735,15 +735,15 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.setAttribute('data-theme', theme);
       applyTheme(theme);
       
-      // Ana sayfayı anında göster
-      showPage('home');
+      // Direkt İçeriklerim sayfasını göster
+      showPage('my-videos');
       
-      // ANINDA ana sayfa içeriğini yükle - HİÇ BEKLEME!
+      // ANINDA içeriklerim sayfasını yükle - HİÇ BEKLEME!
       try {
-        loadHomeFeed();
-        console.log('🚀 Otomatik giriş - ana sayfa içeriği anında yüklendi!');
+        loadMyVideosPage();
+        console.log('🚀 Otomatik giriş - içeriklerim sayfası anında yüklendi!');
       } catch (e) {
-        console.log('Ana sayfa yükleme hatası (önemli değil):', e);
+        console.log('İçeriklerim yükleme hatası (önemli değil):', e);
       }
       
       console.log('🔒🔒🔒 OTURUM ULTRA GÜVENLİ - ASLA KAPANMAZ!');
@@ -911,14 +911,14 @@ window.addEventListener('focus', () => {
         document.body.setAttribute('data-theme', theme);
         applyTheme(theme);
         
-        showPage('home');
+        showPage('my-videos');
         
-        // ANINDA ana sayfa içeriğini yükle
+        // ANINDA içeriklerim sayfasını yükle
         try {
-          loadHomeFeed();
-          console.log('🚀 Focus geri yükleme - ana sayfa içeriği anında yüklendi!');
+          loadMyVideosPage();
+          console.log('🚀 Focus geri yükleme - içeriklerim sayfası anında yüklendi!');
         } catch (e) {
-          console.log('Ana sayfa yükleme hatası (önemli değil):', e);
+          console.log('İçeriklerim yükleme hatası (önemli değil):', e);
         }
       } catch (e) {
         console.error('Focus oturum geri yükleme hatası:', e);
@@ -1158,15 +1158,15 @@ async function login() {
     document.body.setAttribute('data-theme', theme);
     applyTheme(theme);
     
-    // Ana sayfayı göster
-    showPage('home');
+    // Direkt İçeriklerim sayfasını göster
+    showPage('my-videos');
     
-    // ANINDA ana sayfa içeriğini yükle - HİÇ BEKLEME!
+    // ANINDA içeriklerim sayfasını yükle
     try {
-      loadHomeFeed();
-      console.log('🚀 Ana sayfa içeriği anında yüklendi!');
+      loadMyVideosPage();
+      console.log('🚀 İçeriklerim sayfası anında yüklendi!');
     } catch (e) {
-      console.log('Ana sayfa yükleme hatası (önemli değil):', e);
+      console.log('İçeriklerim yükleme hatası (önemli değil):', e);
     }
     
     console.log('✅ GİRİŞ TAMAMLANDI!');
@@ -5425,24 +5425,37 @@ function toggleShortsFields(isShorts) {
   if (hint) hint.textContent = isShorts ? 'Shorts max 3 dakika olmalıdır' : '';
 }
 
-function checkShortsDuration(input) {
-  const isShorts = document.querySelector('input[name="videoFormat"]:checked')?.value === 'shorts';
-  if (!isShorts || !input.files[0]) return;
-  
+function checkVideoDuration(input) {
   const file = input.files[0];
+  if (!file) return;
+  
   const video = document.createElement('video');
   video.preload = 'metadata';
-  video.onloadedmetadata = () => {
-    URL.revokeObjectURL(video.src);
+  
+  video.onloadedmetadata = function() {
+    window.URL.revokeObjectURL(video.src);
+    const duration = video.duration;
     const hint = document.getElementById('videoFileHint');
-    if (video.duration > 180) {
-      if (hint) hint.textContent = `⚠️ Video ${Math.round(video.duration)}sn - Shorts max 3 dakika (180sn) olmalı!`;
-      hint.style.color = '#f44336';
-      input.value = '';
+    
+    const selectedType = document.querySelector('input[name="uploadType"]:checked')?.value || 'reals';
+    const fileSize = (file.size / 1024 / 1024).toFixed(1); // MB
+    
+    if (selectedType === 'reals' && duration > 180) { // 3 dakika = 180 saniye
+      hint.textContent = `⚠️ Video ${Math.round(duration)}s uzunluğunda. Reals için maksimum 3 dakika (180s) olmalı.`;
+      hint.style.color = '#ff4444';
     } else {
-      if (hint) { hint.textContent = `✓ ${Math.round(video.duration)}sn - Uygun`; hint.style.color = '#4caf50'; }
+      const minutes = Math.floor(duration / 60);
+      const seconds = Math.floor(duration % 60);
+      
+      if (selectedType === 'video') {
+        hint.textContent = `✅ Video: ${minutes}:${seconds.toString().padStart(2, '0')} - ${fileSize}MB (Hızlı yükleme kullanılacak)`;
+      } else {
+        hint.textContent = `✅ Video süresi: ${minutes}:${seconds.toString().padStart(2, '0')} - ${fileSize}MB`;
+      }
+      hint.style.color = '#4caf50';
     }
   };
+  
   video.src = URL.createObjectURL(file);
 }
 
@@ -5549,9 +5562,21 @@ function switchUploadType(type) {
   document.getElementById('videoFields').style.display = (type === 'reals' || type === 'video') ? 'block' : 'none';
   document.getElementById('photoFields').style.display = type === 'photo' ? 'block' : 'none';
   document.getElementById('textFields').style.display = type === 'text' ? 'block' : 'none';
-  // Reals için süre kontrolü
+  
+  // Video türüne göre hint güncelle
   const hint = document.getElementById('videoFileHint');
-  if (hint) hint.textContent = type === 'reals' ? 'Maksimum 3 dakika' : '';
+  const bannerHint = document.getElementById('bannerOptionalHint');
+  
+  if (type === 'reals') {
+    if (hint) hint.textContent = 'Maksimum 3 dakika, dikey video önerilir';
+    if (bannerHint) bannerHint.textContent = '(opsiyonel - boş bırakırsan video\'dan alınır)';
+  } else if (type === 'video') {
+    if (hint) hint.textContent = 'Uzun video yükleyebilirsin, hızlı yükleme sistemi kullanılacak';
+    if (bannerHint) bannerHint.textContent = '(zorunlu - video kapak resmi)';
+  } else {
+    if (hint) hint.textContent = '';
+    if (bannerHint) bannerHint.textContent = '(opsiyonel - boş bırakırsan video\'dan alınır)';
+  }
 }
 
 function switchTextType(textType) {
@@ -5575,6 +5600,8 @@ function handleUpload() {
     uploadPhoto();
   } else if (type === 'text') {
     uploadText();
+  } else if (type === 'video') {
+    uploadLongVideo();
   } else {
     uploadVideo(type === 'reals');
   }

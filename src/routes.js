@@ -2688,3 +2688,155 @@ router.get('/terms', (req, res) => {
     res.status(500).json({ error: 'Kullanım koşulları alınamadı' });
   }
 });
+
+// Chunk upload için geçici depolama
+const uploadSessions = new Map();
+
+// Upload session başlat
+router.post('/video/start-upload', async (req, res) => {
+  try {
+    const { channelId, title, description, videoType, tags, commentsEnabled, likesVisible, isShort, totalSize, totalChunks, fileName } = req.body;
+    
+    const uploadId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    
+    uploadSessions.set(uploadId, {
+      channelId,
+      title,
+      description,
+      videoType,
+      tags,
+      commentsEnabled,
+      likesVisible,
+      isShort,
+      totalSize,
+      totalChunks,
+      fileName,
+      chunks: new Array(totalChunks).fill(null),
+      bannerPath: null,
+      createdAt: Date.now()
+    });
+
+    res.json({ uploadId });
+  } catch (error) {
+    console.error('Upload session başlatma hatası:', error);
+    res.status(500).json({ error: 'Upload session başlatılamadı' });
+  }
+});
+
+// Banner yükle
+router.post('/video/upload-banner', upload.single('banner'), async (req, res) => {
+  try {
+    const { uploadId } = req.body;
+    const session = uploadSessions.get(uploadId);
+    
+    if (!session) {
+      return res.status(404).json({ error: 'Upload session bulunamadı' });
+    }
+
+    session.bannerPath = req.file.path;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Banner yükleme hatası:', error);
+    res.status(500).json({ error: 'Banner yüklenemedi' });
+  }
+});
+
+// Chunk yükle
+router.post('/video/upload-chunk', upload.single('chunk'), async (req, res) => {
+  try {
+    const { uploadId, chunkIndex, totalChunks } = req.body;
+    const session = uploadSessions.get(uploadId);
+    
+    if (!session) {
+      return res.status(404).json({ error: 'Upload session bulunamadı' });
+    }
+
+    session.chunks[parseInt(chunkIndex)] = req.file.path;
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Chunk yükleme hatası:', error);
+    res.status(500).json({ error: 'Chunk yüklenemedi' });
+  }
+});
+
+// Upload tamamla
+router.post('/video/complete-upload', async (req, res) => {
+  try {
+    const { uploadId } = req.body;
+    const session = uploadSessions.get(uploadId);
+    
+    if (!session) {
+      return res.status(404).json({ error: 'Upload session bulunamadı' });
+    }
+
+    // Tüm chunk'lar yüklendi mi kontrol et
+    if (session.chunks.some(chunk => chunk === null)) {
+      return res.status(400).json({ error: 'Bazı parçalar eksik' });
+    }
+
+    // Chunk'ları birleştir
+    const fs = require('fs');
+    const path = require('path');
+    
+    const finalVideoPath = path.join('tmp', `${uploadId}_${session.fileName}`);
+    const writeStream = fs.createWriteStream(finalVideoPath);
+
+    for (let i = 0; i < session.chunks.length; i++) {
+      const chunkData = fs.readFileSync(session.chunks[i]);
+      writeStream.write(chunkData);
+      // Chunk dosyasını sil
+      fs.unlinkSync(session.chunks[i]);
+    }
+    writeStream.end();
+
+    // Cloudinary'ye yükle
+    const cloudinary = require('./cloudinary');
+    
+    const videoResult = await cloudinary.uploader.upload(finalVideoPath, {
+      resource_type: 'video',
+      folder: 'teatube/videos',
+      quality: 'auto'
+    });
+
+    const bannerResult = await cloudinary.uploader.upload(session.bannerPath, {
+      resource_type: 'image',
+      folder: 'teatube/banners',
+      quality: 'auto'
+    });
+
+    // Veritabanına kaydet
+    const db = require('./database');
+    const videoId = await db.run(`
+      INSERT INTO videos (channel_id, title, description, video_url, banner_url, video_type, tags, comments_enabled, likes_visible, is_short, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    `, [
+      session.channelId,
+      session.title,
+      session.description,
+      videoResult.secure_url,
+      bannerResult.secure_url,
+      session.videoType,
+      session.tags,
+      session.commentsEnabled,
+      session.likesVisible,
+      session.isShort
+    ]);
+
+    // Geçici dosyaları temizle
+    fs.unlinkSync(finalVideoPath);
+    fs.unlinkSync(session.bannerPath);
+    
+    // Session'ı temizle
+    uploadSessions.delete(uploadId);
+
+    res.json({ 
+      success: true, 
+      videoId: videoId.lastID,
+      message: 'Video başarıyla yüklendi' 
+    });
+
+  } catch (error) {
+    console.error('Upload tamamlama hatası:', error);
+    res.status(500).json({ error: 'Video tamamlanamadı: ' + error.message });
+  }
+});
