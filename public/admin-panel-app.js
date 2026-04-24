@@ -68,6 +68,7 @@ function showAdminPage(page) {
   
   // İçerik Yönetimi
   else if (page === 'videos') renderVideos();
+  else if (page === 'photos') renderPhotos();
   else if (page === 'music') renderMusic();
   else if (page === 'comments') renderComments();
   else if (page === 'ts-music-apps') renderTSMusicApps();
@@ -530,6 +531,30 @@ async function editVideo(videoId) {
         <label>Açıklama</label>
         <textarea id="edit-video-description" class="form-input" rows="3">${video.description || ''}</textarea>
       </div>
+      <div class="form-group">
+        <label>Algoritma Etiketleri (virgülle ayırın)</label>
+        <input type="text" id="edit-video-tags" value="${video.tags || ''}" class="form-input" placeholder="komedi, eğlence, viral, trend">
+        <small style="color:var(--text3);font-size:12px">Örnek: komedi, eğlence, viral, trend, müzik</small>
+      </div>
+      <div class="form-group">
+        <label>Video Türü</label>
+        <select id="edit-video-type" class="form-input">
+          <option value="Vlog" ${video.video_type === 'Vlog' ? 'selected' : ''}>Vlog</option>
+          <option value="Günlük hayat" ${video.video_type === 'Günlük hayat' ? 'selected' : ''}>Günlük hayat</option>
+          <option value="Challenge" ${video.video_type === 'Challenge' ? 'selected' : ''}>Challenge</option>
+          <option value="Şaka" ${video.video_type === 'Şaka' ? 'selected' : ''}>Şaka</option>
+          <option value="Komedi" ${video.video_type === 'Komedi' ? 'selected' : ''}>Komedi</option>
+          <option value="Eğlence" ${video.video_type === 'Eğlence' ? 'selected' : ''}>Eğlence</option>
+          <option value="Müzik" ${video.video_type === 'Müzik' ? 'selected' : ''}>Müzik</option>
+          <option value="Gaming" ${video.video_type === 'Gaming' ? 'selected' : ''}>Gaming</option>
+          <option value="Eğitim" ${video.video_type === 'Eğitim' ? 'selected' : ''}>Eğitim</option>
+          <option value="Teknoloji" ${video.video_type === 'Teknoloji' ? 'selected' : ''}>Teknoloji</option>
+          <option value="Spor" ${video.video_type === 'Spor' ? 'selected' : ''}>Spor</option>
+          <option value="Seyahat" ${video.video_type === 'Seyahat' ? 'selected' : ''}>Seyahat</option>
+          <option value="Yemek" ${video.video_type === 'Yemek' ? 'selected' : ''}>Yemek</option>
+          <option value="Diğer" ${video.video_type === 'Diğer' ? 'selected' : ''}>Diğer</option>
+        </select>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="form-group">
           <label>Görüntülenme</label>
@@ -559,6 +584,8 @@ async function saveVideoEdit(videoId) {
     const data = {
       title: document.getElementById('edit-video-title').value,
       description: document.getElementById('edit-video-description').value,
+      tags: document.getElementById('edit-video-tags').value,
+      video_type: document.getElementById('edit-video-type').value,
       views: parseInt(document.getElementById('edit-video-views').value) || 0,
       likes: parseInt(document.getElementById('edit-video-likes').value) || 0,
       admin_notes: document.getElementById('edit-video-notes').value
@@ -2330,6 +2357,7 @@ function renderPagination(containerId, currentPage, totalPages, onPageClick) {
       else if (funcStr.includes('loadGroups')) funcName = 'loadGroups';
       else if (funcStr.includes('loadMessages')) funcName = 'loadMessages';
       else if (funcStr.includes('loadTSMusicApps')) funcName = 'loadTSMusicApps';
+      else if (funcStr.includes('loadPhotos')) funcName = 'loadPhotos';
     }
   }
   
@@ -2365,4 +2393,213 @@ function renderPagination(containerId, currentPage, totalPages, onPageClick) {
   
   html += '</div>';
   container.innerHTML = html;
+}
+
+// ==================== FOTOĞRAF YÖNETİMİ ====================
+
+async function renderPhotos() {
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    <div class="page-header">
+      <div class="page-title"><i class="fa-solid fa-image"></i> Fotoğraf Yönetimi</div>
+      <div class="page-subtitle">Tüm fotoğrafları görüntüle, düzenle ve yönet</div>
+    </div>
+    
+    <div class="card">
+      <div class="card-title">Filtreler ve Arama</div>
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <input type="text" id="photo-search" placeholder="Fotoğraf ara..." style="flex:1;min-width:200px" class="form-input">
+        <select id="photo-status-filter" class="form-input" style="width:150px">
+          <option value="all">Tüm Durumlar</option>
+          <option value="active">Aktif</option>
+          <option value="suspended">Askıya Alınmış</option>
+        </select>
+        <button class="btn btn-primary" onclick="loadPhotos()">
+          <i class="fa-solid fa-search"></i> Ara
+        </button>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-title">Fotoğraflar</div>
+      <div id="photos-container">Yükleniyor...</div>
+      <div id="photos-pagination"></div>
+    </div>
+  `;
+  
+  loadPhotos();
+}
+
+let currentPhotoPage = 1;
+
+async function loadPhotos(page = 1) {
+  try {
+    const search = document.getElementById('photo-search').value;
+    const status = document.getElementById('photo-status-filter').value;
+    
+    const params = new URLSearchParams({
+      page,
+      limit: 20,
+      search,
+      status
+    });
+    
+    const data = await api('GET', `/super-admin/photos?${params}`);
+    const container = document.getElementById('photos-container');
+    
+    if (!data.photos || data.photos.length === 0) {
+      container.innerHTML = '<p style="text-align:center;color:var(--text3);padding:40px">Fotoğraf bulunamadı</p>';
+      return;
+    }
+    
+    container.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px">
+        ${data.photos.map(photo => `
+          <div class="photo-card" style="background:var(--bg3);border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.1)">
+            <div style="position:relative;aspect-ratio:1;overflow:hidden">
+              <img src="${photo.banner_url}" style="width:100%;height:100%;object-fit:cover" onerror="this.src='/default-photo.png'">
+              ${photo.is_suspended ? '<div style="position:absolute;top:8px;right:8px;background:rgba(239,68,68,0.9);color:white;padding:4px 8px;border-radius:4px;font-size:11px;font-weight:600">ASKIDA</div>' : ''}
+            </div>
+            <div style="padding:16px">
+              <div style="font-weight:600;color:var(--text1);margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${photo.title}</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+                <img src="${photo.profile_photo || '/default-avatar.png'}" style="width:24px;height:24px;border-radius:50%;object-fit:cover">
+                <div>
+                  <div style="font-weight:500;font-size:13px">${photo.channel_name}</div>
+                  <div style="font-size:11px;color:var(--text3)">@${photo.username}</div>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text3);margin-bottom:12px">
+                <div><i class="fa-solid fa-eye"></i> ${photo.views || 0}</div>
+                <div><i class="fa-solid fa-thumbs-up"></i> ${photo.likes || 0}</div>
+                <div>${new Date(photo.created_at).toLocaleDateString('tr-TR')}</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-secondary btn-sm" onclick="editPhoto(${photo.id})" title="Düzenle" style="flex:1">
+                  <i class="fa-solid fa-edit"></i>
+                </button>
+                <button class="btn btn-${photo.is_suspended ? 'success' : 'warning'} btn-sm" 
+                        onclick="togglePhotoSuspension(${photo.id}, ${photo.is_suspended ? 0 : 1})" 
+                        title="${photo.is_suspended ? 'Askıyı Kaldır' : 'Askıya Al'}" style="flex:1">
+                  <i class="fa-solid fa-${photo.is_suspended ? 'play' : 'pause'}"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deletePhoto(${photo.id})" title="Sil" style="flex:1">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    
+    // Pagination
+    if (data.total > data.limit) {
+      document.getElementById('photos-pagination').innerHTML = `
+        <div style="margin-top:20px;text-align:center">
+          <div class="pagination">
+            ${data.page > 1 ? `<button class="page-btn" onclick="loadPhotos(${data.page - 1})">‹ Önceki</button>` : ''}
+            <span style="padding:8px 16px;color:var(--text2)">Sayfa ${data.page} / ${Math.ceil(data.total / data.limit)}</span>
+            ${data.page < Math.ceil(data.total / data.limit) ? `<button class="page-btn" onclick="loadPhotos(${data.page + 1})">Sonraki ›</button>` : ''}
+          </div>
+        </div>
+      `;
+    }
+    
+    currentPhotoPage = page;
+    
+  } catch (e) {
+    document.getElementById('photos-container').innerHTML = 
+      `<p style="color:var(--danger);text-align:center;padding:40px">Fotoğraflar yüklenemedi: ${e.message}</p>`;
+  }
+}
+
+async function editPhoto(photoId) {
+  try {
+    const photo = await api('GET', `/super-admin/photos/${photoId}`);
+    
+    openModal('Fotoğraf Düzenle', `
+      <div class="form-group">
+        <label>Başlık</label>
+        <input type="text" id="edit-photo-title" value="${photo.title}" class="form-input">
+      </div>
+      <div class="form-group">
+        <label>Açıklama</label>
+        <textarea id="edit-photo-description" class="form-input" rows="3">${photo.description || ''}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Algoritma Etiketleri (virgülle ayırın)</label>
+        <input type="text" id="edit-photo-tags" value="${photo.tags || ''}" class="form-input" placeholder="fotoğraf, sanat, doğa, portre">
+        <small style="color:var(--text3);font-size:12px">Örnek: fotoğraf, sanat, doğa, portre, manzara</small>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label>Görüntülenme</label>
+          <input type="number" id="edit-photo-views" value="${photo.views || 0}" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Beğeni</label>
+          <input type="number" id="edit-photo-likes" value="${photo.likes || 0}" class="form-input">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Admin Notları</label>
+        <textarea id="edit-photo-notes" class="form-input" rows="2">${photo.admin_notes || ''}</textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+        <button class="btn btn-primary" onclick="savePhotoEdit(${photoId})">Kaydet</button>
+      </div>
+    `);
+  } catch (e) {
+    toast('Fotoğraf bilgileri yüklenemedi: ' + e.message, 'error');
+  }
+}
+
+async function savePhotoEdit(photoId) {
+  try {
+    const data = {
+      title: document.getElementById('edit-photo-title').value,
+      description: document.getElementById('edit-photo-description').value,
+      tags: document.getElementById('edit-photo-tags').value,
+      views: parseInt(document.getElementById('edit-photo-views').value) || 0,
+      likes: parseInt(document.getElementById('edit-photo-likes').value) || 0,
+      admin_notes: document.getElementById('edit-photo-notes').value
+    };
+    
+    await api('PUT', `/super-admin/photos/${photoId}`, data);
+    toast('Fotoğraf başarıyla güncellendi');
+    closeModal();
+    loadPhotos(currentPhotoPage);
+  } catch (e) {
+    toast('Fotoğraf güncellenemedi: ' + e.message, 'error');
+  }
+}
+
+async function togglePhotoSuspension(photoId, suspended) {
+  const reason = suspended ? prompt('Askıya alma sebebi:') : null;
+  if (suspended && !reason) return;
+  
+  try {
+    await api('PUT', `/super-admin/photos/${photoId}/suspend`, { suspended, reason });
+    toast(suspended ? 'Fotoğraf askıya alındı' : 'Fotoğraf askısı kaldırıldı');
+    loadPhotos(currentPhotoPage);
+  } catch (e) {
+    toast('İşlem başarısız: ' + e.message, 'error');
+  }
+}
+
+async function deletePhoto(photoId) {
+  if (!confirm('Bu fotoğrafı kalıcı olarak silmek istediğinizden emin misiniz?')) return;
+  
+  const reason = prompt('Silme sebebi:');
+  if (!reason) return;
+  
+  try {
+    await api('DELETE', `/super-admin/photos/${photoId}`, { reason });
+    toast('Fotoğraf başarıyla silindi');
+    loadPhotos(currentPhotoPage);
+  } catch (e) {
+    toast('Fotoğraf silinemedi: ' + e.message, 'error');
+  }
 }

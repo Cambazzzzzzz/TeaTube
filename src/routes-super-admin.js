@@ -151,7 +151,7 @@ router.get('/videos/:id', requireRole('yetkili'), (req, res) => {
 // Video düzenle
 router.put('/videos/:id', requireRole('moderator'), (req, res) => {
   try {
-    const { title, description, views, likes, dislikes, admin_notes } = req.body;
+    const { title, description, tags, video_type, views, likes, dislikes, admin_notes } = req.body;
     const videoId = req.params.id;
     
     const oldVideo = db.prepare('SELECT * FROM videos WHERE id = ?').get(videoId);
@@ -159,13 +159,13 @@ router.put('/videos/:id', requireRole('moderator'), (req, res) => {
     
     db.prepare(`
       UPDATE videos 
-      SET title = ?, description = ?, views = ?, likes = ?, dislikes = ?, admin_notes = ?
+      SET title = ?, description = ?, tags = ?, video_type = ?, views = ?, likes = ?, dislikes = ?, admin_notes = ?
       WHERE id = ?
-    `).run(title, description, views, likes, dislikes, admin_notes, videoId);
+    `).run(title, description, tags, video_type, views, likes, dislikes, admin_notes, videoId);
     
     logAdminAction(req.userId, 'video_edit', 'video', videoId, oldVideo.channel_id, 
-      { title: oldVideo.title, views: oldVideo.views, likes: oldVideo.likes }, 
-      { title, views, likes }, 'Video düzenlendi', getClientIP(req));
+      { title: oldVideo.title, tags: oldVideo.tags, video_type: oldVideo.video_type, views: oldVideo.views, likes: oldVideo.likes }, 
+      { title, tags, video_type, views, likes }, 'Video düzenlendi', getClientIP(req));
     
     res.json({ success: true });
   } catch(e) {
@@ -1103,6 +1103,146 @@ router.put('/reports/:id', requireRole('yetkili'), (req, res) => {
     
     logAdminAction(req.userId, 'report_review', 'report', reportId, oldReport.reported_user_id, 
       { status: oldReport.status }, { status }, admin_notes, getClientIP(req));
+    
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ==================== FOTOĞRAF YÖNETİMİ ====================
+
+// Tüm fotoğrafları listele (videos tablosundan text_content olan kayıtlar)
+router.get('/photos', requireRole('yetkili'), (req, res) => {
+  try {
+    const { page = 1, limit = 20, search = '', status = 'all' } = req.query;
+    const offset = (page - 1) * limit;
+    
+    let whereClause = 'WHERE v.text_content IS NOT NULL AND v.text_content != ""';
+    let params = [];
+    
+    if (search) {
+      whereClause += ' AND (v.title LIKE ? OR v.description LIKE ? OR u.username LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+    
+    if (status !== 'all') {
+      if (status === 'suspended') {
+        whereClause += ' AND v.is_suspended = 1';
+      } else if (status === 'active') {
+        whereClause += ' AND v.is_suspended = 0';
+      }
+    }
+    
+    const photos = db.prepare(`
+      SELECT v.*, u.username, u.nickname, u.profile_photo, c.channel_name,
+             (SELECT COUNT(*) FROM comments WHERE video_id = v.id) as comment_count
+      FROM videos v
+      JOIN channels c ON v.channel_id = c.id
+      JOIN users u ON c.user_id = u.id
+      ${whereClause}
+      ORDER BY v.created_at DESC
+      LIMIT ? OFFSET ?
+    `).all(...params, limit, offset);
+    
+    const total = db.prepare(`
+      SELECT COUNT(*) as count
+      FROM videos v
+      JOIN channels c ON v.channel_id = c.id
+      JOIN users u ON c.user_id = u.id
+      ${whereClause}
+    `).get(...params).count;
+    
+    res.json({ photos, total, page: parseInt(page), limit: parseInt(limit) });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Fotoğraf detayları
+router.get('/photos/:id', requireRole('yetkili'), (req, res) => {
+  try {
+    const photo = db.prepare(`
+      SELECT v.*, u.username, u.nickname, c.channel_name, u.profile_photo,
+             (SELECT COUNT(*) FROM comments WHERE video_id = v.id) as comment_count,
+             (SELECT COUNT(*) FROM video_likes WHERE video_id = v.id AND like_type = 1) as like_count,
+             (SELECT COUNT(*) FROM video_likes WHERE video_id = v.id AND like_type = -1) as dislike_count
+      FROM videos v
+      JOIN channels c ON v.channel_id = c.id
+      JOIN users u ON c.user_id = u.id
+      WHERE v.id = ? AND v.text_content IS NOT NULL AND v.text_content != ""
+    `).get(req.params.id);
+    
+    if (!photo) return res.status(404).json({ error: 'Fotoğraf bulunamadı' });
+    
+    res.json(photo);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Fotoğraf düzenle
+router.put('/photos/:id', requireRole('moderator'), (req, res) => {
+  try {
+    const { title, description, tags, views, likes, dislikes, admin_notes } = req.body;
+    const photoId = req.params.id;
+    
+    const oldPhoto = db.prepare('SELECT * FROM videos WHERE id = ? AND text_content IS NOT NULL AND text_content != ""').get(photoId);
+    if (!oldPhoto) return res.status(404).json({ error: 'Fotoğraf bulunamadı' });
+    
+    db.prepare(`
+      UPDATE videos 
+      SET title = ?, description = ?, tags = ?, views = ?, likes = ?, dislikes = ?, admin_notes = ?
+      WHERE id = ?
+    `).run(title, description, tags, views, likes, dislikes, admin_notes, photoId);
+    
+    logAdminAction(req.userId, 'photo_edit', 'photo', photoId, oldPhoto.channel_id, 
+      { title: oldPhoto.title, tags: oldPhoto.tags, views: oldPhoto.views, likes: oldPhoto.likes }, 
+      { title, tags, views, likes }, 'Fotoğraf düzenlendi', getClientIP(req));
+    
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Fotoğraf askıya al/kaldır
+router.put('/photos/:id/suspend', requireRole('moderator'), (req, res) => {
+  try {
+    const { suspended, reason } = req.body;
+    const photoId = req.params.id;
+    
+    const oldPhoto = db.prepare('SELECT * FROM videos WHERE id = ? AND text_content IS NOT NULL AND text_content != ""').get(photoId);
+    if (!oldPhoto) return res.status(404).json({ error: 'Fotoğraf bulunamadı' });
+    
+    db.prepare(`
+      UPDATE videos 
+      SET is_suspended = ?, suspended_by_admin = ?, suspended_reason = ?
+      WHERE id = ?
+    `).run(suspended ? 1 : 0, suspended ? req.userId : null, suspended ? reason : null, photoId);
+    
+    logAdminAction(req.userId, suspended ? 'photo_suspend' : 'photo_unsuspend', 'photo', photoId, oldPhoto.channel_id, 
+      { is_suspended: oldPhoto.is_suspended }, { is_suspended: suspended }, reason, getClientIP(req));
+    
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Fotoğraf sil
+router.delete('/photos/:id', requireRole('admin'), (req, res) => {
+  try {
+    const photoId = req.params.id;
+    const { reason } = req.body;
+    
+    const photo = db.prepare('SELECT * FROM videos WHERE id = ? AND text_content IS NOT NULL AND text_content != ""').get(photoId);
+    if (!photo) return res.status(404).json({ error: 'Fotoğraf bulunamadı' });
+    
+    db.prepare('DELETE FROM videos WHERE id = ?').run(photoId);
+    
+    logAdminAction(req.userId, 'photo_delete', 'photo', photoId, photo.channel_id, 
+      { title: photo.title }, null, reason, getClientIP(req));
     
     res.json({ success: true });
   } catch(e) {
