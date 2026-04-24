@@ -87,6 +87,9 @@ function showAdminPage(page) {
 // ==================== DASHBOARD ====================
 
 async function renderDashboard() {
+  // Kullanıcı rolünü güncelle
+  updateUserRoleDisplay();
+  
   const main = document.getElementById('main-content');
   main.innerHTML = `
     <div class="page-header">
@@ -145,9 +148,9 @@ async function renderDashboard() {
         TeaTube Süper Admin Paneli - Tüm sistem verilerini, kullanıcıları, içerikleri ve yetkileri buradan yönetebilirsiniz.
         <br><br>
         <strong>Yetki Seviyeleri:</strong><br>
-        • <span style="color:#22c55e">Admin</span> - Tam yetki (yedekleme hariç tüm işlemler)<br>
-        • <span style="color:#f59e0b">Moderatör</span> - İçerik yönetimi, yasaklama, yetkili rolü verme<br>
-        • <span style="color:#3b82f6">Yetkili</span> - Sadece mute işlemleri ve yorum askıya alma
+        • <span style="color:#ef4444"><i class="fas fa-shield-alt"></i> Admin</span> - Tam yetki (yedekleme hariç tüm işlemler)<br>
+        • <span style="color:#8b5cf6"><i class="fas fa-shield-alt"></i> Moderatör</span> - İçerik yönetimi, yasaklama, yetkili rolü verme<br>
+        • <span style="color:#6b7280"><i class="fas fa-shield-alt"></i> Yetkili</span> - Sadece mute işlemleri ve yorum askıya alma
       </p>
     </div>
   `;
@@ -162,6 +165,22 @@ async function renderDashboard() {
     document.getElementById('stat-online').textContent = stats.onlineUsers || 0;
   } catch (e) {
     toast('İstatistikler yüklenemedi: ' + e.message, 'error');
+  }
+}
+
+function updateUserRoleDisplay() {
+  // Şimdilik admin olarak ayarla, gerçek uygulamada API'den gelecek
+  const userRole = 'admin'; // Bu değer API'den gelecek
+  const roleElement = document.getElementById('userRole');
+  
+  if (roleElement) {
+    const roleColor = getRoleColor(userRole);
+    const roleText = getRoleText(userRole);
+    
+    roleElement.innerHTML = `
+      <i class="fas fa-shield-alt" style="margin-right:5px;color:${roleColor}"></i>
+      <span style="color:${roleColor};font-weight:600">${roleText}</span>
+    `;
   }
 }
 
@@ -659,7 +678,13 @@ async function loadUsers(page = 1) {
                 <div style="display:flex;align-items:center;gap:8px">
                   <img src="${user.profile_photo || '/default-avatar.png'}" style="width:40px;height:40px;border-radius:50%;object-fit:cover">
                   <div>
-                    <div style="font-weight:600;color:var(--text1)">${user.nickname}</div>
+                    <div style="font-weight:600;color:var(--text1);display:flex;align-items:center;gap:4px">
+                      ${user.nickname}
+                      ${getRoleIcon(user.role || 'user')}
+                      <span style="color:${getRoleColor(user.role || 'user')};font-size:12px;font-weight:500">
+                        ${getRoleText(user.role || 'user')}
+                      </span>
+                    </div>
                     <div style="font-size:12px;color:var(--text3)">@${user.username}</div>
                   </div>
                 </div>
@@ -739,7 +764,7 @@ function getRoleBadge(role) {
   const badges = {
     'admin': 'danger',
     'moderator': 'warning', 
-    'yetkili': 'primary',
+    'yetkili': 'secondary',
     'user': 'secondary'
   };
   return badges[role] || 'secondary';
@@ -753,6 +778,24 @@ function getRoleText(role) {
     'user': 'Kullanıcı'
   };
   return texts[role] || 'Kullanıcı';
+}
+
+function getRoleColor(role) {
+  const colors = {
+    'admin': '#ef4444',      // Kırmızı
+    'moderator': '#8b5cf6',  // Mor
+    'yetkili': '#6b7280',    // Grimsi
+    'user': '#9ca3af'        // Açık gri
+  };
+  return colors[role] || '#9ca3af';
+}
+
+function getRoleIcon(role) {
+  // Tüm yetkili roller için shield ikonu
+  if (role === 'admin' || role === 'moderator' || role === 'yetkili') {
+    return '<i class="fas fa-shield-alt" style="margin-right:4px"></i>';
+  }
+  return '';
 }
 
 async function editUser(userId) {
@@ -1988,7 +2031,13 @@ async function loadRoles() {
                 <div style="display:flex;align-items:center;gap:8px">
                   <img src="${user.profile_photo || '/default-avatar.png'}" style="width:32px;height:32px;border-radius:50%;object-fit:cover">
                   <div>
-                    <div style="font-weight:500">${user.nickname}</div>
+                    <div style="font-weight:500;display:flex;align-items:center;gap:4px">
+                      ${user.nickname}
+                      ${getRoleIcon(user.role)}
+                      <span style="color:${getRoleColor(user.role)};font-size:12px;font-weight:500">
+                        ${getRoleText(user.role)}
+                      </span>
+                    </div>
                     <div style="font-size:12px;color:var(--text3)">@${user.username}</div>
                   </div>
                 </div>
