@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Allow: /anasayfa
+Allow: /reals
+Allow: /tsmusic
+Allow: /videolarim
+Allow: /sarkilarim
+Allow: /mesajlar
+Allow: /arkadaslar
+Allow: /gruplar
+Allow: /sarki-sozleri
+
+Disallow: /api/
+Disallow: /admin/
+
+Sitemap: https://teatube.com/sitemap.xml

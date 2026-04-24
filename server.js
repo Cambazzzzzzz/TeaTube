@@ -389,10 +389,28 @@ const pageRoutes = [
   '/sozlesme'
 ];
 
+// İçerik route'ları (dinamik ID'ler)
+const contentRoutePatterns = [
+  /^\/video\/\d+$/,
+  /^\/reals\/\d+$/,
+  /^\/sarki\/\d+$/,
+  /^\/kanal\/\d+$/
+];
+
 pageRoutes.forEach(route => {
   app.get(route, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   });
+});
+
+// Dinamik içerik route'ları
+app.get('*', (req, res, next) => {
+  const isContentRoute = contentRoutePatterns.some(pattern => pattern.test(req.path));
+  if (isContentRoute) {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  } else {
+    next();
+  }
 });
 // ==================== URL ROUTING END ====================
 

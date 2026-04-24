@@ -1379,6 +1379,45 @@ const PAGE_ROUTES = {
 // URL'den sayfa adını al
 function getPageFromURL() {
   const path = window.location.pathname;
+  
+  // Özel içerik URL'leri kontrol et (/video/123, /reals/456, /sarki/789)
+  if (path.startsWith('/video/')) {
+    const videoId = path.split('/')[2];
+    if (videoId) {
+      // Video ID'yi al ve videoyu oynat
+      setTimeout(() => playVideo(parseInt(videoId)), 100);
+      return 'home';
+    }
+  }
+  
+  if (path.startsWith('/reals/')) {
+    const videoId = path.split('/')[2];
+    if (videoId) {
+      // Reals ID'yi al ve reals'ı oynat
+      setTimeout(() => openShortFromHome(parseInt(videoId)), 100);
+      return 'reals';
+    }
+  }
+  
+  if (path.startsWith('/sarki/')) {
+    const songId = path.split('/')[2];
+    if (songId) {
+      // Şarkı ID'yi al ve şarkıyı oynat
+      setTimeout(() => playSong(parseInt(songId)), 100);
+      return 'ts-music';
+    }
+  }
+  
+  if (path.startsWith('/kanal/')) {
+    const channelId = path.split('/')[2];
+    if (channelId) {
+      // Kanal ID'yi al ve kanalı aç
+      setTimeout(() => viewChannel(parseInt(channelId)), 100);
+      return 'home';
+    }
+  }
+  
+  // Normal sayfa route'ları
   for (const [page, route] of Object.entries(PAGE_ROUTES)) {
     if (path === route) return page;
   }
@@ -1386,11 +1425,75 @@ function getPageFromURL() {
 }
 
 // Sayfa değiştiğinde URL'i güncelle
-function updateURL(page) {
+function updateURL(page, contentId = null, contentType = null) {
+  // Eğer özel içerik varsa (video, reals, şarkı)
+  if (contentId && contentType) {
+    const contentRoutes = {
+      'video': `/video/${contentId}`,
+      'reals': `/reals/${contentId}`,
+      'sarki': `/sarki/${contentId}`,
+      'kanal': `/kanal/${contentId}`
+    };
+    const route = contentRoutes[contentType];
+    if (route && window.location.pathname !== route) {
+      window.history.pushState({ page, contentId, contentType }, '', route);
+      return;
+    }
+  }
+  
+  // Normal sayfa route'u
   const route = PAGE_ROUTES[page];
   if (route && window.location.pathname !== route) {
     window.history.pushState({ page }, '', route);
   }
+}
+
+// Link kopyalama fonksiyonu
+function copyContentLink(contentId, contentType) {
+  const contentRoutes = {
+    'video': `/video/${contentId}`,
+    'reals': `/reals/${contentId}`,
+    'sarki': `/sarki/${contentId}`,
+    'kanal': `/kanal/${contentId}`
+  };
+  
+  const route = contentRoutes[contentType];
+  if (!route) {
+    showToast('Geçersiz içerik tipi', 'error');
+    return;
+  }
+  
+  const fullUrl = window.location.origin + route;
+  
+  // Clipboard API kullan
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      showToast('Link kopyalandı! 🔗', 'success');
+    }).catch(() => {
+      // Fallback
+      fallbackCopyLink(fullUrl);
+    });
+  } else {
+    // Fallback
+    fallbackCopyLink(fullUrl);
+  }
+}
+
+// Fallback link kopyalama
+function fallbackCopyLink(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    showToast('Link kopyalandı! 🔗', 'success');
+  } catch (err) {
+    showToast('Link kopyalanamadı', 'error');
+  }
+  document.body.removeChild(textarea);
 }
 
 // Tarayıcı geri/ileri butonları için
@@ -4259,6 +4362,9 @@ function renderTextGrid(texts, containerId) {
 }
 
 function openShortFromHome(videoId) {
+  // URL'i güncelle
+  updateURL('reals', videoId, 'reals');
+  
   videoId = parseInt(videoId);
   // Önce mevcut listede ara
   const idx = shortsVideos.findIndex(v => v.id === videoId);
@@ -4501,6 +4607,9 @@ async function showPhotoPage(video) {
 
 async function playVideo(videoId) {
   try {
+    // URL'i güncelle
+    updateURL('home', videoId, 'video');
+    
     const response = await fetch(`${API_URL}/video/${videoId}?userId=${currentUser.id}`);
     const video = await response.json();
 
@@ -6201,6 +6310,9 @@ function showVideoManageMenu(videoId, title, commentsEnabled, likesVisible, isHi
     </div>
 
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="yt-btn" onclick="copyContentLink(${videoId}, 'video'); closeModal();" style="flex:1; background:rgba(59,130,246,0.15); border-color:rgba(59,130,246,0.3); color:#60a5fa;">
+        <i class="fas fa-link"></i> Linki Kopyala
+      </button>
       <button class="yt-btn" onclick="saveVideoEdit(${videoId})" style="flex:1;">Kaydet</button>
       <button class="yt-btn yt-btn-secondary" onclick="confirmDeleteVideo(${videoId})" style="background:rgba(220,53,69,0.15); border-color:rgba(220,53,69,0.3); color:#ff6b6b;">
         <i class="fas fa-trash"></i> Sil
@@ -7558,6 +7670,9 @@ function showToast(message, type = 'info') {
 // Kanal görüntüleme
 async function viewChannel(channelId) {
   try {
+    // URL'i güncelle
+    updateURL('home', channelId, 'kanal');
+    
     // Engel kontrolü - engellenen veya engelleyen kişinin profilini gösterme
     if (currentUser) {
       const blockCheck = await fetch(`${API_URL}/is-blocked/${currentUser.id}/${channelId}`);
@@ -8954,6 +9069,9 @@ let tsMusicHomeShuffle = false;
 
 async function playSong(songId, queue = null, index = -1) {
   try {
+    // URL'i güncelle
+    updateURL('ts-music', songId, 'sarki');
+    
     const r = await fetch(API_URL + '/music/song/' + songId);
     const song = await r.json();
     if (!r.ok) return;
