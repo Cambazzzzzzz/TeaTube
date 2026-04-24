@@ -743,12 +743,14 @@ document.addEventListener('DOMContentLoaded', () => {
       loadUserData().then(() => {
         console.log('✅ Kullanıcı verileri yüklendi, sayfa açılıyor...');
         
-        if (urlPage) {
+        if (urlPage && urlPage !== 'home') {
+          // URL'de özel bir sayfa varsa onu aç
+          console.log('🔗 URL\'den sayfa yükleniyor:', urlPage);
           showPage(urlPage);
           try {
             // URL'deki sayfayı yükle
             switch(urlPage) {
-              case 'home': loadHomeFeed(); break;
+              case 'reals': loadRealsPage(); break;
               case 'ts-music': loadTSMusicPage(); break;
               case 'my-videos': loadMyVideosPage(); break;
               case 'my-songs': loadMySongsPage(); break;
@@ -757,13 +759,14 @@ document.addEventListener('DOMContentLoaded', () => {
               case 'groups': loadGroupsPage(); break;
               case 'notifications': loadNotificationsPage(); break;
               case 'settings': loadSettingsPage(); break;
-              default: loadMyVideosPage(); break;
+              case 'home': loadHomeFeed(); break;
+              default: loadHomeFeed(); break;
             }
           } catch (e) {
             console.log('Sayfa yükleme hatası:', e);
           }
         } else {
-          // URL'de sayfa yoksa Anasayfa'yı aç
+          // URL'de sayfa yoksa veya home ise Anasayfa'yı aç
           showPage('home');
           try {
             loadHomeFeed();
@@ -775,9 +778,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }).catch(e => {
         console.error('⚠️ Arka plan hatası (TAMAMEN ÖNEMSIZ):', e);
         console.log('🔒 Hata olmasına rağmen oturum güvenli şekilde devam ediyor!');
-        // Hata olsa bile sayfayı aç
-        showPage('home');
-        loadHomeFeed();
+        // Hata olsa bile URL'deki sayfayı aç
+        if (urlPage && urlPage !== 'home') {
+          showPage(urlPage);
+        } else {
+          showPage('home');
+          loadHomeFeed();
+        }
       });
       
       return; // BURADAN ÇIK - BAŞKA HİÇBİR ŞEY YAPMA!
@@ -1394,7 +1401,7 @@ const PAGE_ROUTES = {
 function getPageFromURL() {
   const path = window.location.pathname;
   
-  // Özel içerik URL'leri kontrol et (/video/123, /reals/456, /sarki/789)
+  // Özel içerik URL'leri kontrol et (/video/123, /reals/456, /sarki/789, /foto/101)
   if (path.startsWith('/video/')) {
     const videoId = path.split('/')[2];
     if (videoId) {
@@ -1422,6 +1429,15 @@ function getPageFromURL() {
     }
   }
   
+  if (path.startsWith('/foto/')) {
+    const photoId = path.split('/')[2];
+    if (photoId) {
+      // Foto ID'yi al ve fotoyu oynat
+      setTimeout(() => playVideo(parseInt(photoId)), 100);
+      return 'home';
+    }
+  }
+  
   if (path.startsWith('/kanal/')) {
     const channelId = path.split('/')[2];
     if (channelId) {
@@ -1440,12 +1456,14 @@ function getPageFromURL() {
 
 // Sayfa değiştiğinde URL'i güncelle
 function updateURL(page, contentId = null, contentType = null) {
-  // Eğer özel içerik varsa (video, reals, şarkı)
+  // Eğer özel içerik varsa (video, reals, şarkı, foto)
   if (contentId && contentType) {
     const contentRoutes = {
       'video': `/video/${contentId}`,
       'reals': `/reals/${contentId}`,
       'sarki': `/sarki/${contentId}`,
+      'foto': `/foto/${contentId}`,
+      'photo': `/foto/${contentId}`,
       'kanal': `/kanal/${contentId}`
     };
     const route = contentRoutes[contentType];
@@ -1468,6 +1486,8 @@ function copyContentLink(contentId, contentType) {
     'video': `/video/${contentId}`,
     'reals': `/reals/${contentId}`,
     'sarki': `/sarki/${contentId}`,
+    'foto': `/foto/${contentId}`,
+    'photo': `/foto/${contentId}`,
     'kanal': `/kanal/${contentId}`
   };
   
@@ -6249,45 +6269,178 @@ async function loadMyVideosPage() {
 function renderMyVideos(videos) {
   const container = document.getElementById('myVideos');
   if (!container) return;
+  
   if (!videos || videos.length === 0) {
-    container.innerHTML = '<p style="color:var(--yt-spec-text-secondary); padding:20px 0;">Henüz içerik yok. Yükle butonuna bas!</p>';
+    container.innerHTML = `
+      <div style="text-align:center; padding:80px 20px;">
+        <div style="width:120px; height:120px; background:linear-gradient(135deg, var(--yt-spec-brand-background-solid)22, transparent); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 24px; border:3px dashed var(--yt-spec-brand-background-solid)44;">
+          <i class="fas fa-video" style="font-size:48px; color:var(--yt-spec-brand-background-solid); opacity:0.6;"></i>
+        </div>
+        <h3 style="font-size:24px; font-weight:700; margin-bottom:12px; color:var(--yt-spec-text-primary);">Henüz içerik yok</h3>
+        <p style="color:var(--yt-spec-text-secondary); margin-bottom:32px; font-size:15px;">İlk içeriğini paylaş ve topluluğa katıl!</p>
+        <button class="yt-btn" onclick="showUploadVideoModal()" style="height:48px; padding:0 32px; font-size:15px; box-shadow:0 4px 12px var(--yt-spec-brand-background-solid)44;">
+          <i class="fas fa-upload" style="margin-right:8px;"></i>İlk İçeriğini Yükle
+        </button>
+      </div>
+    `;
     return;
   }
   
-  // Reals formatında grid göster
+  // İstatistikler
+  const totalViews = videos.reduce((sum, v) => sum + (v.views || 0), 0);
+  const totalLikes = videos.reduce((sum, v) => sum + (v.likes || 0), 0);
+  const hiddenCount = videos.filter(v => v.is_hidden).length;
+  
   container.innerHTML = `
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px;">
-      ${videos.map(v => `
-        <div style="position: relative;">
-          <div style="position: relative; width: 100%; padding-bottom: 177.78%; background: #000; border-radius: 12px; overflow: hidden; cursor: pointer; transition: transform 0.2s; ${v.is_hidden ? 'opacity:0.6;' : ''}"
-               onmouseover="this.style.transform='scale(1.02)'" 
-               onmouseout="this.style.transform='scale(1)'"
-               onclick="playVideo(${v.id})">
-            <img src="${v.banner_url}" 
-                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" 
-                 onerror="this.src='logoteatube.png'" />
-            <div style="position: absolute; bottom: 8px; left: 8px; right: 8px; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.8);">
-              <p style="font-size: 13px; font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 4px;">${v.title}</p>
-              <div style="display: flex; gap: 8px; font-size: 11px; opacity: 0.9;">
-                <span><i class="fas fa-eye"></i> ${v.views}</span>
-                <span><i class="fas fa-thumbs-up"></i> ${v.likes}</span>
-              </div>
-            </div>
-            ${v.is_hidden ? '<div style="position: absolute; top: 8px; left: 8px; background: rgba(255,165,0,0.9); backdrop-filter: blur(4px); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: white; font-weight: 600;"><i class="fas fa-eye-slash"></i> GİZLİ</div>' : ''}
-            ${!v.comments_enabled ? '<div style="position: absolute; top: 8px; right: 8px; background: rgba(255,0,0,0.9); backdrop-filter: blur(4px); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: white; font-weight: 600;"><i class="fas fa-comment-slash"></i></div>' : ''}
+    <!-- İstatistik Kartları -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:32px;">
+      <div style="background:var(--yt-spec-raised-background); border-radius:12px; padding:20px; border:1px solid var(--yt-spec-border);">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:48px; height:48px; background:linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius:12px; display:flex; align-items:center; justify-content:center;">
+            <i class="fas fa-video" style="font-size:20px; color:white;"></i>
           </div>
-          <button onclick="event.stopPropagation(); showVideoManageMenu(${v.id}, ${v.share_id ? `'${v.share_id}'` : `'${v.id}'`}, '${v.title.replace(/'/g,"\\'")}', ${v.comments_enabled}, ${v.likes_visible}, ${v.is_hidden || 0})"
-            style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); border: none; color: white; cursor: pointer; padding: 6px 10px; border-radius: 6px; z-index: 10;"
-            title="Yönet">
-            <i class="fas fa-ellipsis-v"></i>
-          </button>
+          <div>
+            <p style="font-size:28px; font-weight:700; color:var(--yt-spec-text-primary); line-height:1;">${videos.length}</p>
+            <p style="font-size:13px; color:var(--yt-spec-text-secondary); margin-top:4px;">Toplam İçerik</p>
+          </div>
         </div>
-      `).join('')}
+      </div>
+      
+      <div style="background:var(--yt-spec-raised-background); border-radius:12px; padding:20px; border:1px solid var(--yt-spec-border);">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:48px; height:48px; background:linear-gradient(135deg, #10b981, #059669); border-radius:12px; display:flex; align-items:center; justify-content:center;">
+            <i class="fas fa-eye" style="font-size:20px; color:white;"></i>
+          </div>
+          <div>
+            <p style="font-size:28px; font-weight:700; color:var(--yt-spec-text-primary); line-height:1;">${formatNumber(totalViews)}</p>
+            <p style="font-size:13px; color:var(--yt-spec-text-secondary); margin-top:4px;">Toplam Görüntülenme</p>
+          </div>
+        </div>
+      </div>
+      
+      <div style="background:var(--yt-spec-raised-background); border-radius:12px; padding:20px; border:1px solid var(--yt-spec-border);">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:48px; height:48px; background:linear-gradient(135deg, #f43f5e, #e11d48); border-radius:12px; display:flex; align-items:center; justify-content:center;">
+            <i class="fas fa-heart" style="font-size:20px; color:white;"></i>
+          </div>
+          <div>
+            <p style="font-size:28px; font-weight:700; color:var(--yt-spec-text-primary); line-height:1;">${formatNumber(totalLikes)}</p>
+            <p style="font-size:13px; color:var(--yt-spec-text-secondary); margin-top:4px;">Toplam Beğeni</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Filtre ve Sıralama -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="filter-btn active" onclick="filterMyVideos('all')" data-filter="all" style="padding:8px 16px; border-radius:8px; border:1px solid var(--yt-spec-border); background:var(--yt-spec-brand-background-solid); color:white; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s;">
+          Tümü (${videos.length})
+        </button>
+        <button class="filter-btn" onclick="filterMyVideos('visible')" data-filter="visible" style="padding:8px 16px; border-radius:8px; border:1px solid var(--yt-spec-border); background:var(--yt-spec-raised-background); color:var(--yt-spec-text-secondary); cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s;">
+          Görünür (${videos.length - hiddenCount})
+        </button>
+        <button class="filter-btn" onclick="filterMyVideos('hidden')" data-filter="hidden" style="padding:8px 16px; border-radius:8px; border:1px solid var(--yt-spec-border); background:var(--yt-spec-raised-background); color:var(--yt-spec-text-secondary); cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s;">
+          Gizli (${hiddenCount})
+        </button>
+      </div>
+      <select onchange="sortMyVideos(this.value)" style="padding:8px 12px; border-radius:8px; border:1px solid var(--yt-spec-border); background:var(--yt-spec-raised-background); color:var(--yt-spec-text-primary); cursor:pointer; font-size:13px;">
+        <option value="newest">En Yeni</option>
+        <option value="oldest">En Eski</option>
+        <option value="views">En Çok İzlenen</option>
+        <option value="likes">En Çok Beğenilen</option>
+      </select>
+    </div>
+    
+    <!-- Video Grid -->
+    <div id="videoGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:16px;">
+      ${videos.map(v => {
+        // İçerik tipini belirle
+        let contentType = 'video';
+        if (v.video_type === 'Fotoğraf') contentType = 'foto';
+        else if (v.video_type === 'Reals') contentType = 'reals';
+        else if (v.video_type === 'Şarkı') contentType = 'sarki';
+        
+        return `
+        <div class="video-card" data-hidden="${v.is_hidden ? 'true' : 'false'}" data-views="${v.views}" data-likes="${v.likes}" data-date="${v.created_at}" style="position:relative; background:var(--yt-spec-raised-background); border-radius:12px; overflow:hidden; transition:transform 0.2s, box-shadow 0.2s; border:1px solid var(--yt-spec-border);" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)';" onmouseout="this.style.transform=''; this.style.boxShadow='';">
+          <div style="position:relative; width:100%; padding-bottom:56.25%; background:#000; cursor:pointer;" onclick="playVideo(${v.id})">
+            <img src="${v.banner_url}" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover;" onerror="this.src='logoteatube.png'" />
+            <div style="position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 50%);"></div>
+            ${v.is_hidden ? '<div style="position:absolute; top:8px; left:8px; background:rgba(255,165,0,0.95); backdrop-filter:blur(8px); padding:6px 10px; border-radius:8px; font-size:11px; color:white; font-weight:700; box-shadow:0 2px 8px rgba(0,0,0,0.3);"><i class="fas fa-eye-slash"></i> GİZLİ</div>' : ''}
+            <div style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.8); backdrop-filter:blur(4px); padding:4px 8px; border-radius:6px; font-size:11px; color:white; font-weight:600;">${v.duration ? formatDuration(v.duration) : '0:00'}</div>
+          </div>
+          <div style="padding:12px;">
+            <h4 style="font-size:14px; font-weight:600; color:var(--yt-spec-text-primary); margin-bottom:8px; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.4;">${v.title}</h4>
+            <div style="display:flex; align-items:center; gap:12px; font-size:12px; color:var(--yt-spec-text-secondary); margin-bottom:12px;">
+              <span><i class="fas fa-eye" style="margin-right:4px;"></i>${formatNumber(v.views)}</span>
+              <span><i class="fas fa-heart" style="margin-right:4px;"></i>${formatNumber(v.likes)}</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button onclick="event.stopPropagation(); showVideoManageMenu(${v.id}, ${v.share_id ? `'${v.share_id}'` : `'${v.id}'`}, '${v.title.replace(/'/g,"\\'")}', ${v.comments_enabled}, ${v.likes_visible}, ${v.is_hidden || 0}, '${contentType}')" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--yt-spec-border); background:var(--yt-spec-raised-background); color:var(--yt-spec-text-primary); cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s;" onmouseover="this.style.background='var(--yt-spec-brand-background-solid)'; this.style.color='white';" onmouseout="this.style.background='var(--yt-spec-raised-background)'; this.style.color='var(--yt-spec-text-primary)';">
+                <i class="fas fa-edit"></i> Düzenle
+              </button>
+              <button onclick="event.stopPropagation(); copyContentLink('${v.share_id || v.id}', '${contentType}')" style="padding:8px 12px; border-radius:8px; border:1px solid var(--yt-spec-border); background:var(--yt-spec-raised-background); color:var(--yt-spec-text-secondary); cursor:pointer; font-size:12px; transition:all 0.2s;" onmouseover="this.style.background='var(--yt-spec-brand-background-solid)'; this.style.color='white';" onmouseout="this.style.background='var(--yt-spec-raised-background)'; this.style.color='var(--yt-spec-text-secondary)';" title="Linki Kopyala">
+                <i class="fas fa-link"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      }).join('')}
     </div>
   `;
 }
 
-function showVideoManageMenu(videoId, shareId, title, commentsEnabled, likesVisible, isHidden) {
+// Filtre fonksiyonu
+function filterMyVideos(filter) {
+  const cards = document.querySelectorAll('.video-card');
+  const buttons = document.querySelectorAll('.filter-btn');
+  
+  buttons.forEach(btn => {
+    if (btn.getAttribute('data-filter') === filter) {
+      btn.style.background = 'var(--yt-spec-brand-background-solid)';
+      btn.style.color = 'white';
+      btn.classList.add('active');
+    } else {
+      btn.style.background = 'var(--yt-spec-raised-background)';
+      btn.style.color = 'var(--yt-spec-text-secondary)';
+      btn.classList.remove('active');
+    }
+  });
+  
+  cards.forEach(card => {
+    const isHidden = card.getAttribute('data-hidden') === 'true';
+    if (filter === 'all') {
+      card.style.display = '';
+    } else if (filter === 'visible') {
+      card.style.display = isHidden ? 'none' : '';
+    } else if (filter === 'hidden') {
+      card.style.display = isHidden ? '' : 'none';
+    }
+  });
+}
+
+// Sıralama fonksiyonu
+function sortMyVideos(sortBy) {
+  const grid = document.getElementById('videoGrid');
+  const cards = Array.from(document.querySelectorAll('.video-card'));
+  
+  cards.sort((a, b) => {
+    if (sortBy === 'newest') {
+      return new Date(b.getAttribute('data-date')) - new Date(a.getAttribute('data-date'));
+    } else if (sortBy === 'oldest') {
+      return new Date(a.getAttribute('data-date')) - new Date(b.getAttribute('data-date'));
+    } else if (sortBy === 'views') {
+      return parseInt(b.getAttribute('data-views')) - parseInt(a.getAttribute('data-views'));
+    } else if (sortBy === 'likes') {
+      return parseInt(b.getAttribute('data-likes')) - parseInt(a.getAttribute('data-likes'));
+    }
+  });
+  
+  cards.forEach(card => grid.appendChild(card));
+}
+
+function showVideoManageMenu(videoId, shareId, title, commentsEnabled, likesVisible, isHidden, contentType = 'video') {
   showModal(`
     <p style="font-size:13px; color:var(--yt-spec-text-secondary); margin-bottom:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${title}</p>
 
@@ -6316,7 +6469,7 @@ function showVideoManageMenu(videoId, shareId, title, commentsEnabled, likesVisi
     </div>
 
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="yt-btn" onclick="copyContentLink('${shareId}', 'video'); closeModal();" style="flex:1; background:rgba(59,130,246,0.15); border-color:rgba(59,130,246,0.3); color:#60a5fa;">
+      <button class="yt-btn" onclick="copyContentLink('${shareId}', '${contentType}'); closeModal();" style="flex:1; background:rgba(59,130,246,0.15); border-color:rgba(59,130,246,0.3); color:#60a5fa;">
         <i class="fas fa-link"></i> Linki Kopyala
       </button>
       <button class="yt-btn" onclick="saveVideoEdit(${videoId})" style="flex:1;">Kaydet</button>
@@ -6950,9 +7103,98 @@ async function selectTheme(theme) {
   } catch(e) { console.error(e); }
 }
 
+function showThemeSelector() {
+  const darkThemes = [
+    { id: 'dark', name: 'Klasik Karanlık', icon: 'moon', color: '#ff0000' },
+    { id: 'darkmorp', name: 'DarkMorp', icon: 'star', color: '#8b5cf6' },
+    { id: 'neon-purple', name: 'Neon Mor', icon: 'bolt', color: '#9b59b6' },
+    { id: 'ocean-blue', name: 'Okyanus Mavisi', icon: 'water', color: '#1e90ff' },
+    { id: 'fire-red', name: 'Ateş Kırmızısı', icon: 'fire', color: '#ff4500' },
+    { id: 'forest-green', name: 'Orman Yeşili', icon: 'tree', color: '#2ecc71' },
+    { id: 'gold', name: 'Altın', icon: 'crown', color: '#f1c40f' },
+    { id: 'midnight-blue', name: 'Gece Mavisi', icon: 'moon', color: '#3ea6ff' },
+    { id: 'orange-fire', name: 'Turuncu Ateş', icon: 'fire-alt', color: '#ff6b00' },
+    { id: 'pink-dream', name: 'Pembe Rüya', icon: 'heart', color: '#e91e8c' },
+    { id: 'aurora', name: 'Aurora', icon: 'sparkles', color: '#00e5ff' },
+    { id: 'sunset-glow', name: 'Gün Batımı', icon: 'sun', color: '#ff6b35' },
+    { id: 'deep-space', name: 'Derin Uzay', icon: 'rocket', color: '#7c3aed' },
+    { id: 'emerald-night', name: 'Zümrüt Gece', icon: 'gem', color: '#10b981' },
+    { id: 'rose-gold', name: 'Gül Altın', icon: 'rose', color: '#f43f5e' }
+  ];
+  
+  const lightThemes = [
+    { id: 'light', name: 'Klasik Aydınlık', icon: 'sun', color: '#ff0000' },
+    { id: 'light-blue', name: 'Açık Mavi', icon: 'cloud', color: '#2196f3' },
+    { id: 'light-purple', name: 'Açık Mor', icon: 'flower', color: '#9c27b0' },
+    { id: 'light-green', name: 'Açık Yeşil', icon: 'leaf', color: '#4caf50' },
+    { id: 'light-orange', name: 'Açık Turuncu', icon: 'sun', color: '#ff9800' },
+    { id: 'light-pink', name: 'Açık Pembe', icon: 'heart', color: '#e91e63' },
+    { id: 'light-teal', name: 'Açık Turkuaz', icon: 'water', color: '#009688' }
+  ];
+  
+  const currentTheme = currentUser?.theme || 'dark';
+  
+  showModal(`
+    <h3 style="font-size:20px; font-weight:700; margin-bottom:24px; color:var(--yt-spec-text-primary);">
+      <i class="fas fa-palette"></i> Tema Seç
+    </h3>
+    
+    <!-- Karanlık Temalar -->
+    <div style="margin-bottom:32px;">
+      <h4 style="font-size:16px; font-weight:600; margin-bottom:16px; color:var(--yt-spec-text-primary); display:flex; align-items:center; gap:8px;">
+        <i class="fas fa-moon"></i> Karanlık Temalar
+      </h4>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:12px;">
+        ${darkThemes.map(theme => `
+          <div class="theme-option ${currentTheme === theme.id ? 'active' : ''}" 
+               onclick="selectTheme('${theme.id}'); closeModal();" 
+               style="position:relative; background:var(--yt-spec-raised-background); border:2px solid ${currentTheme === theme.id ? theme.color : 'var(--yt-spec-border)'}; border-radius:12px; padding:16px; cursor:pointer; transition:all 0.2s; text-align:center;"
+               onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)';"
+               onmouseout="this.style.transform=''; this.style.boxShadow='';">
+            ${currentTheme === theme.id ? `<div style="position:absolute; top:8px; right:8px; width:20px; height:20px; background:${theme.color}; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-check" style="font-size:10px; color:white;"></i></div>` : ''}
+            <div style="width:48px; height:48px; background:linear-gradient(135deg, ${theme.color}, ${theme.color}88); border-radius:12px; display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
+              <i class="fas fa-${theme.icon}" style="font-size:20px; color:white;"></i>
+            </div>
+            <p style="font-size:13px; font-weight:600; color:var(--yt-spec-text-primary); margin-bottom:4px;">${theme.name}</p>
+            <div style="width:100%; height:4px; background:linear-gradient(90deg, ${theme.color}, ${theme.color}44); border-radius:2px; margin-top:8px;"></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    
+    <!-- Aydınlık Temalar -->
+    <div>
+      <h4 style="font-size:16px; font-weight:600; margin-bottom:16px; color:var(--yt-spec-text-primary); display:flex; align-items:center; gap:8px;">
+        <i class="fas fa-sun"></i> Aydınlık Temalar
+      </h4>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:12px;">
+        ${lightThemes.map(theme => `
+          <div class="theme-option ${currentTheme === theme.id ? 'active' : ''}" 
+               onclick="selectTheme('${theme.id}'); closeModal();" 
+               style="position:relative; background:var(--yt-spec-raised-background); border:2px solid ${currentTheme === theme.id ? theme.color : 'var(--yt-spec-border)'}; border-radius:12px; padding:16px; cursor:pointer; transition:all 0.2s; text-align:center;"
+               onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)';"
+               onmouseout="this.style.transform=''; this.style.boxShadow='';">
+            ${currentTheme === theme.id ? `<div style="position:absolute; top:8px; right:8px; width:20px; height:20px; background:${theme.color}; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-check" style="font-size:10px; color:white;"></i></div>` : ''}
+            <div style="width:48px; height:48px; background:linear-gradient(135deg, ${theme.color}, ${theme.color}88); border-radius:12px; display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
+              <i class="fas fa-${theme.icon}" style="font-size:20px; color:white;"></i>
+            </div>
+            <p style="font-size:13px; font-weight:600; color:var(--yt-spec-text-primary); margin-bottom:4px;">${theme.name}</p>
+            <div style="width:100%; height:4px; background:linear-gradient(90deg, ${theme.color}, ${theme.color}44); border-radius:2px; margin-top:8px;"></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    
+    <div style="margin-top:24px; padding-top:20px; border-top:1px solid var(--yt-spec-border); text-align:center;">
+      <button class="yt-btn yt-btn-secondary" onclick="closeModal()" style="padding:10px 24px;">Kapat</button>
+    </div>
+  `, 'Tema Seçici');
+}
+
 function applyTheme(theme) {
   const root = document.documentElement;
   const themes = {
+    // DARK THEMES
     'dark': {
       bg: '#0f0f0f', raised: '#212121', accent: '#ff0000', accentHover: '#cc0000', text: '#f1f1f1', textSec: '#aaaaaa'
     },
@@ -6974,9 +7216,6 @@ function applyTheme(theme) {
     },
     'gold': {
       bg: '#1a1500', raised: '#2a2200', accent: '#f1c40f', accentHover: '#d4ac0d', text: '#fffde7', textSec: '#fff176'
-    },
-    'light': {
-      bg: '#f9f9f9', raised: '#ffffff', accent: '#ff0000', accentHover: '#cc0000', text: '#0f0f0f', textSec: '#606060'
     },
     'midnight-blue': {
       bg: '#050a1a', raised: '#0a1428', accent: '#3ea6ff', accentHover: '#1a7fd4', text: '#e8f4fd', textSec: '#90caf9'
@@ -7006,6 +7245,35 @@ function applyTheme(theme) {
     'rose-gold': {
       bg: '#1a0a0f', raised: '#2d0f1a', accent: '#f43f5e', accentHover: '#e11d48', text: '#ffe4e6', textSec: '#fda4af',
       bodyGradient: 'linear-gradient(160deg,#1a0a0f 0%,#2d0f1a 40%,#1a0a0f 100%)'
+    },
+    
+    // LIGHT THEMES
+    'light': {
+      bg: '#f9f9f9', raised: '#ffffff', accent: '#ff0000', accentHover: '#cc0000', text: '#0f0f0f', textSec: '#606060'
+    },
+    'light-blue': {
+      bg: '#e3f2fd', raised: '#ffffff', accent: '#2196f3', accentHover: '#1976d2', text: '#0d47a1', textSec: '#546e7a',
+      bodyGradient: 'linear-gradient(160deg, #e3f2fd 0%, #bbdefb 50%, #e3f2fd 100%)'
+    },
+    'light-purple': {
+      bg: '#f3e5f5', raised: '#ffffff', accent: '#9c27b0', accentHover: '#7b1fa2', text: '#4a148c', textSec: '#6a1b9a',
+      bodyGradient: 'linear-gradient(160deg, #f3e5f5 0%, #e1bee7 50%, #f3e5f5 100%)'
+    },
+    'light-green': {
+      bg: '#e8f5e9', raised: '#ffffff', accent: '#4caf50', accentHover: '#388e3c', text: '#1b5e20', textSec: '#558b2f',
+      bodyGradient: 'linear-gradient(160deg, #e8f5e9 0%, #c8e6c9 50%, #e8f5e9 100%)'
+    },
+    'light-orange': {
+      bg: '#fff3e0', raised: '#ffffff', accent: '#ff9800', accentHover: '#f57c00', text: '#e65100', textSec: '#ef6c00',
+      bodyGradient: 'linear-gradient(160deg, #fff3e0 0%, #ffe0b2 50%, #fff3e0 100%)'
+    },
+    'light-pink': {
+      bg: '#fce4ec', raised: '#ffffff', accent: '#e91e63', accentHover: '#c2185b', text: '#880e4f', textSec: '#ad1457',
+      bodyGradient: 'linear-gradient(160deg, #fce4ec 0%, #f8bbd0 50%, #fce4ec 100%)'
+    },
+    'light-teal': {
+      bg: '#e0f2f1', raised: '#ffffff', accent: '#009688', accentHover: '#00796b', text: '#004d40', textSec: '#00695c',
+      bodyGradient: 'linear-gradient(160deg, #e0f2f1 0%, #b2dfdb 50%, #e0f2f1 100%)'
     }
   };
 
@@ -8538,7 +8806,12 @@ function loadTermsPage() {
     .then(data => {
       pageContent.innerHTML = `
         <div style="max-width: 900px; margin: 0 auto; padding: 20px;">
-          <h2 class="section-header">Kullanım Koşulları</h2>
+          <!-- Tea Logo -->
+          <div style="text-align:center; margin-bottom:32px;">
+            <img src="logoteatube.png" alt="TeaTube" style="width:120px; height:120px; border-radius:24px; box-shadow:0 8px 24px rgba(0,0,0,0.3); border:3px solid var(--yt-spec-brand-background-solid);" onerror="this.style.display='none'" />
+          </div>
+          
+          <h2 class="section-header" style="text-align:center;">Kullanım Koşulları</h2>
           
           <div class="settings-card">
             <div style="white-space: pre-wrap; color: var(--yt-spec-text-secondary); line-height: 1.8;">
@@ -8558,7 +8831,12 @@ function loadTermsPage() {
       console.error('Kullanım koşulları yüklenemedi:', err);
       pageContent.innerHTML = `
         <div style="max-width: 900px; margin: 0 auto; padding: 20px;">
-          <h2 class="section-header">Kullanım Koşulları</h2>
+          <!-- Tea Logo -->
+          <div style="text-align:center; margin-bottom:32px;">
+            <img src="logoteatube.png" alt="TeaTube" style="width:120px; height:120px; border-radius:24px; box-shadow:0 8px 24px rgba(0,0,0,0.3); border:3px solid var(--yt-spec-brand-background-solid);" onerror="this.style.display='none'" />
+          </div>
+          
+          <h2 class="section-header" style="text-align:center;">Kullanım Koşulları</h2>
           <div class="settings-card">
             <p style="color: var(--yt-spec-text-secondary);">Kullanım koşulları yüklenemedi. Lütfen daha sonra tekrar deneyin.</p>
           </div>

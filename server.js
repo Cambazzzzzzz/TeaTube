@@ -394,6 +394,7 @@ const contentRoutePatterns = [
   /^\/video\/[a-zA-Z0-9]+$/,
   /^\/reals\/[a-zA-Z0-9]+$/,
   /^\/sarki\/[a-zA-Z0-9]+$/,
+  /^\/foto\/[a-zA-Z0-9]+$/,
   /^\/kanal\/\d+$/
 ];
 

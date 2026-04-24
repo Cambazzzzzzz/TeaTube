@@ -1359,11 +1359,19 @@ router.post('/comment', (req, res) => {
       }
     } else {
       // Video sahibine bildirim
-      const video = db.prepare('SELECT title, channel_id FROM videos WHERE id = ?').get(videoId);
+      const video = db.prepare('SELECT title, channel_id, video_type FROM videos WHERE id = ?').get(videoId);
       const channel = db.prepare('SELECT user_id FROM channels WHERE id = ?').get(video.channel_id);
       if (channel.user_id !== userId) {
+        // İçerik tipine göre bildirim metni
+        let contentType = 'videonuza';
+        if (video.video_type === 'Fotoğraf') {
+          contentType = 'fotonuza';
+        } else if (video.video_type === 'TeaWeet' || video.video_type === 'Metin') {
+          contentType = 'gönderinize';
+        }
+        
         db.prepare('INSERT INTO notifications (user_id, type, content, related_id) VALUES (?, ?, ?, ?)')
-          .run(channel.user_id, 'new_comment', `${user.nickname} videonuza yorum yaptÄ±: ${video.title}`, videoId);
+          .run(channel.user_id, 'new_comment', `${user.nickname} ${contentType} yorum yaptı: ${video.title}`, videoId);
       }
     }
 
@@ -2229,7 +2237,7 @@ router.delete('/video/:videoId', (req, res) => {
 // Video gÃ¼ncelle (baÅŸlÄ±k, aÃ§Ä±klama, yorumlar, beÄŸeniler, gizlilik)
 router.put('/video/:videoId', (req, res) => {
   try {
-    const { title, description, commentsEnabled, likesVisible, isHidden, channelId } = req.body;
+    const { title, description, commentsEnabled, likesVisible, isHidden, channelId, share_id } = req.body;
     const video = db.prepare('SELECT channel_id FROM videos WHERE id = ?').get(req.params.videoId);
     if (!video) return res.status(404).json({ error: 'Video bulunamadÄ±' });
     if (channelId && video.channel_id != channelId) return res.status(403).json({ error: 'Yetkisiz' });
@@ -2243,9 +2251,10 @@ router.put('/video/:videoId', (req, res) => {
         description = COALESCE(?, description),
         comments_enabled = COALESCE(?, comments_enabled),
         likes_visible = COALESCE(?, likes_visible),
-        is_hidden = COALESCE(?, is_hidden)
+        is_hidden = COALESCE(?, is_hidden),
+        share_id = COALESCE(?, share_id)
       WHERE id = ?
-    `).run(title ?? null, description ?? null, commentsEnabled ?? null, likesVisible ?? null, isHidden ?? null, req.params.videoId);
+    `).run(title ?? null, description ?? null, commentsEnabled ?? null, likesVisible ?? null, isHidden ?? null, share_id ?? null, req.params.videoId);
 
     res.json({ success: true });
   } catch(e) {
