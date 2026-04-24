@@ -2118,95 +2118,55 @@ function _openMobileChatDirect(friendId, friendName, friendPhoto) {
     return;
   }
   
-  console.log('✅ pageContent bulundu, boyutları:', {
-    width: pageContent.offsetWidth,
-    height: pageContent.offsetHeight,
-    display: window.getComputedStyle(pageContent).display
-  });
-  
   currentChatFriendId = friendId;
-  console.log('🔥 currentChatFriendId ayarlandı:', currentChatFriendId);
 
   try {
-    console.log('🔥 HTML içeriği oluşturuluyor...');
-    
     const htmlContent = `
-      <div class="mobile-chat-fullscreen">
+      <div class="mobile-chat-fullscreen" style="display:flex;flex-direction:column;height:100vh;width:100%;position:fixed;top:0;left:0;z-index:9999;background:var(--yt-spec-base-background);">
         <div class="mobile-chat-header">
           <button onclick="loadMessagesPage()" style="background:none;border:none;color:var(--yt-spec-text-primary);cursor:pointer;padding:8px 12px 8px 4px;font-size:20px;flex-shrink:0;">
             <i class="fas fa-arrow-left"></i>
           </button>
           <div style="position:relative;flex-shrink:0;">
             <img src="${friendPhoto}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" />
-            <div id="headerOnlineDot" style="display:none;position:absolute;bottom:1px;right:1px;width:10px;height:10px;background:#4caf50;border-radius:50%;border:2px solid var(--yt-spec-base-background);"></div>
           </div>
           <div style="flex:1;min-width:0;margin-left:10px;">
-            <p style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${friendName}</p>
-            <p id="chatStatus" style="font-size:12px;color:var(--yt-spec-text-secondary);"></p>
+            <p style="font-size:15px;font-weight:600;">${friendName}</p>
           </div>
-          <button onclick="startDirectCall(${friendId},'${friendName.replace(/'/g,"\\'")}','${friendPhoto}')" title="Sesli Arama" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:8px;font-size:18px;flex-shrink:0;">
-            <i class="fas fa-phone"></i>
-          </button>
         </div>
-        <div id="selectToolbar" class="select-toolbar" style="display:none;">
-          <button onclick="exitSelectMode()" style="background:none;border:none;color:inherit;cursor:pointer;padding:4px 8px;font-size:18px;"><i class="fas fa-times"></i></button>
-          <span id="selectCount" style="font-size:14px;font-weight:600;flex:1;">0 seçildi</span>
-          <button id="deleteMineBtn" onclick="confirmBulkDelete('${chatId}','sender')" style="display:none;background:rgba(244,67,54,0.15);border:1px solid #f44336;color:#f44336;cursor:pointer;padding:5px 10px;border-radius:8px;font-size:12px;white-space:nowrap"><i class="fas fa-trash"></i> Benden Sil</button>
-          <button id="deleteAllBtn" onclick="confirmBulkDelete('${chatId}','all')" style="display:none;background:rgba(244,67,54,0.25);border:1px solid #f44336;color:#f44336;cursor:pointer;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap"><i class="fas fa-trash-alt"></i> Herkesten Sil</button>
-        </div>
-        <div class="chat-messages" id="chatMessages">
-          <div style="text-align:center;padding:20px;color:var(--yt-spec-text-secondary);">
+        <div class="chat-messages" id="chatMessages" style="flex:1;overflow-y:auto;padding:16px;">
+          <div style="text-align:center;padding:40px 20px;color:var(--yt-spec-text-secondary);">
             <div class="yt-loading" style="margin:0 auto;"><div class="yt-spinner"></div></div>
             <p style="margin-top:12px;">Mesajlar yükleniyor...</p>
           </div>
         </div>
-        <div class="chat-input-wrapper">
-          <div id="photoPreviewArea" style="display:none;padding:8px 12px 0;border-top:1px solid rgba(255,255,255,0.08);">
-            <div style="position:relative;display:inline-block;">
-              <img id="photoPreviewImg" style="max-height:100px;max-width:160px;border-radius:8px;display:block;object-fit:cover;" />
-              <button onclick="cancelPhotoPreview()" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#333;border:none;color:#fff;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;">×</button>
-            </div>
-          </div>
-          <div class="chat-input-area">
-            <label class="chat-photo-btn">
-              <i class="fas fa-image"></i>
-              <input type="file" id="chatPhotoInput" accept="image/*" style="display:none;" onchange="previewChatPhoto(this,${friendId})" />
-            </label>
-            <textarea id="chatInput" class="chat-input chat-textarea" placeholder="Mesaj yaz..." onkeydown="handleChatKey(event,${friendId})" oninput="sendTypingStatus(${friendId},this.value.length>0)"></textarea>
-            <button class="chat-send-btn" onclick="sendMessage(${friendId})"><i class="fas fa-paper-plane"></i></button>
+        <div class="chat-input-wrapper" style="border-top:1px solid rgba(255,255,255,0.1);padding:12px;background:var(--yt-spec-base-background);">
+          <div class="chat-input-area" style="display:flex;gap:8px;align-items:center;">
+            <textarea id="chatInput" class="chat-input chat-textarea" placeholder="Mesaj yaz..." style="flex:1;resize:none;height:40px;"></textarea>
+            <button class="chat-send-btn" onclick="sendMessage(${friendId})" style="padding:10px 16px;"><i class="fas fa-paper-plane"></i></button>
           </div>
         </div>
       </div>
     `;
     
     pageContent.innerHTML = htmlContent;
-    console.log('✅ HTML içeriği DOM\'a eklendi');
+    console.log('✅ HTML içeriği eklendi');
     
-    // DOM'un render edilmesini bekle
-    requestAnimationFrame(() => {
+    // ULTRA GÜÇLÜ DOM BEKLEME - 3 KATMANLI
+    setTimeout(() => {
       requestAnimationFrame(() => {
-        // DOM'a eklendiğini doğrula
-        const chatContainer = document.querySelector('.mobile-chat-fullscreen');
-        console.log('🔥 Chat container bulundu mu?', !!chatContainer);
-        if (chatContainer) {
-          console.log('🔥 Chat container boyutları:', {
-            width: chatContainer.offsetWidth,
-            height: chatContainer.offsetHeight,
-            display: window.getComputedStyle(chatContainer).display
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            console.log('🔥 Firebase listener başlatılıyor (3x RAF)...');
+            _startFirebaseListeners(friendId, friendPhoto);
           });
-        }
-        
-        // Firebase listener'larını başlat
-        console.log('🔥 Firebase listener başlatılıyor...');
-        _startFirebaseListeners(friendId, friendPhoto);
-        console.log('✅ Mobil chat başarıyla açıldı');
+        });
       });
-    });
+    }, 100);
     
   } catch(e) {
     console.error('❌ HTML oluşturma hatası:', e);
     showToast('Mesaj açılamadı: ' + e.message, 'error');
-    return;
   }
 }
 
@@ -6230,30 +6190,44 @@ async function uploadText() {
 
 // Videolarım sayfası
 async function loadMyVideosPage() {
-  // Kanal yoksa otomatik oluştur
+  // HARD FIX: Kanal yoksa HEMEN oluştur ve BEKLE
   if (!currentChannel) {
     try {
-      console.log('🔧 Kanal yok, otomatik oluşturuluyor...');
+      console.log('🔧 KANAL YOK - HEMEN OLUŞTURULUYOR...');
       const formData = new FormData();
+      formData.append('userId', currentUser.id);
       formData.append('channelName', currentUser.nickname || currentUser.username);
       formData.append('about', '');
       formData.append('agreed', 'true');
       
-      const createRes = await fetch(`${API_URL}/channel`, { method: 'POST', body: formData });
+      const createRes = await fetch(`${API_URL}/channel`, { 
+        method: 'POST', 
+        body: formData 
+      });
+      
       if (createRes.ok) {
         const chRes = await fetch(`${API_URL}/channel/user/${currentUser.id}`);
         if (chRes.ok) {
           currentChannel = await chRes.json();
-          console.log('✅ Kanal otomatik oluşturuldu:', currentChannel);
+          console.log('✅ KANAL OLUŞTURULDU:', currentChannel.id);
+        } else {
+          throw new Error('Kanal bilgisi alınamadı');
         }
+      } else {
+        throw new Error('Kanal oluşturulamadı');
       }
     } catch (e) {
-      console.error('Kanal oluşturma hatası:', e);
+      console.error('❌ KANAL OLUŞTURMA HATASI:', e);
+      showToast('Kanal oluşturulamadı, lütfen sayfayı yenileyin', 'error');
+      return;
     }
   }
 
+  // Kanal var, videoları yükle
   try {
     const response = await fetch(`${API_URL}/videos/channel/${currentChannel.id}`);
+    if (!response.ok) throw new Error('Video listesi alınamadı');
+    
     const videos = await response.json();
 
     const pageContent = document.getElementById('pageContent');
@@ -6267,7 +6241,8 @@ async function loadMyVideosPage() {
 
     renderMyVideos(videos);
   } catch (error) {
-    console.error('Videolar yükleme hatası:', error);
+    console.error('❌ Videolar yükleme hatası:', error);
+    showToast('Videolar yüklenemedi: ' + error.message, 'error');
   }
 }
 
@@ -6696,6 +6671,7 @@ async function loadSettingsPage() {
         <div class="theme-grid">
           ${[
             {id:'dark', name:'Gece Karanlığı', bg:'#0f0f0f', accent:'#ff0000', preview:'linear-gradient(135deg,#0f0f0f,#1a1a1a)'},
+            {id:'darkmorp', name:'DarkMorp', bg:'#000000', accent:'#8b5cf6', preview:'linear-gradient(135deg, #000000 0%, #1a0033 25%, #000000 50%, #001a33 75%, #000000 100%)'},
             {id:'neon-purple', name:'Elektrik Moru', bg:'#0d0d1a', accent:'#9b59b6', preview:'linear-gradient(135deg,#0d0d1a,#1a1a2e)'},
             {id:'ocean-blue', name:'Okyanus Mavisi', bg:'#0a0e1a', accent:'#1e90ff', preview:'linear-gradient(135deg,#0a0e1a,#0d1b3e)'},
             {id:'fire-red', name:'Ateş Kırmızısı', bg:'#1a0a0a', accent:'#ff4500', preview:'linear-gradient(135deg,#1a0a0a,#2d0f0f)'},
@@ -6979,6 +6955,10 @@ function applyTheme(theme) {
   const themes = {
     'dark': {
       bg: '#0f0f0f', raised: '#212121', accent: '#ff0000', accentHover: '#cc0000', text: '#f1f1f1', textSec: '#aaaaaa'
+    },
+    'darkmorp': {
+      bg: '#000000', raised: '#0a0a0a', accent: '#8b5cf6', accentHover: '#7c3aed', text: '#ffffff', textSec: '#a0a0a0',
+      bodyGradient: 'linear-gradient(135deg, #000000 0%, #1a0033 25%, #000000 50%, #001a33 75%, #000000 100%)'
     },
     'neon-purple': {
       bg: '#0d0d1a', raised: '#1a1a2e', accent: '#9b59b6', accentHover: '#7d3c98', text: '#f0e6ff', textSec: '#b39ddb'
