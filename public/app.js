@@ -763,21 +763,21 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Sayfa yükleme hatası:', e);
           }
         } else {
-          // URL'de sayfa yoksa İçeriklerim'i aç
-          showPage('my-videos');
+          // URL'de sayfa yoksa Anasayfa'yı aç
+          showPage('home');
           try {
-            loadMyVideosPage();
-            console.log('🚀 Otomatik giriş - içeriklerim sayfası anında yüklendi!');
+            loadHomeFeed();
+            console.log('🚀 Otomatik giriş - anasayfa yüklendi!');
           } catch (e) {
-            console.log('İçeriklerim yükleme hatası (önemli değil):', e);
+            console.log('Anasayfa yükleme hatası (önemli değil):', e);
           }
         }
       }).catch(e => {
         console.error('⚠️ Arka plan hatası (TAMAMEN ÖNEMSIZ):', e);
         console.log('🔒 Hata olmasına rağmen oturum güvenli şekilde devam ediyor!');
         // Hata olsa bile sayfayı aç
-        showPage('my-videos');
-        loadMyVideosPage();
+        showPage('home');
+        loadHomeFeed();
       });
       
       return; // BURADAN ÇIK - BAŞKA HİÇBİR ŞEY YAPMA!
@@ -936,9 +936,9 @@ window.addEventListener('focus', () => {
         document.body.setAttribute('data-theme', theme);
         applyTheme(theme);
         
-        showPage('my-videos');
+        showPage('home');
         
-        // ANINDA içeriklerim sayfasını yükle
+        // ANINDA anasayfa yükle
         // Ama URL'de başka bir sayfa varsa onu aç
         const urlPage = getPageFromURL();
         if (urlPage && urlPage !== 'my-videos') {
@@ -1217,20 +1217,20 @@ async function login() {
           console.log('Sayfa yükleme hatası:', e);
         }
       } else {
-        // URL'de sayfa yoksa İçeriklerim'i aç
-        showPage('my-videos');
+        // URL'de sayfa yoksa Anasayfa'yı aç
+        showPage('home');
         try {
-          loadMyVideosPage();
-          console.log('🚀 İçeriklerim sayfası anında yüklendi!');
+          loadHomeFeed();
+          console.log('🚀 Anasayfa yüklendi!');
         } catch (e) {
-          console.log('İçeriklerim yükleme hatası (önemli değil):', e);
+          console.log('Anasayfa yükleme hatası (önemli değil):', e);
         }
       }
     }).catch(e => {
       console.error('⚠️ Kullanıcı verileri yüklenemedi:', e);
       // Hata olsa bile sayfayı aç
-      showPage('my-videos');
-      loadMyVideosPage();
+      showPage('home');
+      loadHomeFeed();
     });
     
     console.log('✅ GİRİŞ TAMAMLANDI!');
