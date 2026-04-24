@@ -164,6 +164,11 @@
         </div>
         
         <div id="end">
+          <!-- Giriş Yap Butonu (sadece misafir modda görünür) -->
+          <button id="loginButton" class="yt-btn" onclick="showLoginScreen()" style="display:none; height:36px; padding:0 16px; font-size:14px; font-weight:600; margin-right:8px;">
+            <i class="fas fa-sign-in-alt" style="margin-right:6px;"></i>Giriş Yap
+          </button>
+          
           <!-- Masaüstü: gruplar, bildirimler -->
           <button class="yt-icon-button desktop-only" onclick="showPage('groups')" title="Gruplar" style="position:relative;">
             <i class="fas fa-layer-group"></i>

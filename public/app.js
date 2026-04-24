@@ -813,10 +813,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  // Eğer buraya geldiyse kullanıcı yok, giriş ekranını göster
-  console.log('❌ Kullanıcı yok veya geçersiz, giriş ekranı gösteriliyor');
-  document.getElementById('authScreen').style.display = 'flex';
-  document.getElementById('mainApp').style.display = 'none';
+  // Eğer buraya geldiyse kullanıcı yok - MİSAFİR MODU BAŞLAT!
+  console.log('👤 Kullanıcı yok - MİSAFİR MODU BAŞLATILIYOR');
+  
+  // Misafir modu bayrağı
+  window.isGuestMode = true;
+  currentUser = null;
+  
+  // Ana ekranı göster
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  
+  // Giriş Yap butonunu göster
+  const loginBtn = document.getElementById('loginButton');
+  if (loginBtn) loginBtn.style.display = 'flex';
+  
+  // Temayı uygula (varsayılan dark)
+  applyTheme('dark');
+  
+  // URL'den sayfayı al
+  const urlPage = getPageFromURL();
+  
+  // Misafir modda anasayfayı yükle
+  if (urlPage && urlPage !== 'home') {
+    showPage(urlPage);
+    try {
+      switch(urlPage) {
+        case 'reals': loadRealsPage(); break;
+        case 'home': loadHomeFeed(); break;
+        default: loadHomeFeed(); break;
+      }
+    } catch (e) {
+      console.log('Sayfa yükleme hatası:', e);
+      loadHomeFeed();
+    }
+  } else {
+    showPage('home');
+    loadHomeFeed();
+  }
+  
+  console.log('✅ Misafir modu aktif - içerikler görüntülenebilir, etkileşim için giriş gerekli');
   
   // Başlangıçta sidebar durumunu ayarla
   if (window.innerWidth <= 1312) {
@@ -1185,6 +1221,13 @@ async function login() {
       timestamp: kontrolTimestamp ? 'BAŞARILI ✅' : 'BAŞARISIZ ❌',
       toplamBoyut: (kontrolUser?.length || 0) + (kontrolBackup?.length || 0) + (kontrolEmergency?.length || 0) + (kontrolUltra?.length || 0)
     });
+    
+    // Misafir modunu kapat
+    window.isGuestMode = false;
+    
+    // Giriş Yap butonunu gizle
+    const loginButton = document.getElementById('loginButton');
+    if (loginButton) loginButton.style.display = 'none';
     
     // HEMEN ana ekranı göster
     console.log('🚀 Ana ekran gösteriliyor...');
@@ -2162,8 +2205,8 @@ function _openMobileChatDirect(friendId, friendName, friendPhoto) {
         </div>
         <div class="chat-input-wrapper" style="border-top:1px solid rgba(255,255,255,0.1);padding:12px;background:var(--yt-spec-base-background);">
           <div class="chat-input-area" style="display:flex;gap:8px;align-items:center;">
-            <textarea id="chatInput" class="chat-input chat-textarea" placeholder="Mesaj yaz..." style="flex:1;resize:none;height:40px;"></textarea>
-            <button class="chat-send-btn" onclick="sendMessage(${friendId})" style="padding:10px 16px;"><i class="fas fa-paper-plane"></i></button>
+            <textarea id="chatInput" class="chat-input chat-textarea" placeholder="Mesaj yaz..." style="flex:1;resize:none;height:40px;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage(${friendId});}"></textarea>
+            <button class="chat-send-btn" onclick="event.preventDefault(); event.stopPropagation(); sendMessage(${friendId});" style="padding:10px 16px; background:var(--yt-spec-brand-background-solid); border:none; border-radius:8px; color:white; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; min-width:48px; height:48px;"><i class="fas fa-paper-plane"></i></button>
           </div>
         </div>
       </div>
@@ -2702,6 +2745,17 @@ function sendTypingStatus(friendId, isTyping) {
 }
 
 async function sendMessage(friendId) {
+  console.log('🔥🔥🔥 sendMessage ÇAĞRILDI! friendId:', friendId);
+  console.log('📱 currentUser:', currentUser);
+  console.log('🔥 Firebase DB:', !!window.firebaseDB);
+  
+  // Misafir modu kontrolü
+  if (window.isGuestMode || !currentUser) {
+    showToast('Mesaj göndermek için giriş yapmalısınız', 'error');
+    showLoginPrompt();
+    return;
+  }
+  
   // Backend'de engel kontrolü - İKİ YÖNLÜ: engellenen kişi mesaj atamaz VE engelleyen kişiye mesaj atılamaz
   try {
     const blockCheck = await fetch(`${API_URL}/is-blocked/${currentUser.id}/${friendId}`);
@@ -2710,7 +2764,11 @@ async function sendMessage(friendId) {
       showToast('Bu kişiye mesaj atamazsınız', 'error');
       return;
     }
-  } catch(e) { /* kontrol başarısız olsa bile devam etme */ return; }
+  } catch(e) { 
+    console.error('❌ Engel kontrolü hatası:', e);
+    /* kontrol başarısız olsa bile devam etme */ 
+    return; 
+  }
 
   // Bekleyen fotoğraf varsa önce onu gönder
   if (pendingChatPhoto) {
@@ -2741,15 +2799,26 @@ async function sendMessage(friendId) {
   }
 
   const input = document.getElementById('chatInput');
+  console.log('📝 Input element:', input);
+  console.log('📝 Input value:', input?.value);
+  
   const text = input?.value.trim();
-  if (!text) return;
+  console.log('📝 Trimmed text:', text);
+  console.log('📝 Text length:', text?.length);
+  
+  if (!text) {
+    console.log('❌ Mesaj boş, gönderilmiyor');
+    return;
+  }
 
   if (!window.firebaseDB) {
+    console.log('❌ Firebase DB yok!');
     showToast('Bağlantı kurulamadı, sayfayı yenile', 'error');
     return;
   }
 
   const chatId = getChatId(currentUser.id, friendId);
+  console.log('💬 Chat ID:', chatId);
 
   // Düzenleme modu
   if (input.dataset.editMode === 'true') {
@@ -2795,12 +2864,20 @@ async function sendMessage(friendId) {
   }
 
   try {
+    console.log('🚀 Firebase push başlatılıyor...');
+    console.log('📤 Mesaj verisi:', msgData);
+    
     await window.firebasePush(msgsRef, msgData);
+    
+    console.log('✅ Mesaj başarıyla gönderildi!');
+    showToast('Mesaj gönderildi!', 'success');
+    
     input.value = '';
     input.style.height = 'auto';
     sendTypingStatus(friendId, false);
   } catch(e) {
-    console.error('Mesaj gönderme hatası:', e);
+    console.error('❌❌❌ Mesaj gönderme hatası:', e);
+    console.error('Hata detayı:', e.message, e.stack);
     showToast('Mesaj gönderilemedi: ' + e.message, 'error');
   }
 }
@@ -4099,11 +4176,16 @@ async function loadMobileHomePage() {
 
         <!-- Fotoğraf Grid -->
         ${photoItems.length > 0 ? `
-          <div class="mobile-photo-grid">
+          <div class="mobile-photo-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:12px; margin-bottom:20px;">
             ${photoItems.map(v => `
-              <div class="mobile-photo-item" onclick="playVideo(${v.id})">
-                <img src="${v.video_url}" alt="${v.title}" loading="lazy" />
-                ${v.likes > 0 ? `<div class="mobile-photo-likes"><i class="fas fa-heart"></i> ${v.likes}</div>` : ''}
+              <div class="mobile-photo-item" onclick="playVideo(${v.id})" style="cursor:pointer; background:var(--yt-spec-raised-background); border-radius:10px; overflow:hidden;">
+                <div style="position:relative; width:100%; height:140px; overflow:hidden;">
+                  <img src="${v.video_url}" alt="${v.title}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" />
+                  ${v.likes > 0 ? `<div class="mobile-photo-likes" style="position:absolute; bottom:6px; right:6px; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); padding:4px 8px; border-radius:12px; font-size:11px; color:white;"><i class="fas fa-heart"></i> ${v.likes}</div>` : ''}
+                </div>
+                <div style="padding:8px;">
+                  <p style="font-size:12px; font-weight:600; color:var(--yt-spec-text-primary); margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${v.title}</p>
+                </div>
               </div>
             `).join('')}
           </div>
@@ -4318,10 +4400,11 @@ function renderPhotoGrid(photos, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
   container.innerHTML = photos.map(v => `
-    <div class="photo-card" onclick="playVideo(${v.id})">
-      <img src="${v.video_url}" alt="${v.title}" />
-      <div class="photo-card-overlay">
-        <div class="photo-card-stats">
+    <div class="photo-card" onclick="playVideo(${v.id})" style="cursor:pointer;">
+      <img src="${v.video_url}" alt="${v.title}" style="width:100%; height:200px; object-fit:cover; border-radius:8px;" />
+      <div style="padding:8px 4px;">
+        <p style="font-size:13px; font-weight:600; color:var(--yt-spec-text-primary); margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${v.title}</p>
+        <div style="display:flex; align-items:center; gap:12px; margin-top:6px; font-size:11px; color:var(--yt-spec-text-secondary);">
           <span><i class="fas fa-heart"></i> ${v.likes || 0}</span>
           <span><i class="fas fa-eye"></i> ${v.views || 0}</span>
         </div>
@@ -4426,19 +4509,22 @@ function displayVideos(videos, containerId) {
       <h3 style="font-size:15px; font-weight:600; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
         <i class="fas fa-image" style="color:var(--yt-spec-brand-background-solid);"></i> Fotoğraflar
       </h3>
-      <div class="photo-grid">
+      <div class="photo-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:16px;">
         ${photos.map(p => `
-          <div class="photo-card" onclick="playVideo(${p.id})">
-            <div class="photo-card-img">
-              <img src="${p.video_url}" alt="${p.title}" />
-              <div class="photo-card-overlay">
-                <i class="fas fa-image"></i>
+          <div class="photo-card" onclick="playVideo(${p.id})" style="cursor:pointer; background:var(--yt-spec-raised-background); border-radius:12px; overflow:hidden; transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+            <div class="photo-card-img" style="position:relative; width:100%; height:160px; overflow:hidden;">
+              <img src="${p.video_url}" alt="${p.title}" style="width:100%; height:100%; object-fit:cover;" />
+              <div class="photo-card-overlay" style="position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
+                <i class="fas fa-image" style="font-size:32px; color:white;"></i>
               </div>
             </div>
-            <div class="photo-card-info">
-              <img src="${getProfilePhotoUrl(p.profile_photo)}" class="channel-avatar" style="width:22px;height:22px;" onerror="onProfilePhotoError(this)" />
-              <span style="font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.channel_name}</span>
-              <span style="font-size:11px; color:var(--yt-spec-text-secondary); margin-left:auto; flex-shrink:0;"><i class="fas fa-heart"></i> ${p.likes}</span>
+            <div style="padding:10px;">
+              <p style="font-size:13px; font-weight:600; color:var(--yt-spec-text-primary); margin:0 0 8px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.title}</p>
+              <div class="photo-card-info" style="display:flex; align-items:center; gap:8px;">
+                <img src="${getProfilePhotoUrl(p.profile_photo)}" class="channel-avatar" style="width:20px;height:20px; border-radius:50%;" onerror="onProfilePhotoError(this)" />
+                <span style="font-size:11px; color:var(--yt-spec-text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">${p.channel_name}</span>
+                <span style="font-size:11px; color:var(--yt-spec-text-secondary); flex-shrink:0;"><i class="fas fa-heart"></i> ${p.likes}</span>
+              </div>
             </div>
           </div>
         `).join('')}
@@ -4895,6 +4981,13 @@ async function checkSubscriptionStatus(channelId) {
 }
 
 async function likeVideo(videoId, likeType) {
+  // Misafir modu kontrolü
+  if (window.isGuestMode || !currentUser) {
+    showToast('Beğenmek için giriş yapmalısınız', 'error');
+    showLoginPrompt();
+    return;
+  }
+  
   try {
     await fetch(`${API_URL}/like`, {
       method: 'POST',
@@ -5192,6 +5285,13 @@ async function addReply(parentId, videoId) {
 }
 
 async function addComment(videoId) {
+  // Misafir modu kontrolü
+  if (window.isGuestMode || !currentUser) {
+    showToast('Yorum yapmak için giriş yapmalısınız', 'error');
+    showLoginPrompt();
+    return;
+  }
+  
   const commentInput = document.getElementById('commentInput');
   const commentText = commentInput?.value.trim();
 
@@ -5679,6 +5779,13 @@ function checkVideoDuration(input) {
 }
 
 function showUploadVideoModal() {
+  // Misafir modu kontrolü
+  if (window.isGuestMode || !currentUser) {
+    showToast('İçerik yüklemek için giriş yapmalısınız', 'error');
+    showLoginPrompt();
+    return;
+  }
+  
   const isMobile = window.innerWidth <= 768;
   const VIDEO_TYPES = [
     'Vlog', 'Günlük hayat', 'Challenge', 'Şaka', 'Gameplay', "Let's Play",
@@ -7944,6 +8051,35 @@ function showToast(message, type = 'info') {
   setTimeout(() => {
     toast.remove();
   }, 3000);
+}
+
+// Giriş yapma istemi (misafir modu için)
+function showLoginPrompt() {
+  showModal(`
+    <div style="text-align:center; padding:20px;">
+      <i class="fas fa-user-lock" style="font-size:64px; color:var(--yt-spec-brand-background-solid); margin-bottom:20px;"></i>
+      <h3 style="font-size:20px; font-weight:700; margin-bottom:12px; color:var(--yt-spec-text-primary);">Giriş Yapmanız Gerekiyor</h3>
+      <p style="color:var(--yt-spec-text-secondary); margin-bottom:24px; line-height:1.6;">
+        Bu özelliği kullanmak için bir hesaba sahip olmanız gerekiyor. Hemen ücretsiz hesap oluşturun veya mevcut hesabınızla giriş yapın.
+      </p>
+      <div style="display:flex; gap:12px; justify-content:center;">
+        <button class="yt-btn" onclick="showLoginScreen(); closeModal();" style="flex:1; max-width:200px;">
+          <i class="fas fa-sign-in-alt"></i> Giriş Yap
+        </button>
+        <button class="yt-btn yt-btn-secondary" onclick="closeModal()" style="flex:1; max-width:200px;">
+          İptal
+        </button>
+      </div>
+    </div>
+  `, 'Giriş Gerekli');
+}
+
+// Giriş ekranını göster
+function showLoginScreen() {
+  window.isGuestMode = false;
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+  closeModal();
 }
 
 // Kanal görüntüleme
