@@ -824,14 +824,20 @@ router.get('/videos/subscriptions/:userId', (req, res) => {
 router.get('/video/:videoId', (req, res) => {
   try {
     const { userId } = req.query;
+    const videoIdParam = req.params.videoId;
+    
+    // Numeric ID mi yoksa share_id mi kontrol et
+    const isNumeric = /^\d+$/.test(videoIdParam);
+    const whereClause = isNumeric ? 'v.id = ?' : 'v.share_id = ?';
+    
     const video = db.prepare(`
       SELECT v.*, c.channel_name, c.id as channel_id, c.user_id, u.profile_photo, u.nickname,
              (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as subscriber_count
       FROM videos v
       JOIN channels c ON v.channel_id = c.id
       JOIN users u ON c.user_id = u.id
-      WHERE v.id = ?
-    `).get(req.params.videoId);
+      WHERE ${whereClause}
+    `).get(videoIdParam);
 
     if (!video) {
       return res.status(404).json({ error: 'Video bulunamadÄ±' });
@@ -843,7 +849,7 @@ router.get('/video/:videoId', (req, res) => {
         SELECT watch_duration, total_duration FROM watch_history
         WHERE user_id = ? AND video_id = ?
         ORDER BY watched_at DESC LIMIT 1
-      `).get(userId, req.params.videoId);
+      `).get(userId, video.id);
       if (progress) {
         video.resume_at = progress.watch_duration;
         video.total_duration_saved = progress.total_duration;
@@ -859,11 +865,11 @@ router.get('/video/:videoId', (req, res) => {
     const viewCount = db.prepare(`
       SELECT COUNT(*) as cnt FROM video_views
       WHERE video_id = ? AND ip_address = ? AND viewed_at > datetime('now', '-24 hours')
-    `).get(req.params.videoId, ip);
+    `).get(video.id, ip);
 
     if (!viewCount || viewCount.cnt < 3) {
-      db.prepare('UPDATE videos SET views = views + 1 WHERE id = ?').run(req.params.videoId);
-      db.prepare('INSERT INTO video_views (video_id, ip_address) VALUES (?, ?)').run(req.params.videoId, ip);
+      db.prepare('UPDATE videos SET views = views + 1 WHERE id = ?').run(video.id);
+      db.prepare('INSERT INTO video_views (video_id, ip_address) VALUES (?, ?)').run(video.id, ip);
       video.views += 1;
     }
 

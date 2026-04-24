@@ -151,21 +151,29 @@ router.get('/videos/:id', requireRole('yetkili'), (req, res) => {
 // Video düzenle
 router.put('/videos/:id', requireRole('moderator'), (req, res) => {
   try {
-    const { title, description, tags, video_type, views, likes, dislikes, admin_notes } = req.body;
+    const { title, share_id, description, tags, video_type, views, likes, dislikes, admin_notes } = req.body;
     const videoId = req.params.id;
     
     const oldVideo = db.prepare('SELECT * FROM videos WHERE id = ?').get(videoId);
     if (!oldVideo) return res.status(404).json({ error: 'Video bulunamadı' });
     
+    // Share ID benzersizlik kontrolü
+    if (share_id) {
+      const existing = db.prepare('SELECT id FROM videos WHERE share_id = ? AND id != ?').get(share_id, videoId);
+      if (existing) {
+        return res.status(400).json({ error: 'Bu Share ID zaten kullanılıyor' });
+      }
+    }
+    
     db.prepare(`
       UPDATE videos 
-      SET title = ?, description = ?, tags = ?, video_type = ?, views = ?, likes = ?, dislikes = ?, admin_notes = ?
+      SET title = ?, share_id = ?, description = ?, tags = ?, video_type = ?, views = ?, likes = ?, dislikes = ?, admin_notes = ?
       WHERE id = ?
-    `).run(title, description, tags, video_type, views, likes, dislikes, admin_notes, videoId);
+    `).run(title, share_id, description, tags, video_type, views, likes, dislikes, admin_notes, videoId);
     
     logAdminAction(req.userId, 'video_edit', 'video', videoId, oldVideo.channel_id, 
-      { title: oldVideo.title, tags: oldVideo.tags, video_type: oldVideo.video_type, views: oldVideo.views, likes: oldVideo.likes }, 
-      { title, tags, video_type, views, likes }, 'Video düzenlendi', getClientIP(req));
+      { title: oldVideo.title, share_id: oldVideo.share_id, tags: oldVideo.tags, video_type: oldVideo.video_type, views: oldVideo.views, likes: oldVideo.likes }, 
+      { title, share_id, tags, video_type, views, likes }, 'Video düzenlendi', getClientIP(req));
     
     res.json({ success: true });
   } catch(e) {

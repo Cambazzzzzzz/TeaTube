@@ -738,43 +738,46 @@ document.addEventListener('DOMContentLoaded', () => {
       // Direkt İçeriklerim sayfasını göster
       // Ama URL'de başka bir sayfa varsa onu aç
       const urlPage = getPageFromURL();
-      if (urlPage) {
-        showPage(urlPage);
-        try {
-          // URL'deki sayfayı yükle
-          switch(urlPage) {
-            case 'home': loadHomeFeed(); break;
-            case 'ts-music': loadTSMusicPage(); break;
-            case 'my-videos': loadMyVideosPage(); break;
-            case 'my-songs': loadMySongsPage(); break;
-            case 'messages': loadMessagesPage(); break;
-            case 'friends': loadFriendsPage(); break;
-            case 'groups': loadGroupsPage(); break;
-            case 'notifications': loadNotificationsPage(); break;
-            case 'settings': loadSettingsPage(); break;
-            default: loadMyVideosPage(); break;
+      
+      // ÖNCE KANAL VE KULLANICI VERİLERİNİ YÜK
+      loadUserData().then(() => {
+        console.log('✅ Kullanıcı verileri yüklendi, sayfa açılıyor...');
+        
+        if (urlPage) {
+          showPage(urlPage);
+          try {
+            // URL'deki sayfayı yükle
+            switch(urlPage) {
+              case 'home': loadHomeFeed(); break;
+              case 'ts-music': loadTSMusicPage(); break;
+              case 'my-videos': loadMyVideosPage(); break;
+              case 'my-songs': loadMySongsPage(); break;
+              case 'messages': loadMessagesPage(); break;
+              case 'friends': loadFriendsPage(); break;
+              case 'groups': loadGroupsPage(); break;
+              case 'notifications': loadNotificationsPage(); break;
+              case 'settings': loadSettingsPage(); break;
+              default: loadMyVideosPage(); break;
+            }
+          } catch (e) {
+            console.log('Sayfa yükleme hatası:', e);
           }
-        } catch (e) {
-          console.log('Sayfa yükleme hatası:', e);
+        } else {
+          // URL'de sayfa yoksa İçeriklerim'i aç
+          showPage('my-videos');
+          try {
+            loadMyVideosPage();
+            console.log('🚀 Otomatik giriş - içeriklerim sayfası anında yüklendi!');
+          } catch (e) {
+            console.log('İçeriklerim yükleme hatası (önemli değil):', e);
+          }
         }
-      } else {
-        // URL'de sayfa yoksa İçeriklerim'i aç
-        showPage('my-videos');
-        try {
-          loadMyVideosPage();
-          console.log('🚀 Otomatik giriş - içeriklerim sayfası anında yüklendi!');
-        } catch (e) {
-          console.log('İçeriklerim yükleme hatası (önemli değil):', e);
-        }
-      }
-      
-      console.log('🔒🔒🔒 OTURUM ULTRA GÜVENLİ - ASLA KAPANMAZ!');
-      
-      // ANINDA arka planda diğer işlemleri başlat - HİÇ BEKLEME!
-      loadUserData().catch(e => {
+      }).catch(e => {
         console.error('⚠️ Arka plan hatası (TAMAMEN ÖNEMSIZ):', e);
         console.log('🔒 Hata olmasına rağmen oturum güvenli şekilde devam ediyor!');
-        // OTURUMU ASLA KAPATMA!
+        // Hata olsa bile sayfayı aç
+        showPage('my-videos');
+        loadMyVideosPage();
       });
       
       return; // BURADAN ÇIK - BAŞKA HİÇBİR ŞEY YAPMA!
@@ -1189,35 +1192,46 @@ async function login() {
     // Direkt İçeriklerim sayfasını göster
     // Ama URL'de başka bir sayfa varsa onu aç
     const urlPage = getPageFromURL();
-    if (urlPage) {
-      showPage(urlPage);
-      try {
-        // URL'deki sayfayı yükle
-        switch(urlPage) {
-          case 'home': loadHomeFeed(); break;
-          case 'ts-music': loadTSMusicPage(); break;
-          case 'my-videos': loadMyVideosPage(); break;
-          case 'my-songs': loadMySongsPage(); break;
-          case 'messages': loadMessagesPage(); break;
-          case 'friends': loadFriendsPage(); break;
-          case 'groups': loadGroupsPage(); break;
-          case 'notifications': loadNotificationsPage(); break;
-          case 'settings': loadSettingsPage(); break;
-          default: loadMyVideosPage(); break;
+    
+    // ÖNCE KANAL VE KULLANICI VERİLERİNİ YÜK
+    loadUserData().then(() => {
+      console.log('✅ Kullanıcı verileri yüklendi, sayfa açılıyor...');
+      
+      if (urlPage) {
+        showPage(urlPage);
+        try {
+          // URL'deki sayfayı yükle
+          switch(urlPage) {
+            case 'home': loadHomeFeed(); break;
+            case 'ts-music': loadTSMusicPage(); break;
+            case 'my-videos': loadMyVideosPage(); break;
+            case 'my-songs': loadMySongsPage(); break;
+            case 'messages': loadMessagesPage(); break;
+            case 'friends': loadFriendsPage(); break;
+            case 'groups': loadGroupsPage(); break;
+            case 'notifications': loadNotificationsPage(); break;
+            case 'settings': loadSettingsPage(); break;
+            default: loadMyVideosPage(); break;
+          }
+        } catch (e) {
+          console.log('Sayfa yükleme hatası:', e);
         }
-      } catch (e) {
-        console.log('Sayfa yükleme hatası:', e);
+      } else {
+        // URL'de sayfa yoksa İçeriklerim'i aç
+        showPage('my-videos');
+        try {
+          loadMyVideosPage();
+          console.log('🚀 İçeriklerim sayfası anında yüklendi!');
+        } catch (e) {
+          console.log('İçeriklerim yükleme hatası (önemli değil):', e);
+        }
       }
-    } else {
-      // URL'de sayfa yoksa İçeriklerim'i aç
+    }).catch(e => {
+      console.error('⚠️ Kullanıcı verileri yüklenemedi:', e);
+      // Hata olsa bile sayfayı aç
       showPage('my-videos');
-      try {
-        loadMyVideosPage();
-        console.log('🚀 İçeriklerim sayfası anında yüklendi!');
-      } catch (e) {
-        console.log('İçeriklerim yükleme hatası (önemli değil):', e);
-      }
-    }
+      loadMyVideosPage();
+    });
     
     console.log('✅ GİRİŞ TAMAMLANDI!');
     
@@ -2168,27 +2182,32 @@ function _openMobileChatDirect(friendId, friendName, friendPhoto) {
     pageContent.innerHTML = htmlContent;
     console.log('✅ HTML içeriği DOM\'a eklendi');
     
-    // DOM'a eklendiğini doğrula
-    const chatContainer = document.querySelector('.mobile-chat-fullscreen');
-    console.log('🔥 Chat container bulundu mu?', !!chatContainer);
-    if (chatContainer) {
-      console.log('🔥 Chat container boyutları:', {
-        width: chatContainer.offsetWidth,
-        height: chatContainer.offsetHeight,
-        display: window.getComputedStyle(chatContainer).display
+    // DOM'un render edilmesini bekle
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        // DOM'a eklendiğini doğrula
+        const chatContainer = document.querySelector('.mobile-chat-fullscreen');
+        console.log('🔥 Chat container bulundu mu?', !!chatContainer);
+        if (chatContainer) {
+          console.log('🔥 Chat container boyutları:', {
+            width: chatContainer.offsetWidth,
+            height: chatContainer.offsetHeight,
+            display: window.getComputedStyle(chatContainer).display
+          });
+        }
+        
+        // Firebase listener'larını başlat
+        console.log('🔥 Firebase listener başlatılıyor...');
+        _startFirebaseListeners(friendId, friendPhoto);
+        console.log('✅ Mobil chat başarıyla açıldı');
       });
-    }
+    });
     
   } catch(e) {
     console.error('❌ HTML oluşturma hatası:', e);
     showToast('Mesaj açılamadı: ' + e.message, 'error');
     return;
   }
-
-  // Firebase listener'larını başlat
-  console.log('🔥 Firebase listener başlatılıyor...');
-  _startFirebaseListeners(friendId, friendPhoto);
-  console.log('✅ Mobil chat başarıyla açıldı');
 }
 
 // Firebase listener'larını başlat
@@ -2211,25 +2230,32 @@ function _startFirebaseListeners(friendId, friendPhoto) {
     window.firebaseOnValue(msgsRef, snap => {
       console.log('🔥 Firebase mesaj verisi geldi, mesaj sayısı:', snap.size);
       
-      // Container'ı bul, yoksa 500ms sonra tekrar dene
-      let container = document.getElementById('chatMessages');
-      if (!container) {
-        console.log('⏳ chatMessages container henüz yok, 500ms sonra tekrar denenecek...');
-        setTimeout(() => {
-          container = document.getElementById('chatMessages');
-          if (!container) {
-            console.error('❌ chatMessages container hala bulunamadı!');
-            return;
+      // Container'ı bul - maksimum 5 deneme (2.5 saniye)
+      let retryCount = 0;
+      const maxRetries = 5;
+      
+      function tryRenderMessages() {
+        const container = document.getElementById('chatMessages');
+        
+        if (!container) {
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.log(`⏳ chatMessages container henüz yok, deneme ${retryCount}/${maxRetries}...`);
+            setTimeout(tryRenderMessages, 500);
+          } else {
+            console.error('❌ chatMessages container bulunamadı! Maksimum deneme sayısına ulaşıldı.');
+            showToast('Mesajlar yüklenemedi, sayfayı yenileyin', 'error');
           }
-          renderMessages();
-        }, 500);
-        return;
+          return;
+        }
+        
+        console.log('✅ chatMessages container bulundu, mesajlar render ediliyor');
+        renderMessages(container);
       }
       
-      renderMessages();
+      tryRenderMessages();
       
-      function renderMessages() {
-        console.log('✅ chatMessages container bulundu, mesajlar render ediliyor');
+      function renderMessages(container) {
         container.innerHTML = '';
         
         let messageCount = 0;
@@ -6270,7 +6296,7 @@ function renderMyVideos(videos) {
             ${v.is_hidden ? '<div style="position: absolute; top: 8px; left: 8px; background: rgba(255,165,0,0.9); backdrop-filter: blur(4px); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: white; font-weight: 600;"><i class="fas fa-eye-slash"></i> GİZLİ</div>' : ''}
             ${!v.comments_enabled ? '<div style="position: absolute; top: 8px; right: 8px; background: rgba(255,0,0,0.9); backdrop-filter: blur(4px); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: white; font-weight: 600;"><i class="fas fa-comment-slash"></i></div>' : ''}
           </div>
-          <button onclick="event.stopPropagation(); showVideoManageMenu(${v.id}, '${v.title.replace(/'/g,"\\'")}', ${v.comments_enabled}, ${v.likes_visible}, ${v.is_hidden || 0})"
+          <button onclick="event.stopPropagation(); showVideoManageMenu(${v.id}, '${v.share_id || v.id}', '${v.title.replace(/'/g,"\\'")}', ${v.comments_enabled}, ${v.likes_visible}, ${v.is_hidden || 0})"
             style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); border: none; color: white; cursor: pointer; padding: 6px 10px; border-radius: 6px; z-index: 10;"
             title="Yönet">
             <i class="fas fa-ellipsis-v"></i>
@@ -6281,7 +6307,7 @@ function renderMyVideos(videos) {
   `;
 }
 
-function showVideoManageMenu(videoId, title, commentsEnabled, likesVisible, isHidden) {
+function showVideoManageMenu(videoId, shareId, title, commentsEnabled, likesVisible, isHidden) {
   showModal(`
     <p style="font-size:13px; color:var(--yt-spec-text-secondary); margin-bottom:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${title}</p>
 
@@ -6310,7 +6336,7 @@ function showVideoManageMenu(videoId, title, commentsEnabled, likesVisible, isHi
     </div>
 
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="yt-btn" onclick="copyContentLink(${videoId}, 'video'); closeModal();" style="flex:1; background:rgba(59,130,246,0.15); border-color:rgba(59,130,246,0.3); color:#60a5fa;">
+      <button class="yt-btn" onclick="copyContentLink('${shareId}', 'video'); closeModal();" style="flex:1; background:rgba(59,130,246,0.15); border-color:rgba(59,130,246,0.3); color:#60a5fa;">
         <i class="fas fa-link"></i> Linki Kopyala
       </button>
       <button class="yt-btn" onclick="saveVideoEdit(${videoId})" style="flex:1;">Kaydet</button>

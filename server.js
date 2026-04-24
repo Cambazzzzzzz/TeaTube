@@ -389,11 +389,11 @@ const pageRoutes = [
   '/sozlesme'
 ];
 
-// İçerik route'ları (dinamik ID'ler)
+// İçerik route'ları (dinamik ID'ler - hem numeric hem share_id)
 const contentRoutePatterns = [
-  /^\/video\/\d+$/,
-  /^\/reals\/\d+$/,
-  /^\/sarki\/\d+$/,
+  /^\/video\/[a-zA-Z0-9]+$/,
+  /^\/reals\/[a-zA-Z0-9]+$/,
+  /^\/sarki\/[a-zA-Z0-9]+$/,
   /^\/kanal\/\d+$/
 ];
 

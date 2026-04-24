@@ -528,6 +528,16 @@ async function editVideo(videoId) {
         <input type="text" id="edit-video-title" value="${video.title}" class="form-input">
       </div>
       <div class="form-group">
+        <label>Paylaşım ID (URL için)</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="edit-video-share-id" value="${video.share_id || ''}" class="form-input" placeholder="Otomatik oluşturulacak" style="flex:1">
+          <button class="btn btn-secondary" onclick="document.getElementById('edit-video-share-id').value = generateRandomId()" type="button">
+            <i class="fa-solid fa-refresh"></i> Yeni ID
+          </button>
+        </div>
+        <small style="color:var(--text3);font-size:12px">URL: teatube.com/video/${video.share_id || 'RANDOM_ID'}</small>
+      </div>
+      <div class="form-group">
         <label>Açıklama</label>
         <textarea id="edit-video-description" class="form-input" rows="3">${video.description || ''}</textarea>
       </div>
@@ -579,10 +589,21 @@ async function editVideo(videoId) {
   }
 }
 
+// Random ID oluştur
+function generateRandomId() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 11; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 async function saveVideoEdit(videoId) {
   try {
     const data = {
       title: document.getElementById('edit-video-title').value,
+      share_id: document.getElementById('edit-video-share-id').value || generateRandomId(),
       description: document.getElementById('edit-video-description').value,
       tags: document.getElementById('edit-video-tags').value,
       video_type: document.getElementById('edit-video-type').value,
