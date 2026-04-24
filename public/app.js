@@ -1909,92 +1909,68 @@ function _openMobileChatDirect(friendId, friendName, friendPhoto) {
   try {
     console.log('🔥 HTML içeriği oluşturuluyor...');
     
-    // Basit test HTML'i önce dene
-    const testHtml = `
-      <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:#000;color:#fff;z-index:9999;padding:20px;">
-        <h1>Test Chat: ${friendName}</h1>
-        <button onclick="loadMessagesPage()" style="background:#ff0033;color:#fff;border:none;padding:10px 20px;border-radius:5px;margin:10px 0;">Geri Dön</button>
-        <div id="testChatMessages" style="background:#333;padding:10px;margin:10px 0;height:200px;overflow-y:auto;">
-          <p>Test mesaj alanı</p>
+    const htmlContent = `
+      <div class="mobile-chat-fullscreen">
+        <div class="mobile-chat-header">
+          <button onclick="loadMessagesPage()" style="background:none;border:none;color:var(--yt-spec-text-primary);cursor:pointer;padding:8px 12px 8px 4px;font-size:20px;flex-shrink:0;">
+            <i class="fas fa-arrow-left"></i>
+          </button>
+          <div style="position:relative;flex-shrink:0;">
+            <img src="${friendPhoto}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" />
+            <div id="headerOnlineDot" style="display:none;position:absolute;bottom:1px;right:1px;width:10px;height:10px;background:#4caf50;border-radius:50%;border:2px solid var(--yt-spec-base-background);"></div>
+          </div>
+          <div style="flex:1;min-width:0;margin-left:10px;">
+            <p style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${friendName}</p>
+            <p id="chatStatus" style="font-size:12px;color:var(--yt-spec-text-secondary);"></p>
+          </div>
+          <button onclick="startDirectCall(${friendId},'${friendName.replace(/'/g,"\\'")}','${friendPhoto}')" title="Sesli Arama" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:8px;font-size:18px;flex-shrink:0;">
+            <i class="fas fa-phone"></i>
+          </button>
         </div>
-        <input type="text" placeholder="Test mesaj..." style="width:100%;padding:10px;margin:10px 0;">
+        <div id="selectToolbar" class="select-toolbar" style="display:none;">
+          <button onclick="exitSelectMode()" style="background:none;border:none;color:inherit;cursor:pointer;padding:4px 8px;font-size:18px;"><i class="fas fa-times"></i></button>
+          <span id="selectCount" style="font-size:14px;font-weight:600;flex:1;">0 seçildi</span>
+          <button id="deleteMineBtn" onclick="confirmBulkDelete('${chatId}','sender')" style="display:none;background:rgba(244,67,54,0.15);border:1px solid #f44336;color:#f44336;cursor:pointer;padding:5px 10px;border-radius:8px;font-size:12px;white-space:nowrap"><i class="fas fa-trash"></i> Benden Sil</button>
+          <button id="deleteAllBtn" onclick="confirmBulkDelete('${chatId}','all')" style="display:none;background:rgba(244,67,54,0.25);border:1px solid #f44336;color:#f44336;cursor:pointer;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap"><i class="fas fa-trash-alt"></i> Herkesten Sil</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          <div style="text-align:center;padding:20px;color:var(--yt-spec-text-secondary);">
+            <div class="yt-loading" style="margin:0 auto;"><div class="yt-spinner"></div></div>
+            <p style="margin-top:12px;">Mesajlar yükleniyor...</p>
+          </div>
+        </div>
+        <div class="chat-input-wrapper">
+          <div id="photoPreviewArea" style="display:none;padding:8px 12px 0;border-top:1px solid rgba(255,255,255,0.08);">
+            <div style="position:relative;display:inline-block;">
+              <img id="photoPreviewImg" style="max-height:100px;max-width:160px;border-radius:8px;display:block;object-fit:cover;" />
+              <button onclick="cancelPhotoPreview()" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#333;border:none;color:#fff;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;">×</button>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <label class="chat-photo-btn">
+              <i class="fas fa-image"></i>
+              <input type="file" id="chatPhotoInput" accept="image/*" style="display:none;" onchange="previewChatPhoto(this,${friendId})" />
+            </label>
+            <textarea id="chatInput" class="chat-input chat-textarea" placeholder="Mesaj yaz..." onkeydown="handleChatKey(event,${friendId})" oninput="sendTypingStatus(${friendId},this.value.length>0)"></textarea>
+            <button class="chat-send-btn" onclick="sendMessage(${friendId})"><i class="fas fa-paper-plane"></i></button>
+          </div>
+        </div>
       </div>
     `;
     
-    console.log('🔥 Test HTML oluşturuldu');
-    pageContent.innerHTML = testHtml;
-    console.log('✅ Test HTML DOM\'a eklendi');
+    pageContent.innerHTML = htmlContent;
+    console.log('✅ HTML içeriği DOM\'a eklendi');
     
-    // 2 saniye sonra gerçek chat'i yükle
-    setTimeout(() => {
-      console.log('🔥 Gerçek chat HTML\'i yükleniyor...');
-      
-      const htmlContent = `
-        <div class="mobile-chat-fullscreen">
-          <div class="mobile-chat-header">
-            <button onclick="loadMessagesPage()" style="background:none;border:none;color:var(--yt-spec-text-primary);cursor:pointer;padding:8px 12px 8px 4px;font-size:20px;flex-shrink:0;">
-              <i class="fas fa-arrow-left"></i>
-            </button>
-            <div style="position:relative;flex-shrink:0;">
-              <img src="${friendPhoto}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" />
-              <div id="headerOnlineDot" style="display:none;position:absolute;bottom:1px;right:1px;width:10px;height:10px;background:#4caf50;border-radius:50%;border:2px solid var(--yt-spec-base-background);"></div>
-            </div>
-            <div style="flex:1;min-width:0;margin-left:10px;">
-              <p style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${friendName}</p>
-              <p id="chatStatus" style="font-size:12px;color:var(--yt-spec-text-secondary);"></p>
-            </div>
-            <button onclick="startDirectCall(${friendId},'${friendName.replace(/'/g,"\\'")}','${friendPhoto}')" title="Sesli Arama" style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;padding:8px;font-size:18px;flex-shrink:0;">
-              <i class="fas fa-phone"></i>
-            </button>
-          </div>
-          <div id="selectToolbar" class="select-toolbar" style="display:none;">
-            <button onclick="exitSelectMode()" style="background:none;border:none;color:inherit;cursor:pointer;padding:4px 8px;font-size:18px;"><i class="fas fa-times"></i></button>
-            <span id="selectCount" style="font-size:14px;font-weight:600;flex:1;">0 seçildi</span>
-            <button id="deleteMineBtn" onclick="confirmBulkDelete('${chatId}','sender')" style="display:none;background:rgba(244,67,54,0.15);border:1px solid #f44336;color:#f44336;cursor:pointer;padding:5px 10px;border-radius:8px;font-size:12px;white-space:nowrap"><i class="fas fa-trash"></i> Benden Sil</button>
-            <button id="deleteAllBtn" onclick="confirmBulkDelete('${chatId}','all')" style="display:none;background:rgba(244,67,54,0.25);border:1px solid #f44336;color:#f44336;cursor:pointer;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap"><i class="fas fa-trash-alt"></i> Herkesten Sil</button>
-          </div>
-          <div class="chat-messages" id="chatMessages">
-            <div style="text-align:center;padding:20px;color:var(--yt-spec-text-secondary);">
-              <p>Mesajlar yükleniyor...</p>
-            </div>
-          </div>
-          <div class="chat-input-wrapper">
-            <div id="photoPreviewArea" style="display:none;padding:8px 12px 0;border-top:1px solid rgba(255,255,255,0.08);">
-              <div style="position:relative;display:inline-block;">
-                <img id="photoPreviewImg" style="max-height:100px;max-width:160px;border-radius:8px;display:block;object-fit:cover;" />
-                <button onclick="cancelPhotoPreview()" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#333;border:none;color:#fff;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;">×</button>
-              </div>
-            </div>
-            <div class="chat-input-area">
-              <label class="chat-photo-btn">
-                <i class="fas fa-image"></i>
-                <input type="file" id="chatPhotoInput" accept="image/*" style="display:none;" onchange="previewChatPhoto(this,${friendId})" />
-              </label>
-              <textarea id="chatInput" class="chat-input chat-textarea" placeholder="Mesaj yaz..." onkeydown="handleChatKey(event,${friendId})" oninput="sendTypingStatus(${friendId},this.value.length>0)"></textarea>
-              <button class="chat-send-btn" onclick="sendMessage(${friendId})"><i class="fas fa-paper-plane"></i></button>
-            </div>
-          </div>
-        </div>
-      `;
-      
-      pageContent.innerHTML = htmlContent;
-      console.log('✅ Gerçek HTML içeriği DOM\'a eklendi');
-      
-      // DOM'a eklendiğini doğrula
-      const chatContainer = document.querySelector('.mobile-chat-fullscreen');
-      console.log('🔥 Chat container bulundu mu?', !!chatContainer);
-      if (chatContainer) {
-        console.log('🔥 Chat container boyutları:', {
-          width: chatContainer.offsetWidth,
-          height: chatContainer.offsetHeight,
-          display: window.getComputedStyle(chatContainer).display
-        });
-      }
-      
-      // Firebase listener'larını başlat
-      _startFirebaseListeners(friendId, friendPhoto);
-      
-    }, 1000);
+    // DOM'a eklendiğini doğrula
+    const chatContainer = document.querySelector('.mobile-chat-fullscreen');
+    console.log('🔥 Chat container bulundu mu?', !!chatContainer);
+    if (chatContainer) {
+      console.log('🔥 Chat container boyutları:', {
+        width: chatContainer.offsetWidth,
+        height: chatContainer.offsetHeight,
+        display: window.getComputedStyle(chatContainer).display
+      });
+    }
     
   } catch(e) {
     console.error('❌ HTML oluşturma hatası:', e);
@@ -2002,15 +1978,10 @@ function _openMobileChatDirect(friendId, friendName, friendPhoto) {
     return;
   }
 
-  try {
-    console.log('🔥 Firebase listener başlatılıyor...');
-    _startFirebaseListeners(friendId, friendPhoto);
-    console.log('✅ Mobil chat başarıyla açıldı');
-    
-  } catch(e) {
-    console.error('❌ Firebase listener hatası:', e);
-    showToast('Mesaj yüklenemedi: ' + e.message, 'error');
-  }
+  // Firebase listener'larını başlat
+  console.log('🔥 Firebase listener başlatılıyor...');
+  _startFirebaseListeners(friendId, friendPhoto);
+  console.log('✅ Mobil chat başarıyla açıldı');
 }
 }
 
@@ -2033,56 +2004,70 @@ function _startFirebaseListeners(friendId, friendPhoto) {
     
     window.firebaseOnValue(msgsRef, snap => {
       console.log('🔥 Firebase mesaj verisi geldi, mesaj sayısı:', snap.size);
-      const container = document.getElementById('chatMessages');
+      
+      // Container'ı bul, yoksa 500ms sonra tekrar dene
+      let container = document.getElementById('chatMessages');
       if (!container) {
-        console.error('❌ chatMessages container bulunamadı!');
+        console.log('⏳ chatMessages container henüz yok, 500ms sonra tekrar denenecek...');
+        setTimeout(() => {
+          container = document.getElementById('chatMessages');
+          if (!container) {
+            console.error('❌ chatMessages container hala bulunamadı!');
+            return;
+          }
+          renderMessages();
+        }, 500);
         return;
       }
       
-      console.log('✅ chatMessages container bulundu');
-      container.innerHTML = '';
+      renderMessages();
       
-      let messageCount = 0;
-      snap.forEach(child => {
-        const msg = child.val();
-        const msgId = child.key;
-        const isMe = msg.senderId == currentUser.id;
-        const deleted = isMe ? msg.deletedForSender : msg.deletedForReceiver;
-        if (deleted) return;
+      function renderMessages() {
+        console.log('✅ chatMessages container bulundu, mesajlar render ediliyor');
+        container.innerHTML = '';
         
-        messageCount++;
-        const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '';
-        const readIcon = isMe ? (msg.read ? '<i class="fas fa-check-double" style="color:#4caf50;"></i>' : '<i class="fas fa-check"></i>') : '';
-        const div = document.createElement('div');
-        div.className = `chat-msg ${isMe ? 'chat-msg-me' : 'chat-msg-them'}`;
-        div.dataset.msgId = msgId; div.dataset.isMe = isMe ? '1' : '0';
-        div.innerHTML = `
-          <div class="msg-select-check" onclick="toggleMsgSelect(event,'${msgId}',${isMe})"><div class="msg-checkbox" id="chk_${msgId}"></div></div>
-          ${!isMe ? `<img src="${friendPhoto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;align-self:flex-end;margin-right:6px;" />` : ''}
-          <div class="chat-bubble" oncontextmenu="showMsgMenu(event,'${msgId}',${isMe},'${chatId}')" onclick="handleBubbleClick(event,'${msgId}',${isMe})">
-            ${msg.videoShare ? `
-              <div onclick="event.stopPropagation();${msg.videoShare.isShort ? `openShortFromHome(${msg.videoShare.videoId})` : `playVideo(${msg.videoShare.videoId})`}" style="cursor:pointer;border-radius:10px;overflow:hidden;max-width:220px;background:rgba(0,0,0,0.3)">
-                <video src="${msg.videoShare.videoUrl}" style="width:100%;max-height:160px;object-fit:cover;display:block;pointer-events:none" muted></video>
-                <div style="padding:8px 10px;display:flex;align-items:center;gap:6px">
-                  <i class="fas fa-play-circle" style="color:#ff0033;font-size:16px;flex-shrink:0"></i>
-                  <p style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${msg.videoShare.title}</p>
+        let messageCount = 0;
+        snap.forEach(child => {
+          const msg = child.val();
+          const msgId = child.key;
+          const isMe = msg.senderId == currentUser.id;
+          const deleted = isMe ? msg.deletedForSender : msg.deletedForReceiver;
+          if (deleted) return;
+          
+          messageCount++;
+          const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '';
+          const readIcon = isMe ? (msg.read ? '<i class="fas fa-check-double" style="color:#4caf50;"></i>' : '<i class="fas fa-check"></i>') : '';
+          const div = document.createElement('div');
+          div.className = `chat-msg ${isMe ? 'chat-msg-me' : 'chat-msg-them'}`;
+          div.dataset.msgId = msgId; div.dataset.isMe = isMe ? '1' : '0';
+          div.innerHTML = `
+            <div class="msg-select-check" onclick="toggleMsgSelect(event,'${msgId}',${isMe})"><div class="msg-checkbox" id="chk_${msgId}"></div></div>
+            ${!isMe ? `<img src="${friendPhoto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;align-self:flex-end;margin-right:6px;" />` : ''}
+            <div class="chat-bubble" oncontextmenu="showMsgMenu(event,'${msgId}',${isMe},'${chatId}')" onclick="handleBubbleClick(event,'${msgId}',${isMe})">
+              ${msg.videoShare ? `
+                <div onclick="event.stopPropagation();${msg.videoShare.isShort ? `openShortFromHome(${msg.videoShare.videoId})` : `playVideo(${msg.videoShare.videoId})`}" style="cursor:pointer;border-radius:10px;overflow:hidden;max-width:220px;background:rgba(0,0,0,0.3)">
+                  <video src="${msg.videoShare.videoUrl}" style="width:100%;max-height:160px;object-fit:cover;display:block;pointer-events:none" muted></video>
+                  <div style="padding:8px 10px;display:flex;align-items:center;gap:6px">
+                    <i class="fas fa-play-circle" style="color:#ff0033;font-size:16px;flex-shrink:0"></i>
+                    <p style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${msg.videoShare.title}</p>
+                  </div>
                 </div>
-              </div>
-            ` : msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width:200px;max-height:200px;border-radius:10px;display:block;" />` : `<p style="white-space:pre-wrap;">${decodeURIComponent(msg.text || '')}</p>`}
-            <div class="chat-meta">${time} ${readIcon}</div>
-          </div>
-          ${isMe ? `<img src="${getProfilePhotoUrl(currentUser.profile_photo)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;align-self:flex-end;margin-left:6px;" />` : ''}
-        `;
-        let pressTimer;
-        div.addEventListener('pointerdown', (e) => { pressTimer = setTimeout(() => { showMsgMenu(e, msgId, isMe, chatId); }, 500); });
-        div.addEventListener('pointerup', () => clearTimeout(pressTimer));
-        div.addEventListener('pointermove', () => clearTimeout(pressTimer));
-        container.appendChild(div);
-      });
-      
-      console.log('🔥 Toplam mesaj eklendi:', messageCount);
-      container.scrollTop = container.scrollHeight;
-      markMessagesRead(chatId, friendId);
+              ` : msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width:200px;max-height:200px;border-radius:10px;display:block;" />` : `<p style="white-space:pre-wrap;">${decodeURIComponent(msg.text || '')}</p>`}
+              <div class="chat-meta">${time} ${readIcon}</div>
+            </div>
+            ${isMe ? `<img src="${getProfilePhotoUrl(currentUser.profile_photo)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;align-self:flex-end;margin-left:6px;" />` : ''}
+          `;
+          let pressTimer;
+          div.addEventListener('pointerdown', (e) => { pressTimer = setTimeout(() => { showMsgMenu(e, msgId, isMe, chatId); }, 500); });
+          div.addEventListener('pointerup', () => clearTimeout(pressTimer));
+          div.addEventListener('pointermove', () => clearTimeout(pressTimer));
+          container.appendChild(div);
+        });
+        
+        console.log('🔥 Toplam mesaj eklendi:', messageCount);
+        container.scrollTop = container.scrollHeight;
+        markMessagesRead(chatId, friendId);
+      }
     });
 
     const presRef = window.firebaseRef(window.firebaseDB, `presence/${friendId}`);

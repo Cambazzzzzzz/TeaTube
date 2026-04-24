@@ -2529,6 +2529,7 @@ input[type="checkbox"]:checked::after {
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
+  pointer-events: auto !important;
 }
 
 /* Mobil sohbet başlığı */
@@ -2541,6 +2542,7 @@ input[type="checkbox"]:checked::after {
   position: sticky;
   top: 0;
   z-index: 10;
+  pointer-events: auto;
 }
 
 /* Sohbet mesajları alanı */
@@ -2551,6 +2553,7 @@ input[type="checkbox"]:checked::after {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  pointer-events: auto;
 }
 
 /* Mesaj balonları */
@@ -2603,6 +2606,7 @@ input[type="checkbox"]:checked::after {
   border-top: 1px solid rgba(255,255,255,0.1);
   position: sticky;
   bottom: 0;
+  pointer-events: auto;
 }
 
 .chat-input-area {
