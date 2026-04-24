@@ -1444,7 +1444,7 @@ const PAGE_ROUTES = {
 function getPageFromURL() {
   const path = window.location.pathname;
   
-  // Özel içerik URL'leri kontrol et (/video/123, /reals/456, /sarki/789, /foto/101)
+  // Özel içerik URL'leri kontrol et (/video/123, /reals/456, /sarki/789, /foto/101, /metin/abc)
   if (path.startsWith('/video/')) {
     const videoId = path.split('/')[2];
     if (videoId) {
@@ -1481,6 +1481,15 @@ function getPageFromURL() {
     }
   }
   
+  if (path.startsWith('/metin/')) {
+    const textId = path.split('/')[2];
+    if (textId) {
+      // Metin ID'yi al ve metni aç
+      setTimeout(() => openText(textId), 100);
+      return 'home';
+    }
+  }
+  
   if (path.startsWith('/kanal/')) {
     const channelId = path.split('/')[2];
     if (channelId) {
@@ -1499,7 +1508,7 @@ function getPageFromURL() {
 
 // Sayfa değiştiğinde URL'i güncelle
 function updateURL(page, contentId = null, contentType = null) {
-  // Eğer özel içerik varsa (video, reals, şarkı, foto)
+  // Eğer özel içerik varsa (video, reals, şarkı, foto, metin)
   if (contentId && contentType) {
     const contentRoutes = {
       'video': `/video/${contentId}`,
@@ -1507,6 +1516,7 @@ function updateURL(page, contentId = null, contentType = null) {
       'sarki': `/sarki/${contentId}`,
       'foto': `/foto/${contentId}`,
       'photo': `/foto/${contentId}`,
+      'metin': `/metin/${contentId}`,
       'kanal': `/kanal/${contentId}`
     };
     const route = contentRoutes[contentType];
@@ -1524,13 +1534,14 @@ function updateURL(page, contentId = null, contentType = null) {
 }
 
 // Link kopyalama fonksiyonu
-function copyContentLink(contentId, contentType) {
+function copyContentLink(contentType, contentId) {
   const contentRoutes = {
     'video': `/video/${contentId}`,
     'reals': `/reals/${contentId}`,
     'sarki': `/sarki/${contentId}`,
     'foto': `/foto/${contentId}`,
     'photo': `/foto/${contentId}`,
+    'metin': `/metin/${contentId}`,
     'kanal': `/kanal/${contentId}`
   };
   
@@ -5878,6 +5889,11 @@ function showUploadVideoModal() {
   `;
 
   showModal(modalContent, 'Yükle');
+  
+  // Metin karakter sayacını başlat
+  setTimeout(() => {
+    initTextCharCounter();
+  }, 100);
 }
 
 function switchUploadType(type) {
@@ -6243,20 +6259,17 @@ async function uploadPhoto() {
   }
 }
 
-// Metin yükleme
+// Metin yükleme (YENİ SİSTEM)
 async function uploadText() {
-  const title = document.getElementById('videoTitle').value.trim();
-  const description = document.getElementById('videoDescription').value.trim();
-  const textContent = document.getElementById('textContent').value.trim();
-  const textType = document.querySelector('input[name="textType"]:checked')?.value || 'teaweet';
-
-  if (!title) {
-    showToast('Başlık gerekli', 'error');
-    return;
-  }
+  const textContent = document.getElementById('textContent')?.value?.trim();
 
   if (!textContent) {
     showToast('Metin içeriği gerekli', 'error');
+    return;
+  }
+
+  if (textContent.length > 5000) {
+    showToast('Metin çok uzun (max 5000 karakter)', 'error');
     return;
   }
 
@@ -6267,29 +6280,22 @@ async function uploadText() {
   const progressStatus = document.getElementById('uploadProgressStatus');
 
   progressOverlay.classList.add('show');
-  progressTitle.textContent = 'Metin yükleniyor...';
-  progressStatus.textContent = 'Hazırlanıyor...';
-  progressBar.style.width = '0%';
-  progressPercentage.textContent = '0%';
+  progressTitle.textContent = 'Metin paylaşılıyor...';
+  progressStatus.textContent = 'Gönderiliyor...';
+  progressBar.style.width = '50%';
+  progressPercentage.textContent = '50%';
   closeModal();
 
   try {
-    progressBar.style.width = '50%';
-    progressPercentage.textContent = '50%';
-    progressStatus.textContent = 'Gönderiliyor...';
-
-    const formData = new FormData();
-    formData.append('channelId', currentChannel.id);
-    formData.append('title', title);
-    formData.append('description', description);
-    formData.append('videoType', 'Metin');
-    formData.append('textContent', textContent);
-    formData.append('textType', textType);
-    formData.append('tags', textType === 'teaweet' ? 'teaweet' : 'metin');
-    formData.append('commentsEnabled', 1);
-    formData.append('likesVisible', 1);
-
-    const res = await fetch(`${API_URL}/text`, { method: 'POST', body: formData });
+    const res = await fetch(`${API_URL}/text`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser.id,
+        content: textContent
+      })
+    });
+    
     const resData = await res.json();
     
     if (!res.ok) {
@@ -6297,6 +6303,21 @@ async function uploadText() {
       showToast('Hata: ' + (resData.error || 'Bilinmeyen hata'), 'error');
       return;
     }
+
+    progressBar.style.width = '100%';
+    progressPercentage.textContent = '100%';
+    progressStatus.textContent = 'Tamamlandı!';
+
+    setTimeout(() => {
+      progressOverlay.classList.remove('show');
+      showToast('Metin paylaşıldı!', 'success');
+      loadPage('home'); // Anasayfaya dön
+    }, 800);
+  } catch(e) {
+    progressOverlay.classList.remove('show');
+    showToast('Yükleme hatası: ' + e.message, 'error');
+  }
+}
 
     progressBar.style.width = '100%';
     progressPercentage.textContent = '100%';
@@ -7212,31 +7233,31 @@ async function selectTheme(theme) {
 
 function showThemeSelector() {
   const darkThemes = [
-    { id: 'dark', name: 'Klasik Karanlık', icon: 'moon', color: '#ff0000' },
-    { id: 'darkmorp', name: 'DarkMorp', icon: 'star', color: '#8b5cf6' },
-    { id: 'neon-purple', name: 'Neon Mor', icon: 'bolt', color: '#9b59b6' },
-    { id: 'ocean-blue', name: 'Okyanus Mavisi', icon: 'water', color: '#1e90ff' },
-    { id: 'fire-red', name: 'Ateş Kırmızısı', icon: 'fire', color: '#ff4500' },
-    { id: 'forest-green', name: 'Orman Yeşili', icon: 'tree', color: '#2ecc71' },
-    { id: 'gold', name: 'Altın', icon: 'crown', color: '#f1c40f' },
-    { id: 'midnight-blue', name: 'Gece Mavisi', icon: 'moon', color: '#3ea6ff' },
-    { id: 'orange-fire', name: 'Turuncu Ateş', icon: 'fire-alt', color: '#ff6b00' },
-    { id: 'pink-dream', name: 'Pembe Rüya', icon: 'heart', color: '#e91e8c' },
-    { id: 'aurora', name: 'Aurora', icon: 'sparkles', color: '#00e5ff' },
-    { id: 'sunset-glow', name: 'Gün Batımı', icon: 'sun', color: '#ff6b35' },
-    { id: 'deep-space', name: 'Derin Uzay', icon: 'rocket', color: '#7c3aed' },
-    { id: 'emerald-night', name: 'Zümrüt Gece', icon: 'gem', color: '#10b981' },
-    { id: 'rose-gold', name: 'Gül Altın', icon: 'rose', color: '#f43f5e' }
+    {id:'dark', name:'Gece Karanlığı', bg:'#0f0f0f', accent:'#ff0000', preview:'linear-gradient(135deg,#0f0f0f,#1a1a1a)'},
+    {id:'darkmorp', name:'DarkMorp', bg:'#000000', accent:'#8b5cf6', preview:'linear-gradient(135deg, #000000 0%, #1a0033 25%, #000000 50%, #001a33 75%, #000000 100%)'},
+    {id:'neon-purple', name:'Elektrik Moru', bg:'#0d0d1a', accent:'#9b59b6', preview:'linear-gradient(135deg,#0d0d1a,#1a1a2e)'},
+    {id:'ocean-blue', name:'Okyanus Mavisi', bg:'#0a0e1a', accent:'#1e90ff', preview:'linear-gradient(135deg,#0a0e1a,#0d1b3e)'},
+    {id:'fire-red', name:'Ateş Kırmızısı', bg:'#1a0a0a', accent:'#ff4500', preview:'linear-gradient(135deg,#1a0a0a,#2d0f0f)'},
+    {id:'forest-green', name:'Yeşil Orman', bg:'#0a1a0a', accent:'#2ecc71', preview:'linear-gradient(135deg,#0a1a0a,#0f2d0f)'},
+    {id:'gold', name:'Altın Sarısı', bg:'#1a1500', accent:'#f1c40f', preview:'linear-gradient(135deg,#1a1500,#2d2400)'},
+    {id:'midnight-blue', name:'Gece Mavisi', bg:'#050a1a', accent:'#3ea6ff', preview:'linear-gradient(135deg,#050a1a,#0a1530)'},
+    {id:'orange-fire', name:'Turuncu Ateş', bg:'#1a0f00', accent:'#ff6b00', preview:'linear-gradient(135deg,#1a0f00,#2d1a00)'},
+    {id:'pink-dream', name:'Pembe Rüya', bg:'#1a0a14', accent:'#e91e8c', preview:'linear-gradient(135deg,#1a0a14,#2d0f22)'},
+    {id:'aurora', name:'Aurora Borealis', bg:'#050d1a', accent:'#00e5ff', preview:'linear-gradient(135deg,#050d1a 0%,#0d2137 40%,#1a0d37 100%)'},
+    {id:'sunset-glow', name:'Gün Batımı', bg:'#1a0a00', accent:'#ff6b35', preview:'linear-gradient(135deg,#1a0a00 0%,#2d1500 40%,#1a0a1a 100%)'},
+    {id:'deep-space', name:'Derin Uzay', bg:'#020408', accent:'#7c3aed', preview:'linear-gradient(135deg,#020408 0%,#0d0520 50%,#020408 100%)'},
+    {id:'emerald-night', name:'Zümrüt Gece', bg:'#020d0a', accent:'#10b981', preview:'linear-gradient(135deg,#020d0a 0%,#051a12 50%,#020d0a 100%)'},
+    {id:'rose-gold', name:'Gül Altını', bg:'#1a0a0f', accent:'#f43f5e', preview:'linear-gradient(135deg,#1a0a0f 0%,#2d0f1a 40%,#1a0a0f 100%)'}
   ];
   
   const lightThemes = [
-    { id: 'light', name: 'Klasik Aydınlık', icon: 'sun', color: '#ff0000' },
-    { id: 'light-blue', name: 'Açık Mavi', icon: 'cloud', color: '#2196f3' },
-    { id: 'light-purple', name: 'Açık Mor', icon: 'flower', color: '#9c27b0' },
-    { id: 'light-green', name: 'Açık Yeşil', icon: 'leaf', color: '#4caf50' },
-    { id: 'light-orange', name: 'Açık Turuncu', icon: 'sun', color: '#ff9800' },
-    { id: 'light-pink', name: 'Açık Pembe', icon: 'heart', color: '#e91e63' },
-    { id: 'light-teal', name: 'Açık Turkuaz', icon: 'water', color: '#009688' }
+    {id:'light', name:'Gün Işığı', bg:'#f9f9f9', accent:'#ff0000', preview:'linear-gradient(135deg,#f9f9f9,#eeeeee)'},
+    {id:'light-blue', name:'Açık Mavi', bg:'#e3f2fd', accent:'#2196f3', preview:'linear-gradient(135deg,#e3f2fd,#bbdefb)'},
+    {id:'light-purple', name:'Açık Mor', bg:'#f3e5f5', accent:'#9c27b0', preview:'linear-gradient(135deg,#f3e5f5,#e1bee7)'},
+    {id:'light-green', name:'Açık Yeşil', bg:'#e8f5e9', accent:'#4caf50', preview:'linear-gradient(135deg,#e8f5e9,#c8e6c9)'},
+    {id:'light-orange', name:'Açık Turuncu', bg:'#fff3e0', accent:'#ff9800', preview:'linear-gradient(135deg,#fff3e0,#ffe0b2)'},
+    {id:'light-pink', name:'Açık Pembe', bg:'#fce4ec', accent:'#e91e63', preview:'linear-gradient(135deg,#fce4ec,#f8bbd0)'},
+    {id:'light-teal', name:'Açık Turkuaz', bg:'#e0f2f1', accent:'#009688', preview:'linear-gradient(135deg,#e0f2f1,#b2dfdb)'}
   ];
   
   const currentTheme = currentUser?.theme || 'dark';
@@ -7252,18 +7273,23 @@ function showThemeSelector() {
         <i class="fas fa-moon"></i> Karanlık Temalar
       </h4>
       <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:12px;">
-        ${darkThemes.map(theme => `
-          <div class="theme-option ${currentTheme === theme.id ? 'active' : ''}" 
-               onclick="selectTheme('${theme.id}'); closeModal();" 
-               style="position:relative; background:var(--yt-spec-raised-background); border:2px solid ${currentTheme === theme.id ? theme.color : 'var(--yt-spec-border)'}; border-radius:12px; padding:16px; cursor:pointer; transition:all 0.2s; text-align:center;"
+        ${darkThemes.map(t => `
+          <div class="theme-option ${currentTheme === t.id ? 'active' : ''}" 
+               onclick="selectTheme('${t.id}'); closeModal();" 
+               style="cursor:pointer; transition:all 0.2s; border:2px solid ${currentTheme === t.id ? t.accent : 'transparent'}; border-radius:12px; overflow:hidden;"
                onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)';"
                onmouseout="this.style.transform=''; this.style.boxShadow='';">
-            ${currentTheme === theme.id ? `<div style="position:absolute; top:8px; right:8px; width:20px; height:20px; background:${theme.color}; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-check" style="font-size:10px; color:white;"></i></div>` : ''}
-            <div style="width:48px; height:48px; background:linear-gradient(135deg, ${theme.color}, ${theme.color}88); border-radius:12px; display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
-              <i class="fas fa-${theme.icon}" style="font-size:20px; color:white;"></i>
+            <div class="theme-preview" style="background: ${t.preview || t.bg}; padding:16px; min-height:80px; position:relative;">
+              <div style="width:100%; height:6px; background: ${t.accent}; border-radius: 3px; margin-bottom: 6px;"></div>
+              <div style="display:flex; gap:4px;">
+                <div style="flex:1; height:20px; background: rgba(255,255,255,0.1); border-radius: 3px;"></div>
+                <div style="width:30px; height:20px; background: ${t.accent}; border-radius: 3px; opacity:0.8;"></div>
+              </div>
+              ${currentTheme === t.id ? `<div style="position:absolute; top:8px; right:8px; width:24px; height:24px; background:${t.accent}; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.3);"><i class="fas fa-check" style="font-size:12px; color:white;"></i></div>` : ''}
             </div>
-            <p style="font-size:13px; font-weight:600; color:var(--yt-spec-text-primary); margin-bottom:4px;">${theme.name}</p>
-            <div style="width:100%; height:4px; background:linear-gradient(90deg, ${theme.color}, ${theme.color}44); border-radius:2px; margin-top:8px;"></div>
+            <div style="padding:12px; background:var(--yt-spec-raised-background); text-align:center;">
+              <span class="theme-name" style="font-size:13px; font-weight:600; color:var(--yt-spec-text-primary);">${t.name}</span>
+            </div>
           </div>
         `).join('')}
       </div>
@@ -7275,18 +7301,23 @@ function showThemeSelector() {
         <i class="fas fa-sun"></i> Aydınlık Temalar
       </h4>
       <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:12px;">
-        ${lightThemes.map(theme => `
-          <div class="theme-option ${currentTheme === theme.id ? 'active' : ''}" 
-               onclick="selectTheme('${theme.id}'); closeModal();" 
-               style="position:relative; background:var(--yt-spec-raised-background); border:2px solid ${currentTheme === theme.id ? theme.color : 'var(--yt-spec-border)'}; border-radius:12px; padding:16px; cursor:pointer; transition:all 0.2s; text-align:center;"
+        ${lightThemes.map(t => `
+          <div class="theme-option ${currentTheme === t.id ? 'active' : ''}" 
+               onclick="selectTheme('${t.id}'); closeModal();" 
+               style="cursor:pointer; transition:all 0.2s; border:2px solid ${currentTheme === t.id ? t.accent : 'transparent'}; border-radius:12px; overflow:hidden;"
                onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.3)';"
                onmouseout="this.style.transform=''; this.style.boxShadow='';">
-            ${currentTheme === theme.id ? `<div style="position:absolute; top:8px; right:8px; width:20px; height:20px; background:${theme.color}; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-check" style="font-size:10px; color:white;"></i></div>` : ''}
-            <div style="width:48px; height:48px; background:linear-gradient(135deg, ${theme.color}, ${theme.color}88); border-radius:12px; display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
-              <i class="fas fa-${theme.icon}" style="font-size:20px; color:white;"></i>
+            <div class="theme-preview" style="background: ${t.preview || t.bg}; padding:16px; min-height:80px; position:relative;">
+              <div style="width:100%; height:6px; background: ${t.accent}; border-radius: 3px; margin-bottom: 6px;"></div>
+              <div style="display:flex; gap:4px;">
+                <div style="flex:1; height:20px; background: rgba(0,0,0,0.1); border-radius: 3px;"></div>
+                <div style="width:30px; height:20px; background: ${t.accent}; border-radius: 3px; opacity:0.8;"></div>
+              </div>
+              ${currentTheme === t.id ? `<div style="position:absolute; top:8px; right:8px; width:24px; height:24px; background:${t.accent}; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.3);"><i class="fas fa-check" style="font-size:12px; color:white;"></i></div>` : ''}
             </div>
-            <p style="font-size:13px; font-weight:600; color:var(--yt-spec-text-primary); margin-bottom:4px;">${theme.name}</p>
-            <div style="width:100%; height:4px; background:linear-gradient(90deg, ${theme.color}, ${theme.color}44); border-radius:2px; margin-top:8px;"></div>
+            <div style="padding:12px; background:var(--yt-spec-raised-background); text-align:center;">
+              <span class="theme-name" style="font-size:13px; font-weight:600; color:var(--yt-spec-text-primary);">${t.name}</span>
+            </div>
           </div>
         `).join('')}
       </div>
@@ -12109,5 +12140,349 @@ async function updateStockPrices() {
     }
   } catch(e) {
     showToast('Fiyatlar güncellenemedi', 'error');
+  }
+}
+
+
+// ==================== METİN PAYLAŞIM SİSTEMİ ====================
+
+// Metin beğen/beğenmekten vazgeç
+async function likeText(textId) {
+  if (window.isGuestMode || !currentUser) {
+    showLoginPrompt();
+    return;
+  }
+  
+  try {
+    const res = await fetch(`${API_URL}/text/${textId}/like`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      // UI güncelle
+      const likeBtn = document.querySelector(`[data-text-id="${textId}"] .text-like-btn`);
+      const likeCount = document.querySelector(`[data-text-id="${textId}"] .text-like-count`);
+      
+      if (likeBtn) {
+        likeBtn.classList.toggle('liked', data.liked);
+        likeBtn.innerHTML = data.liked ? '<i class="fas fa-heart"></i>' : '<i class="far fa-heart"></i>';
+      }
+      
+      if (likeCount) {
+        const currentCount = parseInt(likeCount.textContent) || 0;
+        likeCount.textContent = data.liked ? currentCount + 1 : Math.max(0, currentCount - 1);
+      }
+    }
+  } catch(e) {
+    showToast('Beğeni hatası', 'error');
+  }
+}
+
+// Metin yorumlarını göster
+async function showTextComments(textId) {
+  try {
+    const res = await fetch(`${API_URL}/text/${textId}/comments`);
+    const comments = await res.json();
+    
+    const commentsHTML = comments.map(c => `
+      <div class="comment-item" style="display:flex; gap:12px; padding:12px; background:var(--yt-spec-raised-background); border-radius:8px; margin-bottom:8px;">
+        <img src="${c.profile_photo || '?'}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;" />
+        <div style="flex:1;">
+          <div style="font-weight:600; font-size:13px; color:var(--yt-spec-text-primary); margin-bottom:4px;">
+            ${c.nickname} <span style="font-weight:400; color:var(--yt-spec-text-secondary); font-size:11px;">@${c.username}</span>
+          </div>
+          <div style="font-size:14px; color:var(--yt-spec-text-primary); line-height:1.5;">${escapeHtml(c.comment_text)}</div>
+          <div style="font-size:11px; color:var(--yt-spec-text-secondary); margin-top:4px;">
+            ${formatTimeAgo(c.created_at)}
+          </div>
+        </div>
+      </div>
+    `).join('');
+    
+    showModal(`
+      <h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Yorumlar (${comments.length})</h3>
+      
+      <div style="margin-bottom:16px;">
+        <textarea id="newTextComment" class="yt-textarea" placeholder="Yorum yaz..." style="min-height:80px;"></textarea>
+        <button class="yt-btn yt-btn-primary" onclick="addTextComment(${textId})" style="margin-top:8px;">
+          <i class="fas fa-paper-plane"></i> Gönder
+        </button>
+      </div>
+      
+      <div style="max-height:400px; overflow-y:auto;">
+        ${comments.length > 0 ? commentsHTML : '<p style="text-align:center; color:var(--yt-spec-text-secondary); padding:20px;">Henüz yorum yok</p>'}
+      </div>
+    `);
+  } catch(e) {
+    showToast('Yorumlar yüklenemedi', 'error');
+  }
+}
+
+// Metne yorum ekle
+async function addTextComment(textId) {
+  if (window.isGuestMode || !currentUser) {
+    showLoginPrompt();
+    return;
+  }
+  
+  const commentText = document.getElementById('newTextComment')?.value?.trim();
+  if (!commentText) {
+    showToast('Yorum boş olamaz', 'error');
+    return;
+  }
+  
+  try {
+    const res = await fetch(`${API_URL}/text/${textId}/comment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser.id,
+        commentText: commentText
+      })
+    });
+    
+    if (res.ok) {
+      showToast('Yorum eklendi', 'success');
+      
+      // Yorum sayısını güncelle
+      const commentCount = document.querySelector(`[data-text-id="${textId}"] .text-comment-count`);
+      if (commentCount) {
+        const current = parseInt(commentCount.textContent) || 0;
+        commentCount.textContent = current + 1;
+      }
+      
+      // Yorumları yeniden yükle
+      showTextComments(textId);
+    } else {
+      const data = await res.json();
+      showToast(data.error || 'Yorum eklenemedi', 'error');
+    }
+  } catch(e) {
+    showToast('Yorum eklenemedi: ' + e.message, 'error');
+  }
+}
+      const commentCount = document.querySelector(`[data-text-id="${textId}"] .text-comment-count`);
+      if (commentCount) {
+        const current = parseInt(commentCount.textContent) || 0;
+        commentCount.textContent = current + 1;
+      }
+    }
+  } catch(e) {
+    showToast('Yorum eklenemedi', 'error');
+  }
+}
+
+// Metin kartı render et
+function renderTextCard(text) {
+  return `
+    <div class="text-card" data-text-id="${text.id}" style="background:var(--yt-spec-raised-background); border-radius:12px; padding:16px; margin-bottom:16px; cursor:pointer; transition:all 0.2s;" onclick="openText('${text.share_id || text.id}')">
+      <div style="display:flex; gap:12px; margin-bottom:12px;">
+        <img src="${text.profile_photo || '?'}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;" />
+        <div style="flex:1;">
+          <div style="font-weight:600; font-size:14px; color:var(--yt-spec-text-primary);">
+            ${text.nickname}
+          </div>
+          <div style="font-size:12px; color:var(--yt-spec-text-secondary);">
+            @${text.username} · ${formatTimeAgo(text.created_at)}
+          </div>
+        </div>
+      </div>
+      
+      <div style="font-size:15px; color:var(--yt-spec-text-primary); line-height:1.6; white-space:pre-wrap; margin-bottom:12px;">
+        ${escapeHtml(text.content).substring(0, 300)}${text.content.length > 300 ? '...' : ''}
+      </div>
+      
+      <div style="display:flex; gap:16px; align-items:center; padding-top:12px; border-top:1px solid var(--yt-spec-10-percent-layer);">
+        <button class="text-like-btn" onclick="event.stopPropagation(); likeText(${text.id})" style="background:none; border:none; color:var(--yt-spec-text-secondary); cursor:pointer; display:flex; align-items:center; gap:6px; font-size:14px; transition:color 0.2s;">
+          <i class="far fa-heart"></i>
+          <span class="text-like-count">${text.likes || 0}</span>
+        </button>
+        <button onclick="event.stopPropagation(); showTextComments(${text.id})" style="background:none; border:none; color:var(--yt-spec-text-secondary); cursor:pointer; display:flex; align-items:center; gap:6px; font-size:14px; transition:color 0.2s;">
+          <i class="far fa-comment"></i>
+          <span class="text-comment-count">${text.comment_count || 0}</span>
+        </button>
+        <button onclick="event.stopPropagation(); copyContentLink('metin', '${text.share_id || text.id}')" style="background:none; border:none; color:var(--yt-spec-text-secondary); cursor:pointer; display:flex; align-items:center; gap:6px; font-size:14px; transition:color 0.2s;">
+          <i class="fas fa-share"></i>
+        </button>
+        <div style="margin-left:auto; font-size:12px; color:var(--yt-spec-text-secondary);">
+          <i class="fas fa-eye"></i> ${text.views || 0}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Metin sayfasını aç
+async function openText(textId) {
+  try {
+    const res = await fetch(`${API_URL}/text/${textId}`);
+    const text = await res.json();
+    
+    if (!res.ok) {
+      showToast('Metin bulunamadı', 'error');
+      return;
+    }
+    
+    // URL güncelle
+    updateURL('metin', textId);
+    
+    const pageContent = document.getElementById('pageContent');
+    pageContent.innerHTML = `
+      <div style="max-width:800px; margin:0 auto; padding:20px;">
+        <div style="background:var(--yt-spec-raised-background); border-radius:12px; padding:24px;">
+          <div style="display:flex; gap:12px; margin-bottom:20px;">
+            <img src="${text.profile_photo || '?'}" style="width:48px; height:48px; border-radius:50%; object-fit:cover;" />
+            <div style="flex:1;">
+              <div style="font-weight:600; font-size:16px; color:var(--yt-spec-text-primary);">
+                ${text.nickname}
+              </div>
+              <div style="font-size:13px; color:var(--yt-spec-text-secondary);">
+                @${text.username} · ${formatTimeAgo(text.created_at)}
+              </div>
+            </div>
+          </div>
+          
+          <div style="font-size:16px; color:var(--yt-spec-text-primary); line-height:1.8; white-space:pre-wrap; margin-bottom:20px;">
+            ${escapeHtml(text.content)}
+          </div>
+          
+          <div style="display:flex; gap:20px; align-items:center; padding-top:16px; border-top:1px solid var(--yt-spec-10-percent-layer);">
+            <button class="text-like-btn" data-text-id="${text.id}" onclick="likeText(${text.id})" style="background:none; border:none; color:var(--yt-spec-text-secondary); cursor:pointer; display:flex; align-items:center; gap:8px; font-size:15px; transition:color 0.2s;">
+              <i class="far fa-heart"></i>
+              <span class="text-like-count">${text.likes || 0}</span> Beğeni
+            </button>
+            <button onclick="showTextComments(${text.id})" style="background:none; border:none; color:var(--yt-spec-text-secondary); cursor:pointer; display:flex; align-items:center; gap:8px; font-size:15px; transition:color 0.2s;">
+              <i class="far fa-comment"></i>
+              <span class="text-comment-count">${text.comment_count || 0}</span> Yorum
+            </button>
+            <button onclick="copyContentLink('metin', '${text.share_id || text.id}')" style="background:none; border:none; color:var(--yt-spec-text-secondary); cursor:pointer; display:flex; align-items:center; gap:8px; font-size:15px; transition:color 0.2s;">
+              <i class="fas fa-share"></i> Paylaş
+            </button>
+            <div style="margin-left:auto; font-size:13px; color:var(--yt-spec-text-secondary);">
+              <i class="fas fa-eye"></i> ${text.views || 0} görüntülenme
+            </div>
+          </div>
+        </div>
+        
+        <div id="textCommentsSection" style="margin-top:20px;"></div>
+      </div>
+    `;
+    
+    // Yorumları yükle
+    loadTextCommentsInline(text.id);
+  } catch(e) {
+    showToast('Metin yüklenemedi', 'error');
+  }
+}
+
+// Yorumları inline göster
+async function loadTextCommentsInline(textId) {
+  try {
+    const res = await fetch(`${API_URL}/text/${textId}/comments`);
+    const comments = await res.json();
+    
+    const section = document.getElementById('textCommentsSection');
+    if (!section) return;
+    
+    section.innerHTML = `
+      <div style="background:var(--yt-spec-raised-background); border-radius:12px; padding:20px;">
+        <h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Yorumlar (${comments.length})</h3>
+        
+        ${!window.isGuestMode && currentUser ? `
+          <div style="margin-bottom:20px;">
+            <textarea id="newTextCommentInline" class="yt-textarea" placeholder="Yorum yaz..." style="min-height:80px;"></textarea>
+            <button class="yt-btn yt-btn-primary" onclick="addTextCommentInline(${textId})" style="margin-top:8px;">
+              <i class="fas fa-paper-plane"></i> Gönder
+            </button>
+          </div>
+        ` : ''}
+        
+        <div>
+          ${comments.length > 0 ? comments.map(c => `
+            <div class="comment-item" style="display:flex; gap:12px; padding:12px; background:var(--yt-spec-base-background); border-radius:8px; margin-bottom:8px;">
+              <img src="${c.profile_photo || '?'}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;" />
+              <div style="flex:1;">
+                <div style="font-weight:600; font-size:13px; color:var(--yt-spec-text-primary); margin-bottom:4px;">
+                  ${c.nickname} <span style="font-weight:400; color:var(--yt-spec-text-secondary); font-size:11px;">@${c.username}</span>
+                </div>
+                <div style="font-size:14px; color:var(--yt-spec-text-primary); line-height:1.5;">${escapeHtml(c.comment_text)}</div>
+                <div style="font-size:11px; color:var(--yt-spec-text-secondary); margin-top:4px;">
+                  ${formatTimeAgo(c.created_at)}
+                </div>
+              </div>
+            </div>
+          `).join('') : '<p style="text-align:center; color:var(--yt-spec-text-secondary); padding:20px;">Henüz yorum yok</p>'}
+        </div>
+      </div>
+    `;
+  } catch(e) {
+    console.error('Yorumlar yüklenemedi:', e);
+  }
+}
+
+// Inline yorum ekle
+async function addTextCommentInline(textId) {
+  if (window.isGuestMode || !currentUser) {
+    showLoginPrompt();
+    return;
+  }
+  
+  const commentText = document.getElementById('newTextCommentInline')?.value?.trim();
+  if (!commentText) {
+    showToast('Yorum boş olamaz', 'error');
+    return;
+  }
+  
+  try {
+    const res = await fetch(`${API_URL}/text/${textId}/comment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser.id,
+        commentText: commentText
+      })
+    });
+    
+    if (res.ok) {
+      showToast('Yorum eklendi', 'success');
+      document.getElementById('newTextCommentInline').value = '';
+      loadTextCommentsInline(textId);
+      
+      // Yorum sayısını güncelle
+      const commentCount = document.querySelector('.text-comment-count');
+      if (commentCount) {
+        const current = parseInt(commentCount.textContent) || 0;
+        commentCount.textContent = current + 1;
+      }
+    } else {
+      const data = await res.json();
+      showToast(data.error || 'Yorum eklenemedi', 'error');
+    }
+  } catch(e) {
+    showToast('Yorum eklenemedi: ' + e.message, 'error');
+  }
+}
+
+// Karakter sayacı için event listener
+function initTextCharCounter() {
+  const textarea = document.getElementById('textContent');
+  const counter = document.getElementById('textCharCount');
+  
+  if (textarea && counter) {
+    textarea.addEventListener('input', () => {
+      const length = textarea.value.length;
+      counter.textContent = length;
+      
+      if (length > 5000) {
+        counter.style.color = '#ff0000';
+      } else if (length > 4500) {
+        counter.style.color = '#ff9800';
+      } else {
+        counter.style.color = 'var(--yt-spec-text-secondary)';
+      }
+    });
   }
 }

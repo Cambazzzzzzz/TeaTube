@@ -296,6 +296,47 @@ try {
   db.prepare('ALTER TABLE videos ADD COLUMN is_short INTEGER DEFAULT 0').run();
 } catch(e) {}
 
+// Metinler tablosu (Twitter benzeri metin paylaşımları)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS texts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    share_id TEXT UNIQUE,
+    likes INTEGER DEFAULT 0,
+    views INTEGER DEFAULT 0,
+    comments_enabled INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
+// Metin beğenileri tablosu
+db.exec(`
+  CREATE TABLE IF NOT EXISTS text_likes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    text_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (text_id) REFERENCES texts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(text_id, user_id)
+  )
+`);
+
+// Metin yorumları tablosu
+db.exec(`
+  CREATE TABLE IF NOT EXISTS text_comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    text_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    comment_text TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (text_id) REFERENCES texts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+
 // text_content kolonu ekle (metin iÃ§erikler iÃ§in)
 try {
   db.prepare('ALTER TABLE videos ADD COLUMN text_content TEXT').run();
