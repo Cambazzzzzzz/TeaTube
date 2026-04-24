@@ -5462,16 +5462,22 @@ function showUploadVideoModal() {
     <!-- Format Seçimi -->
     <div class="yt-form-group">
       <label class="yt-form-label">Ne yüklemek istiyorsun?</label>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:4px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:4px;">
         <label class="upload-type-btn active" id="typeBtn_reals" onclick="switchUploadType('reals')">
           <input type="radio" name="uploadType" value="reals" checked style="display:none;" />
-          <i class="fas fa-film" style="font-size:20px; margin-bottom:6px;"></i>
+          <i class="fas fa-film" style="font-size:18px; margin-bottom:4px;"></i>
           <span>Reals</span>
           <small>Kısa video (max 3dk)</small>
         </label>
+        <label class="upload-type-btn" id="typeBtn_video" onclick="switchUploadType('video')">
+          <input type="radio" name="uploadType" value="video" style="display:none;" />
+          <i class="fas fa-video" style="font-size:18px; margin-bottom:4px;"></i>
+          <span>Uzun Video</span>
+          <small>Normal video (sınırsız)</small>
+        </label>
         <label class="upload-type-btn" id="typeBtn_photo" onclick="switchUploadType('photo')">
           <input type="radio" name="uploadType" value="photo" style="display:none;" />
-          <i class="fas fa-image" style="font-size:20px; margin-bottom:6px;"></i>
+          <i class="fas fa-image" style="font-size:18px; margin-bottom:4px;"></i>
           <span>Foto</span>
           <small>Fotoğraf paylaş</small>
         </label>
@@ -5495,7 +5501,7 @@ function showUploadVideoModal() {
       </div>
       <div class="yt-form-group">
         <label class="yt-form-label">Video Dosyası</label>
-        <input type="file" id="videoFile" class="yt-input" accept="video/*" onchange="checkShortsDuration(this)" />
+        <input type="file" id="videoFile" class="yt-input" accept="video/*" onchange="checkVideoDuration(this)" />
         <p id="videoFileHint" style="font-size:12px; color:var(--yt-spec-text-secondary); margin-top:4px;"></p>
       </div>
       <div class="yt-form-group">
@@ -5574,6 +5580,143 @@ function handleUpload() {
   }
 }
 
+// Uzun video yükleme (chunk-based)
+async function uploadLongVideo() {
+  const title = document.getElementById('videoTitle').value.trim();
+  const description = document.getElementById('videoDescription').value.trim();
+  const videoType = document.getElementById('videoType')?.value || 'Uzun Video';
+  const tags = document.getElementById('videoTags')?.value?.trim() || '';
+  const videoFile = document.getElementById('videoFile').files[0];
+  const bannerFile = document.getElementById('videoBanner').files[0];
+  const commentsEnabled = document.getElementById('commentsEnabled')?.checked ? 1 : 0;
+  const likesVisible = document.getElementById('likesVisible')?.checked ? 1 : 0;
+
+  if (!title || !videoFile || !bannerFile) {
+    showToast('Başlık, video ve banner gerekli', 'error');
+    return;
+  }
+  if (!tags) {
+    showToast('Videonuzu tanıtan bir etiket girmelisiniz', 'error');
+    document.getElementById('videoTags')?.focus();
+    return;
+  }
+
+  const progressOverlay = document.getElementById('uploadProgressOverlay');
+  const progressBar = document.getElementById('uploadProgressBar');
+  const progressPercentage = document.getElementById('uploadProgressPercentage');
+  const progressTitle = document.getElementById('uploadProgressTitle');
+  const progressStatus = document.getElementById('uploadProgressStatus');
+
+  progressOverlay.classList.add('show');
+  progressTitle.textContent = `"${title}" yükleniyor... (Hızlı Yükleme)`;
+  progressStatus.textContent = 'Hazırlanıyor...';
+  progressBar.style.width = '0%';
+  progressPercentage.textContent = '0%';
+  closeModal();
+
+  try {
+    // Chunk boyutu (5MB)
+    const CHUNK_SIZE = 5 * 1024 * 1024;
+    const totalChunks = Math.ceil(videoFile.size / CHUNK_SIZE);
+    
+    progressStatus.textContent = `Video ${totalChunks} parçaya bölünüyor...`;
+    
+    // Upload session başlat
+    const sessionResponse = await fetch(`${API_URL}/video/start-upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        channelId: currentChannel.id,
+        title: title,
+        description: description,
+        videoType: videoType,
+        tags: tags,
+        commentsEnabled: commentsEnabled,
+        likesVisible: likesVisible,
+        isShort: 0,
+        totalSize: videoFile.size,
+        totalChunks: totalChunks,
+        fileName: videoFile.name
+      })
+    });
+
+    if (!sessionResponse.ok) {
+      throw new Error('Upload session başlatılamadı');
+    }
+
+    const { uploadId } = await sessionResponse.json();
+    progressStatus.textContent = 'Video parçalar halinde yükleniyor...';
+
+    // Banner'ı önce yükle
+    const bannerFormData = new FormData();
+    bannerFormData.append('banner', bannerFile);
+    bannerFormData.append('uploadId', uploadId);
+
+    await fetch(`${API_URL}/video/upload-banner`, {
+      method: 'POST',
+      body: bannerFormData
+    });
+
+    // Chunk'ları sırayla yükle
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, videoFile.size);
+      const chunk = videoFile.slice(start, end);
+
+      const chunkFormData = new FormData();
+      chunkFormData.append('chunk', chunk);
+      chunkFormData.append('uploadId', uploadId);
+      chunkFormData.append('chunkIndex', i);
+      chunkFormData.append('totalChunks', totalChunks);
+
+      const chunkResponse = await fetch(`${API_URL}/video/upload-chunk`, {
+        method: 'POST',
+        body: chunkFormData
+      });
+
+      if (!chunkResponse.ok) {
+        throw new Error(`Chunk ${i + 1} yüklenemedi`);
+      }
+
+      // Progress güncelle
+      const progress = Math.round(((i + 1) / totalChunks) * 90); // 0-90%
+      progressBar.style.width = progress + '%';
+      progressPercentage.textContent = progress + '%';
+      progressStatus.textContent = `Parça ${i + 1}/${totalChunks} yüklendi...`;
+    }
+
+    // Upload'ı tamamla
+    progressStatus.textContent = 'Video işleniyor...';
+    progressBar.style.width = '95%';
+    progressPercentage.textContent = '95%';
+
+    const completeResponse = await fetch(`${API_URL}/video/complete-upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uploadId })
+    });
+
+    if (!completeResponse.ok) {
+      throw new Error('Video tamamlanamadı');
+    }
+
+    progressBar.style.width = '100%';
+    progressPercentage.textContent = '100%';
+    progressStatus.textContent = 'Tamamlandı!';
+
+    setTimeout(() => {
+      progressOverlay.classList.remove('show');
+      showToast('Uzun video başarıyla yüklendi!', 'success');
+      loadMyVideosPage();
+    }, 1000);
+
+  } catch (error) {
+    progressOverlay.classList.remove('show');
+    console.error('Uzun video yükleme hatası:', error);
+    showToast('Yükleme hatası: ' + error.message, 'error');
+  }
+}
+
 // Video yükleme
 async function uploadVideo(isReals = false) {
   const title = document.getElementById('videoTitle').value.trim();
@@ -5597,7 +5740,7 @@ async function uploadVideo(isReals = false) {
     return;
   }
   if (!isReals && !bannerFile) {
-    showToast('Başlık, video ve banner gerekli', 'error');
+    showToast('Reals olmayan videolar için banner gerekli', 'error');
     return;
   }
 
