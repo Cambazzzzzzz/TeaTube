@@ -145,10 +145,27 @@ db.exec(`
     user_id INTEGER NOT NULL,
     comment_text TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_suspended INTEGER DEFAULT 0,
+    suspended_by INTEGER,
+    suspended_reason TEXT,
     FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (suspended_by) REFERENCES users(id) ON DELETE SET NULL
   )
 `);
+
+// Yorumlar tablosuna eksik kolonları ekle
+try {
+  db.prepare('ALTER TABLE comments ADD COLUMN is_suspended INTEGER DEFAULT 0').run();
+} catch(e) {}
+
+try {
+  db.prepare('ALTER TABLE comments ADD COLUMN suspended_by INTEGER').run();
+} catch(e) {}
+
+try {
+  db.prepare('ALTER TABLE comments ADD COLUMN suspended_reason TEXT').run();
+} catch(e) {}
 
 // BeÄeniler tablosu
 db.exec(`

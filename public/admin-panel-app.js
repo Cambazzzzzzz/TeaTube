@@ -2312,11 +2312,32 @@ function renderPagination(containerId, currentPage, totalPages, onPageClick) {
     return;
   }
   
+  // Fonksiyon adını çıkar - arrow function desteği ile
+  let funcName = 'loadPage';
+  if (typeof onPageClick === 'function') {
+    const funcStr = onPageClick.toString();
+    // Normal function
+    const normalMatch = funcStr.match(/function\s+(\w+)/);
+    if (normalMatch) {
+      funcName = normalMatch[1];
+    } else {
+      // Arrow function - context'ten çıkar
+      if (funcStr.includes('loadVideos')) funcName = 'loadVideos';
+      else if (funcStr.includes('loadUsers')) funcName = 'loadUsers';
+      else if (funcStr.includes('loadReports')) funcName = 'loadReports';
+      else if (funcStr.includes('loadMusic')) funcName = 'loadMusic';
+      else if (funcStr.includes('loadComments')) funcName = 'loadComments';
+      else if (funcStr.includes('loadGroups')) funcName = 'loadGroups';
+      else if (funcStr.includes('loadMessages')) funcName = 'loadMessages';
+      else if (funcStr.includes('loadTSMusicApps')) funcName = 'loadTSMusicApps';
+    }
+  }
+  
   let html = '<div class="pagination">';
   
   // Previous button
   if (currentPage > 1) {
-    html += `<button class="page-btn" onclick="${onPageClick.name}(${currentPage - 1})">‹ Önceki</button>`;
+    html += `<button class="page-btn" onclick="${funcName}(${currentPage - 1})">‹ Önceki</button>`;
   }
   
   // Page numbers
@@ -2324,22 +2345,22 @@ function renderPagination(containerId, currentPage, totalPages, onPageClick) {
   const endPage = Math.min(totalPages, currentPage + 2);
   
   if (startPage > 1) {
-    html += `<button class="page-btn" onclick="${onPageClick.name}(1)">1</button>`;
+    html += `<button class="page-btn" onclick="${funcName}(1)">1</button>`;
     if (startPage > 2) html += '<span style="padding:8px">...</span>';
   }
   
   for (let i = startPage; i <= endPage; i++) {
-    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="${onPageClick.name}(${i})">${i}</button>`;
+    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="${funcName}(${i})">${i}</button>`;
   }
   
   if (endPage < totalPages) {
     if (endPage < totalPages - 1) html += '<span style="padding:8px">...</span>';
-    html += `<button class="page-btn" onclick="${onPageClick.name}(${totalPages})">${totalPages}</button>`;
+    html += `<button class="page-btn" onclick="${funcName}(${totalPages})">${totalPages}</button>`;
   }
   
   // Next button
   if (currentPage < totalPages) {
-    html += `<button class="page-btn" onclick="${onPageClick.name}(${currentPage + 1})">Sonraki ›</button>`;
+    html += `<button class="page-btn" onclick="${funcName}(${currentPage + 1})">Sonraki ›</button>`;
   }
   
   html += '</div>';

@@ -1397,6 +1397,7 @@ router.get('/comments/:videoId', (req, res) => {
 
     const comments = db.prepare(`
       SELECT c.*, u.nickname, u.profile_photo,
+             COALESCE(ur.role, 'user') as role,
              (SELECT COUNT(*) FROM comments r WHERE r.parent_id = c.id) as reply_count,
              (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = 1) as likes,
              (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = -1) as dislikes,
@@ -1406,6 +1407,7 @@ router.get('/comments/:videoId', (req, res) => {
              ${hasLikedByOwner ? 'COALESCE(c.liked_by_owner, 0)' : '0'} as liked_by_owner
       FROM comments c
       JOIN users u ON c.user_id = u.id
+      LEFT JOIN user_roles ur ON u.id = ur.user_id
       WHERE c.video_id = ? AND c.parent_id IS NULL
       ORDER BY ${hasPinned ? 'c.is_pinned DESC,' : ''} c.created_at DESC
     `).all(userId || 0, req.params.videoId);
@@ -1417,23 +1419,25 @@ router.get('/comments/:videoId', (req, res) => {
   }
 });
 
-// Yorum yanÄ±tlarÄ±nÄ± getir
+// Yorum yanıtlarını getir
 router.get('/comment-replies/:commentId', (req, res) => {
   try {
     const { userId } = req.query;
     const replies = db.prepare(`
       SELECT c.*, u.nickname, u.profile_photo,
+             COALESCE(ur.role, 'user') as role,
              (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = 1) as likes,
              (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = -1) as dislikes,
              (SELECT like_type FROM comment_likes WHERE comment_id = c.id AND user_id = ?) as user_like
       FROM comments c
       JOIN users u ON c.user_id = u.id
+      LEFT JOIN user_roles ur ON u.id = ur.user_id
       WHERE c.parent_id = ?
       ORDER BY c.created_at ASC
     `).all(userId || 0, req.params.commentId);
     res.json(replies);
   } catch(e) {
-    res.status(500).json({ error: 'YanÄ±tlar alÄ±namadÄ±' });
+    res.status(500).json({ error: 'Yanıtlar alınamadı' });
   }
 });
 
@@ -1930,9 +1934,11 @@ router.get('/friends/:userId', (req, res) => {
     const friends = db.prepare(`
       SELECT f.id, f.status, f.created_at,
              CASE WHEN f.sender_id = ? THEN f.receiver_id ELSE f.sender_id END as friend_id,
-             u.username, u.nickname, u.profile_photo
+             u.username, u.nickname, u.profile_photo,
+             COALESCE(ur.role, 'user') as role
       FROM friendships f
       JOIN users u ON u.id = CASE WHEN f.sender_id = ? THEN f.receiver_id ELSE f.sender_id END
+      LEFT JOIN user_roles ur ON u.id = ur.user_id
       WHERE (f.sender_id = ? OR f.receiver_id = ?) AND f.status = 'accepted'
       ORDER BY u.nickname ASC
     `).all(req.params.userId, req.params.userId, req.params.userId, req.params.userId);
@@ -1989,12 +1995,14 @@ router.get('/users/search', (req, res) => {
     const { q } = req.query;
     if (!q) return res.json([]);
     const users = db.prepare(`
-      SELECT id, username, nickname, profile_photo, is_red_verified
-      FROM users
-      WHERE username LIKE ? OR nickname LIKE ?
+      SELECT u.id, u.username, u.nickname, u.profile_photo, u.is_red_verified,
+             COALESCE(ur.role, 'user') as role
+      FROM users u
+      LEFT JOIN user_roles ur ON u.id = ur.user_id
+      WHERE u.username LIKE ? OR u.nickname LIKE ?
       ORDER BY 
-        CASE WHEN is_red_verified = 1 THEN 0 ELSE 1 END,
-        (SELECT COUNT(*) FROM subscriptions s JOIN channels c ON s.channel_id = c.id WHERE c.user_id = users.id) DESC
+        CASE WHEN u.is_red_verified = 1 THEN 0 ELSE 1 END,
+        (SELECT COUNT(*) FROM subscriptions s JOIN channels c ON s.channel_id = c.id WHERE c.user_id = u.id) DESC
       LIMIT 20
     `).all(`%${q}%`, `%${q}%`);
     res.json(users);

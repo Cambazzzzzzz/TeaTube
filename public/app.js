@@ -10,6 +10,34 @@ let currentChannel = null;
 let currentPage = 'home';
 let sidebarOpen = true;
 
+// ==================== KULLANICI ROL SİSTEMİ ====================
+function getUserRoleInfo(role) {
+  const roles = {
+    'admin': { emoji: '👑', color: '#ef4444', text: 'Admin' },
+    'moderator': { emoji: '🛡️', color: '#8b5cf6', text: 'Moderatör' },
+    'yetkili': { emoji: '⭐', color: '#6b7280', text: 'Yetkili' },
+    'user': { emoji: '', color: '#9ca3af', text: 'Kullanıcı' }
+  };
+  return roles[role] || roles['user'];
+}
+
+function formatUserName(nickname, username, role = 'user') {
+  const roleInfo = getUserRoleInfo(role);
+  const emoji = roleInfo.emoji ? ` ${roleInfo.emoji}` : '';
+  return `<span style="color:${roleInfo.color};font-weight:600">${nickname}${emoji}</span>`;
+}
+
+function formatUserNameWithUsername(nickname, username, role = 'user') {
+  const roleInfo = getUserRoleInfo(role);
+  const emoji = roleInfo.emoji ? ` ${roleInfo.emoji}` : '';
+  return `
+    <div>
+      <span style="color:${roleInfo.color};font-weight:600">${nickname}${emoji}</span>
+      <div style="font-size:12px;color:var(--yt-spec-text-secondary);">@${username}</div>
+    </div>
+  `;
+}
+
 // ==================== MESAJ BİLDİRİM SİSTEMİ ====================
 let messageNotificationSound = null;
 let lastNotifiedMessages = new Set(); // Aynı mesajı tekrar bildirmemek için
@@ -542,7 +570,9 @@ async function searchFriendsInMessages() {
     results.innerHTML = filtered.map(f => `
       <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--yt-spec-raised-background);border-radius:10px;margin-bottom:6px;">
         <img src="${getProfilePhotoUrl(f.profile_photo)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" />
-        <div style="flex:1;min-width:0;"><p style="font-size:14px;font-weight:500;">${f.nickname}</p><p style="font-size:12px;color:var(--yt-spec-text-secondary);">@${f.username}</p></div>
+        <div style="flex:1;min-width:0;">
+          ${formatUserNameWithUsername(f.nickname, f.username, f.role || 'user')}
+        </div>
         <button class="yt-btn" onclick="openMobileChat(${f.friend_id},'${f.nickname.replace(/'/g,"\\'")}','${getProfilePhotoUrl(f.profile_photo)}')" style="height:30px;padding:0 12px;font-size:12px;flex-shrink:0"><i class="fas fa-comment"></i> Mesaj</button>
       </div>
     `).join('');
@@ -1447,7 +1477,9 @@ async function loadFriendsPage() {
           ${incoming.map(r => `
             <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.08);">
               <img src="${getProfilePhotoUrl(r.profile_photo)}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;" />
-              <div style="flex:1;min-width:0"><p style="font-size:14px; font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.nickname}</p><p style="font-size:12px; color:var(--yt-spec-text-secondary);">@${r.username}</p></div>
+              <div style="flex:1;min-width:0">
+                ${formatUserNameWithUsername(r.nickname, r.username, r.role || 'user')}
+              </div>
               <div style="display:flex; gap:6px;flex-shrink:0">
                 <button class="yt-btn" onclick="respondFriendRequest(${r.id},'accept')" style="height:32px; padding:0 12px; font-size:12px;">Kabul</button>
                 <button class="yt-btn yt-btn-secondary" onclick="respondFriendRequest(${r.id},'reject')" style="height:32px; padding:0 12px; font-size:12px;">Red</button>
@@ -1462,7 +1494,9 @@ async function loadFriendsPage() {
           ${sent.map(r => `
             <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.08);">
               <img src="${getProfilePhotoUrl(r.profile_photo)}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;" />
-              <div style="flex:1;min-width:0"><p style="font-size:14px; font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.nickname}</p><p style="font-size:12px; color:var(--yt-spec-text-secondary);">@${r.username}</p></div>
+              <div style="flex:1;min-width:0">
+                ${formatUserNameWithUsername(r.nickname, r.username, r.role || 'user')}
+              </div>
               <button class="yt-btn yt-btn-secondary" onclick="cancelFriendRequest(${r.id})" style="height:32px; padding:0 12px; font-size:12px;flex-shrink:0">İptal</button>
             </div>
           `).join('')}
@@ -1485,7 +1519,9 @@ async function loadFriendsPage() {
         ${friends.length === 0 ? '<p style="color:var(--yt-spec-text-secondary); font-size:14px;">Henüz arkadaşın yok</p>' : friends.map(f => `
           <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.08);">
             <img src="${getProfilePhotoUrl(f.profile_photo)}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;cursor:pointer" onclick="viewChannel(${f.channel_id || 0})" />
-            <div style="flex:1;min-width:0"><p style="font-size:14px; font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.nickname}</p><p style="font-size:12px; color:var(--yt-spec-text-secondary);">@${f.username}</p></div>
+            <div style="flex:1;min-width:0">
+              ${formatUserNameWithUsername(f.nickname, f.username, f.role || 'user')}
+            </div>
             <div style="display:flex; gap:6px;flex-shrink:0">
               <button class="yt-btn" onclick="openChat(${f.friend_id},'${f.nickname}','${getProfilePhotoUrl(f.profile_photo)}')" style="height:32px; padding:0 12px; font-size:12px;"><i class="fas fa-comment"></i></button>
               <button class="yt-btn yt-btn-secondary" onclick="removeFriend(${f.id})" style="height:32px; padding:0 10px; font-size:12px;" title="Arkadaşlıktan çıkar"><i class="fas fa-user-minus"></i></button>
@@ -4743,6 +4779,10 @@ function renderComment(c, videoId, isReply = false, videoOwnerId = null) {
   // Askıya alınmış yorumları sadece video sahibi görebilir
   if (isHidden && !isOwner) return '';
   
+  // Kullanıcı rolü ve renk bilgisi
+  const roleInfo = getUserRoleInfo(c.role || 'user');
+  const userNameWithRole = `<span style="color:${roleInfo.color};font-weight:500">${c.nickname}${roleInfo.emoji ? ` ${roleInfo.emoji}` : ''}</span>`;
+  
   return `
     <div style="display:flex; gap:12px; margin-bottom:${isReply ? '12px' : '20px'}; ${isReply ? 'margin-left:48px;' : ''} ${isPinned ? 'background:rgba(255,0,51,0.05); padding:12px; border-radius:8px; border-left:3px solid var(--yt-spec-brand-background-solid);' : ''} ${isHidden ? 'opacity:0.5;' : ''}">
       <img src="${getProfilePhotoUrl(c.profile_photo)}" style="width:${isReply ? '28px' : '36px'}; height:${isReply ? '28px' : '36px'}; border-radius:50%; object-fit:cover; flex-shrink:0;" />
@@ -4750,7 +4790,7 @@ function renderComment(c, videoId, isReply = false, videoOwnerId = null) {
         ${isPinned ? '<div style="font-size:11px; color:var(--yt-spec-brand-background-solid); margin-bottom:4px; font-weight:600;"><i class="fas fa-thumbtack"></i> SABİTLENDİ</div>' : ''}
         ${isHidden ? '<div style="font-size:11px; color:#ff9800; margin-bottom:4px; font-weight:600;"><i class="fas fa-eye-slash"></i> ASKIDA</div>' : ''}
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-          <span style="font-size:13px; font-weight:500;">${c.nickname}</span>
+          ${userNameWithRole}
           ${likedByOwner ? '<span style="font-size:11px; background:rgba(255,0,51,0.15); color:var(--yt-spec-brand-background-solid); padding:2px 6px; border-radius:10px; font-weight:600;"><i class="fas fa-heart"></i> Beğenildi</span>' : ''}
           <span style="font-size:12px; color:var(--yt-spec-text-secondary);">${c.created_at || ''}</span>
         </div>
