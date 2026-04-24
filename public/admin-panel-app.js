@@ -3,7 +3,8 @@ const API_URL = window.location.origin + '/api';
 
 // Auth check
 const adminToken = localStorage.getItem('teatube_admin_token');
-if (!adminToken) {
+const adminUserId = localStorage.getItem('teatube_admin_user_id');
+if (!adminToken || !adminUserId) {
   window.location.href = '/admin';
 }
 
@@ -15,7 +16,7 @@ async function api(method, url, body) {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${adminToken}`,
-      'X-User-Id': '1' // Admin user ID for role checking
+      'X-User-Id': adminUserId // Dynamic admin user ID
     }
   };
   if (body) opts.body = JSON.stringify(body);
@@ -50,6 +51,7 @@ function closeModalOutside(e) {
 
 function adminCikis() {
   localStorage.removeItem('teatube_admin_token');
+  localStorage.removeItem('teatube_admin_user_id');
   window.location.href = '/admin';
 }
 

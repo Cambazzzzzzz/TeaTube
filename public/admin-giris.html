@@ -82,8 +82,9 @@ async function adminGiris() {
     const d = await r.json();
     if (!r.ok) return showError(d.error || 'Şifre yanlış');
     
-    // Başarılı giriş - token'ı localStorage'a kaydet
+    // Başarılı giriş - token ve user ID'yi localStorage'a kaydet
     localStorage.setItem('teatube_admin_token', d.token);
+    localStorage.setItem('teatube_admin_user_id', d.userId);
     window.location.href = '/admin-panel';
   } catch(e) {
     showError('Bağlantı hatası');

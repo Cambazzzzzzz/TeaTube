@@ -65,13 +65,40 @@ router.post('/teatube-admin/giris', async (req, res) => {
       return res.status(401).json({ error: 'Yanlış şifre' });
     }
     
+    // Admin kullanıcısını bul veya oluştur
+    let adminUser = db.prepare("SELECT id FROM users WHERE username = 'admin'").get();
+    if (!adminUser) {
+      // Admin kullanıcısı yoksa oluştur
+      const adminId = db.prepare(`
+        INSERT INTO users (username, nickname, password, profile_photo)
+        VALUES ('admin', 'System Admin', ?, '?')
+      `).run(adminPw.password).lastInsertRowid;
+      
+      // Admin rolü ver
+      db.prepare(`
+        INSERT OR REPLACE INTO user_roles (user_id, role, granted_by)
+        VALUES (?, 'admin', ?)
+      `).run(adminId, adminId);
+      
+      adminUser = { id: adminId };
+    } else {
+      // Admin rolünü kontrol et ve gerekirse ekle
+      const adminRole = db.prepare('SELECT role FROM user_roles WHERE user_id = ?').get(adminUser.id);
+      if (!adminRole || adminRole.role !== 'admin') {
+        db.prepare(`
+          INSERT OR REPLACE INTO user_roles (user_id, role, granted_by)
+          VALUES (?, 'admin', ?)
+        `).run(adminUser.id, adminUser.id);
+      }
+    }
+    
     // Token oluştur
     const token = generateToken();
     validTokens.add(token);
     
-    logAction(null, 'Admin', clientIP, 'admin_login_success', 'Başarılı giriş');
+    logAction(adminUser.id, 'Admin', clientIP, 'admin_login_success', 'Başarılı giriş');
     
-    res.json({ success: true, token });
+    res.json({ success: true, token, userId: adminUser.id });
   } catch(e) {
     console.error('Admin giriş hatası:', e);
     res.status(500).json({ error: 'Giriş hatası' });
