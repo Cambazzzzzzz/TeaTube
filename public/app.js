@@ -6319,23 +6319,6 @@ async function uploadText() {
   }
 }
 
-    progressBar.style.width = '100%';
-    progressPercentage.textContent = '100%';
-    progressStatus.textContent = 'Tamamlandı!';
-
-    setTimeout(() => {
-      progressOverlay.classList.remove('show');
-      showToast('Metin paylaşıldı!', 'success');
-      closeModal();
-      loadMyVideosPage();
-    }, 800);
-  } catch(e) {
-    progressOverlay.classList.remove('show');
-    showToast('Yükleme hatası: ' + e.message, 'error');
-  }
-}
-
-
 // Videolarım sayfası
 async function loadMyVideosPage() {
   // HARD FIX: Kanal yoksa HEMEN oluştur ve BEKLE
@@ -12262,16 +12245,6 @@ async function addTextComment(textId) {
     }
   } catch(e) {
     showToast('Yorum eklenemedi: ' + e.message, 'error');
-  }
-}
-      const commentCount = document.querySelector(`[data-text-id="${textId}"] .text-comment-count`);
-      if (commentCount) {
-        const current = parseInt(commentCount.textContent) || 0;
-        commentCount.textContent = current + 1;
-      }
-    }
-  } catch(e) {
-    showToast('Yorum eklenemedi', 'error');
   }
 }
 
