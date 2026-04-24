@@ -1983,7 +1983,6 @@ function _openMobileChatDirect(friendId, friendName, friendPhoto) {
   _startFirebaseListeners(friendId, friendPhoto);
   console.log('✅ Mobil chat başarıyla açıldı');
 }
-}
 
 // Firebase listener'larını başlat
 function _startFirebaseListeners(friendId, friendPhoto) {
