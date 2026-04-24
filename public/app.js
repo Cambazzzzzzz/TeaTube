@@ -6230,21 +6230,26 @@ async function uploadText() {
 
 // Videolarım sayfası
 async function loadMyVideosPage() {
+  // Kanal yoksa otomatik oluştur
   if (!currentChannel) {
-    const pageContent = document.getElementById('pageContent');
-    pageContent.innerHTML = `
-      <div style="text-align:center; padding:60px 20px;">
-        <div style="width:80px; height:80px; background:rgba(255,0,51,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">
-          <i class="fas fa-play" style="font-size:32px; color:#ff0033;"></i>
-        </div>
-        <h2 style="font-size:22px; font-weight:700; margin-bottom:10px;">Henüz kanalın yok</h2>
-        <p style="color:var(--yt-spec-text-secondary); margin-bottom:24px;">İçerik paylaşmaya başlamak için bir kanal oluştur</p>
-        <button class="yt-btn" style="height:48px; padding:0 32px; font-size:15px;" onclick="showCreateChannelOnboarding()">
-          <i class="fas fa-plus" style="margin-right:8px;"></i>Kanal Oluştur
-        </button>
-      </div>
-    `;
-    return;
+    try {
+      console.log('🔧 Kanal yok, otomatik oluşturuluyor...');
+      const formData = new FormData();
+      formData.append('channelName', currentUser.nickname || currentUser.username);
+      formData.append('about', '');
+      formData.append('agreed', 'true');
+      
+      const createRes = await fetch(`${API_URL}/channel`, { method: 'POST', body: formData });
+      if (createRes.ok) {
+        const chRes = await fetch(`${API_URL}/channel/user/${currentUser.id}`);
+        if (chRes.ok) {
+          currentChannel = await chRes.json();
+          console.log('✅ Kanal otomatik oluşturuldu:', currentChannel);
+        }
+      }
+    } catch (e) {
+      console.error('Kanal oluşturma hatası:', e);
+    }
   }
 
   try {
@@ -6296,7 +6301,7 @@ function renderMyVideos(videos) {
             ${v.is_hidden ? '<div style="position: absolute; top: 8px; left: 8px; background: rgba(255,165,0,0.9); backdrop-filter: blur(4px); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: white; font-weight: 600;"><i class="fas fa-eye-slash"></i> GİZLİ</div>' : ''}
             ${!v.comments_enabled ? '<div style="position: absolute; top: 8px; right: 8px; background: rgba(255,0,0,0.9); backdrop-filter: blur(4px); padding: 4px 8px; border-radius: 6px; font-size: 10px; color: white; font-weight: 600;"><i class="fas fa-comment-slash"></i></div>' : ''}
           </div>
-          <button onclick="event.stopPropagation(); showVideoManageMenu(${v.id}, '${v.share_id || v.id}', '${v.title.replace(/'/g,"\\'")}', ${v.comments_enabled}, ${v.likes_visible}, ${v.is_hidden || 0})"
+          <button onclick="event.stopPropagation(); showVideoManageMenu(${v.id}, ${v.share_id ? `'${v.share_id}'` : `'${v.id}'`}, '${v.title.replace(/'/g,"\\'")}', ${v.comments_enabled}, ${v.likes_visible}, ${v.is_hidden || 0})"
             style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); border: none; color: white; cursor: pointer; padding: 6px 10px; border-radius: 6px; z-index: 10;"
             title="Yönet">
             <i class="fas fa-ellipsis-v"></i>
