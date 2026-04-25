@@ -766,7 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
           switch(targetPage) {
             case 'reals': loadShortsPage(); break;
             case 'ts-music': loadTSMusicPage(); break;
-            case 'my-videos': loadMyVideosPage(); break;
+            case 'profile': loadMyVideosPage(); break;
             case 'my-songs': loadMySongsPage(); break;
             case 'messages': loadMessagesPage(); break;
             case 'friends': loadFriendsPage(); break;
@@ -1232,7 +1232,7 @@ async function login() {
           switch(urlPage) {
             case 'home': loadHomePage(); break;
             case 'ts-music': loadTSMusicPage(); break;
-            case 'my-videos': loadMyVideosPage(); break;
+            case 'profile': loadMyVideosPage(); break;
             case 'my-songs': loadMySongsPage(); break;
             case 'messages': loadMessagesPage(); break;
             case 'friends': loadFriendsPage(); break;
@@ -1589,7 +1589,7 @@ function showPage(page) {
   }
 
   // Bottom nav aktif durumu güncelle
-  const navMap = { home:'mbb-home', reals:'mbb-reals', messages:'mbb-messages', 'my-channel':'mbb-profile' };
+  const navMap = { home:'mbb-home', reals:'mbb-reals', messages:'mbb-messages', 'profile':'mbb-profile' };
   document.querySelectorAll('.mbb-btn').forEach(b => b.classList.remove('active'));
   if (navMap[page]) document.getElementById(navMap[page])?.classList.add('active');
 
@@ -1650,7 +1650,7 @@ function showPage(page) {
     case 'my-channel':
       loadMyChannelPage();
       break;
-    case 'my-videos':
+    case 'profile':
       loadMyVideosPage();
       break;
     case 'my-songs':
@@ -2559,9 +2559,6 @@ function _openChatDirect(friendId, friendName, friendPhoto) {
         <p style="font-size:15px; font-weight:600;">${friendName}</p>
         <p id="chatStatus" style="font-size:12px; color:var(--yt-spec-text-secondary);"></p>
       </div>
-      <button class="yt-icon-button" onclick="startDirectCall(${friendId},'${friendName.replace(/'/g,"\\'")}','${friendPhoto}')" title="Sesli Arama">
-        <i class="fas fa-phone" style="font-size:14px;"></i>
-      </button>
       <button class="yt-icon-button" onclick="openFloatingChat(${friendId},'${friendName}','${friendPhoto}')" title="Mini pencere">
         <i class="fas fa-external-link-alt" style="font-size:14px;"></i>
       </button>
@@ -6295,7 +6292,7 @@ async function uploadText() {
   }
 }
 
-// Videolarım sayfası
+// Profilim sayfası (Instagram tarzı)
 async function loadMyVideosPage() {
   // HARD FIX: Kanal yoksa HEMEN oluştur ve BEKLE
   if (!currentChannel) {
@@ -6330,26 +6327,112 @@ async function loadMyVideosPage() {
     }
   }
 
-  // Kanal var, videoları yükle
+  // Kanal var, profil bilgilerini ve içerikleri yükle
   try {
-    const response = await fetch(`${API_URL}/videos/channel/${currentChannel.id}`);
-    if (!response.ok) throw new Error('Video listesi alınamadı');
+    // Takipçi ve takip sayıları
+    const subsRes = await fetch(`${API_URL}/channel/${currentChannel.id}/subscribers`);
+    const subscribers = subsRes.ok ? await subsRes.json() : [];
     
-    const videos = await response.json();
+    const followingRes = await fetch(`${API_URL}/subscriptions/${currentUser.id}`);
+    const following = followingRes.ok ? await followingRes.json() : [];
+    
+    // Tüm içerikleri yükle
+    const videosRes = await fetch(`${API_URL}/videos/channel/${currentChannel.id}`);
+    const allVideos = videosRes.ok ? await videosRes.json() : [];
+    
+    // İçerikleri türlerine göre ayır
+    const videos = allVideos.filter(v => !v.is_short && v.video_type !== 'photo' && !v.text_content);
+    const reals = allVideos.filter(v => v.is_short);
+    const photos = allVideos.filter(v => v.video_type === 'photo');
+    const texts = allVideos.filter(v => v.text_content);
+    
+    const totalPosts = allVideos.length;
 
     const pageContent = document.getElementById('pageContent');
     pageContent.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 class="section-header" style="margin: 0;">İçeriklerim</h2>
-        <button class="yt-btn" onclick="showUploadVideoModal()"><i class="fas fa-upload"></i> Yükle</button>
+      <!-- Instagram Tarzı Profil Header -->
+      <div style="max-width:935px;margin:0 auto;padding:30px 20px;">
+        <!-- Profil Bilgileri -->
+        <div style="display:flex;gap:30px;margin-bottom:44px;align-items:center;">
+          <img src="${currentUser.profile_photo || '?'}" 
+               style="width:150px;height:150px;border-radius:50%;object-fit:cover;border:3px solid var(--yt-spec-border);" />
+          
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;">
+              <h2 style="font-size:28px;font-weight:300;margin:0;">${currentUser.nickname || currentUser.username}</h2>
+              <button class="yt-btn" onclick="showPage('settings')" style="padding:7px 16px;font-size:14px;font-weight:600;">
+                Profili Düzenle
+              </button>
+            </div>
+            
+            <!-- İstatistikler -->
+            <div style="display:flex;gap:40px;margin-bottom:20px;">
+              <div style="font-size:16px;">
+                <span style="font-weight:600;">${totalPosts}</span> gönderi
+              </div>
+              <div style="font-size:16px;cursor:pointer;" onclick="showFollowers()">
+                <span style="font-weight:600;">${subscribers.length}</span> takipçi
+              </div>
+              <div style="font-size:16px;cursor:pointer;" onclick="showFollowing()">
+                <span style="font-weight:600;">${following.length}</span> takip
+              </div>
+            </div>
+            
+            <!-- Bio -->
+            <div style="font-size:14px;line-height:1.5;">
+              <strong>${currentUser.nickname || currentUser.username}</strong>
+              ${currentChannel.about ? `<br>${currentChannel.about}` : ''}
+            </div>
+          </div>
+        </div>
+        
+        <!-- Yeni İçerik Butonu (Mobil + İkon) -->
+        <div style="text-align:center;margin-bottom:30px;">
+          <button onclick="showContentTypeSelector()" 
+                  style="width:60px;height:60px;border-radius:50%;background:var(--yt-spec-brand-background-solid);border:none;color:white;font-size:24px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:transform 0.2s;"
+                  onmouseover="this.style.transform='scale(1.1)'"
+                  onmouseout="this.style.transform='scale(1)'">
+            <i class="fas fa-plus"></i>
+          </button>
+          <p style="font-size:12px;color:var(--yt-spec-text-secondary);margin-top:8px;">Yeni</p>
+        </div>
+        
+        <!-- Tab Bar -->
+        <div style="border-top:1px solid var(--yt-spec-border);display:flex;justify-content:center;gap:60px;">
+          <button class="profile-content-tab active" onclick="switchContentTab(this,'all')" data-tab="all"
+                  style="padding:12px 0;background:none;border:none;border-top:1px solid var(--yt-spec-text-primary);margin-top:-1px;color:var(--yt-spec-text-primary);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+            <i class="fas fa-th"></i> TÜMÜ
+          </button>
+          <button class="profile-content-tab" onclick="switchContentTab(this,'videos')" data-tab="videos"
+                  style="padding:12px 0;background:none;border:none;color:var(--yt-spec-text-secondary);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+            <i class="fas fa-play-circle"></i> VİDEOLAR
+          </button>
+          <button class="profile-content-tab" onclick="switchContentTab(this,'reals')" data-tab="reals"
+                  style="padding:12px 0;background:none;border:none;color:var(--yt-spec-text-secondary);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+            <i class="fas fa-film"></i> REALS
+          </button>
+          <button class="profile-content-tab" onclick="switchContentTab(this,'photos')" data-tab="photos"
+                  style="padding:12px 0;background:none;border:none;color:var(--yt-spec-text-secondary);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+            <i class="fas fa-image"></i> FOTOĞRAFLAR
+          </button>
+          <button class="profile-content-tab" onclick="switchContentTab(this,'texts')" data-tab="texts"
+                  style="padding:12px 0;background:none;border:none;color:var(--yt-spec-text-secondary);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+            <i class="fas fa-align-left"></i> METİNLER
+          </button>
+        </div>
+        
+        <!-- İçerik Grid -->
+        <div id="profileContentGrid" style="margin-top:28px;"></div>
       </div>
-      <div id="myVideos"></div>
     `;
 
-    renderMyVideos(videos);
+    // İlk yükleme - tüm içerikleri göster
+    window.profileAllContent = { videos, reals, photos, texts };
+    renderProfileContent('all');
+    
   } catch (error) {
-    console.error('❌ Videolar yükleme hatası:', error);
-    showToast('Videolar yüklenemedi: ' + error.message, 'error');
+    console.error('❌ Profil yükleme hatası:', error);
+    showToast('Profil yüklenemedi: ' + error.message, 'error');
   }
 }
 
@@ -6476,6 +6559,160 @@ function renderMyVideos(videos) {
       }).join('')}
     </div>
   `;
+}
+
+// İçerik türü seçici göster (Mobil + butonu)
+function showContentTypeSelector() {
+  const modal = document.createElement('div');
+  modal.id = 'contentTypeSelectorModal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:10000;display:flex;align-items:center;justify-content:center;';
+  
+  modal.innerHTML = `
+    <div style="background:var(--yt-spec-raised-background);border-radius:16px;padding:24px;max-width:400px;width:90%;max-height:80vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h3 style="font-size:20px;font-weight:600;margin:0;">Yeni İçerik</h3>
+        <button onclick="document.getElementById('contentTypeSelectorModal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--yt-spec-text-secondary);">×</button>
+      </div>
+      
+      <div style="display:grid;gap:12px;">
+        <button onclick="selectContentType('video')" style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--yt-spec-base-background);border:2px solid var(--yt-spec-border);border-radius:12px;cursor:pointer;transition:all 0.2s;text-align:left;"
+                onmouseover="this.style.borderColor='var(--yt-spec-brand-background-solid)'"
+                onmouseout="this.style.borderColor='var(--yt-spec-border)'">
+          <div style="width:48px;height:48px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+            <i class="fas fa-play-circle" style="font-size:24px;color:white;"></i>
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:600;margin-bottom:4px;">Uzun Video</div>
+            <div style="font-size:13px;color:var(--yt-spec-text-secondary);">Normal video yükle</div>
+          </div>
+        </button>
+        
+        <button onclick="selectContentType('reals')" style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--yt-spec-base-background);border:2px solid var(--yt-spec-border);border-radius:12px;cursor:pointer;transition:all 0.2s;text-align:left;"
+                onmouseover="this.style.borderColor='var(--yt-spec-brand-background-solid)'"
+                onmouseout="this.style.borderColor='var(--yt-spec-border)'">
+          <div style="width:48px;height:48px;background:linear-gradient(135deg,#f43f5e,#e11d48);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+            <i class="fas fa-film" style="font-size:24px;color:white;"></i>
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:600;margin-bottom:4px;">Reals</div>
+            <div style="font-size:13px;color:var(--yt-spec-text-secondary);">Kısa video paylaş</div>
+          </div>
+        </button>
+        
+        <button onclick="selectContentType('photo')" style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--yt-spec-base-background);border:2px solid var(--yt-spec-border);border-radius:12px;cursor:pointer;transition:all 0.2s;text-align:left;"
+                onmouseover="this.style.borderColor='var(--yt-spec-brand-background-solid)'"
+                onmouseout="this.style.borderColor='var(--yt-spec-border)'">
+          <div style="width:48px;height:48px;background:linear-gradient(135deg,#10b981,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+            <i class="fas fa-image" style="font-size:24px;color:white;"></i>
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:600;margin-bottom:4px;">Fotoğraf</div>
+            <div style="font-size:13px;color:var(--yt-spec-text-secondary);">Fotoğraf paylaş</div>
+          </div>
+        </button>
+        
+        <button onclick="selectContentType('text')" style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--yt-spec-base-background);border:2px solid var(--yt-spec-border);border-radius:12px;cursor:pointer;transition:all 0.2s;text-align:left;"
+                onmouseover="this.style.borderColor='var(--yt-spec-brand-background-solid)'"
+                onmouseout="this.style.borderColor='var(--yt-spec-border)'">
+          <div style="width:48px;height:48px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+            <i class="fas fa-align-left" style="font-size:24px;color:white;"></i>
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:600;margin-bottom:4px;">Metin</div>
+            <div style="font-size:13px;color:var(--yt-spec-text-secondary);">Düşüncelerini paylaş</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+}
+
+// İçerik türü seçildi
+function selectContentType(type) {
+  document.getElementById('contentTypeSelectorModal')?.remove();
+  
+  if (type === 'video' || type === 'reals' || type === 'photo') {
+    showUploadVideoModal();
+    // Modal açıldıktan sonra türü seç
+    setTimeout(() => {
+      const typeBtn = document.getElementById(`typeBtn_${type === 'reals' ? 'short' : type}`);
+      if (typeBtn) typeBtn.click();
+    }, 100);
+  } else if (type === 'text') {
+    showTextUploadModal();
+  }
+}
+
+// Metin yükleme modalı
+function showTextUploadModal() {
+  showToast('Metin paylaşım özelliği yakında eklenecek!', 'info');
+  // TODO: Metin paylaşım modalı eklenecek
+}
+
+// Profil içerik render
+function renderProfileContent(tab) {
+  const grid = document.getElementById('profileContentGrid');
+  if (!grid || !window.profileAllContent) return;
+  
+  let content = [];
+  if (tab === 'all') {
+    content = [
+      ...window.profileAllContent.videos,
+      ...window.profileAllContent.reals,
+      ...window.profileAllContent.photos,
+      ...window.profileAllContent.texts
+    ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  } else if (tab === 'videos') {
+    content = window.profileAllContent.videos;
+  } else if (tab === 'reals') {
+    content = window.profileAllContent.reals;
+  } else if (tab === 'photos') {
+    content = window.profileAllContent.photos;
+  } else if (tab === 'texts') {
+    content = window.profileAllContent.texts;
+  }
+  
+  if (content.length === 0) {
+    grid.innerHTML = `
+      <div style="text-align:center;padding:60px 20px;color:var(--yt-spec-text-secondary);">
+        <i class="fas fa-inbox" style="font-size:48px;margin-bottom:16px;opacity:0.5;"></i>
+        <p style="font-size:16px;">Henüz içerik yok</p>
+      </div>
+    `;
+    return;
+  }
+  
+  // Instagram tarzı grid (3 sütun)
+  grid.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+      ${content.map(item => `
+        <div onclick="openVideo(${item.id})" style="position:relative;padding-bottom:100%;background:var(--yt-spec-raised-background);cursor:pointer;overflow:hidden;">
+          <img src="${item.banner_url}" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;" />
+          ${item.is_short ? '<div style="position:absolute;top:8px;right:8px;"><i class="fas fa-film" style="color:white;font-size:16px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i></div>' : ''}
+          ${item.text_content ? '<div style="position:absolute;top:8px;right:8px;"><i class="fas fa-align-left" style="color:white;font-size:16px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i></div>' : ''}
+          <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.7));padding:8px;color:white;font-size:12px;">
+            <i class="fas fa-eye"></i> ${formatNumber(item.views || 0)}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// Tab değiştir
+function switchContentTab(btn, tab) {
+  document.querySelectorAll('.profile-content-tab').forEach(b => {
+    b.classList.remove('active');
+    b.style.borderTop = 'none';
+    b.style.color = 'var(--yt-spec-text-secondary)';
+  });
+  btn.classList.add('active');
+  btn.style.borderTop = '1px solid var(--yt-spec-text-primary)';
+  btn.style.color = 'var(--yt-spec-text-primary)';
+  
+  renderProfileContent(tab);
 }
 
 // Filtre fonksiyonu
