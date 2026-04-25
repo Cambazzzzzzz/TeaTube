@@ -2786,6 +2786,14 @@ async function sendMessage(friendId) {
 
   const input = document.getElementById('chatInput');
   console.log('📝 Input element:', input);
+  
+  // MOBİL FİX: Input elementi yoksa hata ver
+  if (!input) {
+    console.error('❌ chatInput elementi bulunamadı! Chat açık değil.');
+    showToast('Mesaj kutusu bulunamadı. Lütfen sohbeti tekrar açın.', 'error');
+    return;
+  }
+  
   console.log('📝 Input value:', input?.value);
   
   const text = input?.value.trim();
@@ -2794,6 +2802,7 @@ async function sendMessage(friendId) {
   
   if (!text) {
     console.log('❌ Mesaj boş, gönderilmiyor');
+    showToast('Lütfen bir mesaj yazın', 'info');
     return;
   }
 
@@ -3370,13 +3379,40 @@ async function loadShortsPage() {
       return;
     }
 
-    currentShortIndex = 0;
-    // Her girmede karışık sırala (Fisher-Yates shuffle)
-    for (let i = shortsVideos.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shortsVideos[i], shortsVideos[j]] = [shortsVideos[j], shortsVideos[i]];
+    // URL'den share_id kontrolü - /reals/abc123 formatında
+    const urlPath = window.location.pathname;
+    const shareIdMatch = urlPath.match(/\/reals\/([A-Za-z0-9]+)/);
+    
+    if (shareIdMatch && shareIdMatch[1]) {
+      const shareId = shareIdMatch[1];
+      console.log('🔍 URL\'den share_id bulundu:', shareId);
+      
+      // Bu share_id'ye sahip videoyu bul
+      const videoIndex = shortsVideos.findIndex(v => v.share_id === shareId);
+      if (videoIndex !== -1) {
+        currentShortIndex = videoIndex;
+        console.log('✅ Video bulundu, index:', videoIndex);
+      } else {
+        console.log('⚠️ Video bulunamadı, baştan başlanıyor');
+        currentShortIndex = 0;
+        // Her girmede karışık sırala (Fisher-Yates shuffle)
+        for (let i = shortsVideos.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shortsVideos[i], shortsVideos[j]] = [shortsVideos[j], shortsVideos[i]];
+        }
+      }
+    } else {
+      currentShortIndex = 0;
+      // Her girmede karışık sırala (Fisher-Yates shuffle)
+      for (let i = shortsVideos.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shortsVideos[i], shortsVideos[j]] = [shortsVideos[j], shortsVideos[i]];
+      }
     }
+    
     renderShortsPlayer();
+    // İlk yüklemede URL'i güncelle
+    updateRealsURL();
   } catch(e) { console.error(e); }
 }
 
@@ -3451,6 +3487,10 @@ function renderShortsPlayer() {
             <button class="sra-btn" onclick="shareContent(${v.id}, '${(v.title || '').replace(/'/g, "\\'")}', '${v.video_url}', true)">
               <i class="fas fa-paper-plane"></i>
               <span>Paylaş</span>
+            </button>
+            <button class="sra-btn" onclick="copyRealsURL('${v.share_id}', '${(v.title || '').replace(/'/g, "\\'")}')">
+              <i class="fas fa-link"></i>
+              <span>Link</span>
             </button>
             <button class="sra-btn" onclick="toggleSaved(${v.id})">
               <i class="fas fa-bookmark"></i>
@@ -3754,9 +3794,16 @@ function nextShort() {
       container.style.transition = 'transform 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.18s';
       container.style.transform = 'translateY(-80px)';
       container.style.opacity = '0';
-      setTimeout(() => { currentShortIndex++; renderShortsPlayer(); }, 180);
+      setTimeout(() => { 
+        currentShortIndex++; 
+        renderShortsPlayer();
+        // URL'i share_id ile güncelle
+        updateRealsURL();
+      }, 180);
     } else {
-      currentShortIndex++; renderShortsPlayer();
+      currentShortIndex++; 
+      renderShortsPlayer();
+      updateRealsURL();
     }
   }
 }
@@ -3767,11 +3814,63 @@ function prevShort() {
       container.style.transition = 'transform 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.18s';
       container.style.transform = 'translateY(80px)';
       container.style.opacity = '0';
-      setTimeout(() => { currentShortIndex--; renderShortsPlayer(); }, 180);
+      setTimeout(() => { 
+        currentShortIndex--; 
+        renderShortsPlayer();
+        // URL'i share_id ile güncelle
+        updateRealsURL();
+      }, 180);
     } else {
-      currentShortIndex--; renderShortsPlayer();
+      currentShortIndex--; 
+      renderShortsPlayer();
+      updateRealsURL();
     }
   }
+}
+
+// Reals URL'ini share_id ile güncelle
+function updateRealsURL() {
+  const currentVideo = shortsVideos[currentShortIndex];
+  if (currentVideo && currentVideo.share_id) {
+    const newURL = `/reals/${currentVideo.share_id}`;
+    history.pushState({ page: 'reals', shareId: currentVideo.share_id }, '', newURL);
+    console.log('📍 Reals URL güncellendi:', newURL);
+  }
+}
+
+// Reals URL'ini kopyala
+function copyRealsURL(shareId, title) {
+  const url = `${window.location.origin}/reals/${shareId}`;
+  
+  // Clipboard API ile kopyala
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('🔗 Link kopyalandı!', 'success');
+    }).catch(() => {
+      // Fallback
+      fallbackCopyText(url);
+    });
+  } else {
+    // Fallback
+    fallbackCopyText(url);
+  }
+}
+
+// Fallback kopyalama fonksiyonu
+function fallbackCopyText(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    showToast('🔗 Link kopyalandı!', 'success');
+  } catch(e) {
+    showToast('Link kopyalanamadı', 'error');
+  }
+  document.body.removeChild(textarea);
 }
 
 async function likeShort(videoId, likeType) {
@@ -5099,7 +5198,17 @@ async function loadComments(videoId, videoOwnerId = null) {
     
     if (!response.ok) {
       const commentsList = document.getElementById('commentsList');
-      if (commentsList) commentsList.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:8px 0;font-size:13px;">Yorumlar yüklenirken hata oluştu</p>';
+      if (commentsList) {
+        commentsList.innerHTML = `
+          <div style="text-align:center;padding:20px;">
+            <p style="color:var(--yt-spec-text-secondary);padding:8px 0;font-size:13px;margin-bottom:12px;">Yorumlar yüklenirken hata oluştu</p>
+            <button onclick="loadComments(${videoId}, ${videoOwnerId})" class="yt-btn" style="padding:8px 16px;font-size:13px;">
+              <i class="fas fa-redo"></i> Tekrar Dene
+            </button>
+          </div>
+        `;
+      }
+      console.error('Yorumlar API hatası:', response.status, response.statusText);
       return;
     }
 
@@ -5125,7 +5234,16 @@ async function loadComments(videoId, videoOwnerId = null) {
   } catch (error) {
     console.error('Yorumlar yükleme hatası:', error);
     const commentsList = document.getElementById('commentsList');
-    if (commentsList) commentsList.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:8px 0;font-size:13px;">Yorumlar yüklenirken bir sorun oluştu. Lütfen sayfayı yenileyin.</p>';
+    if (commentsList) {
+      commentsList.innerHTML = `
+        <div style="text-align:center;padding:20px;">
+          <p style="color:var(--yt-spec-text-secondary);padding:8px 0;font-size:13px;margin-bottom:12px;">Yorumlar yüklenirken bir sorun oluştu</p>
+          <button onclick="loadComments(${videoId}, ${videoOwnerId})" class="yt-btn" style="padding:8px 16px;font-size:13px;">
+            <i class="fas fa-redo"></i> Tekrar Dene
+          </button>
+        </div>
+      `;
+    }
   }
 }
 
