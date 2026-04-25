@@ -105,6 +105,14 @@
         console.log('⚡ INSTANT CHECK: User found - authScreen will stay hidden');
         // Set a flag that DOMContentLoaded can check
         window.__userLoggedIn = true;
+        
+        // IMMEDIATELY hide authScreen and show mainApp
+        document.addEventListener('DOMContentLoaded', function() {
+          const authScreen = document.getElementById('authScreen');
+          const mainApp = document.getElementById('mainApp');
+          if (authScreen) authScreen.style.display = 'none';
+          if (mainApp) mainApp.style.display = 'block';
+        });
       } else {
         console.log('⚡ INSTANT CHECK: No user - guest mode');
         window.__userLoggedIn = false;
@@ -249,10 +257,6 @@
       </div>
       
       <div class="guide-section">
-        <div class="guide-item" onclick="showPage('my-channel')" data-page="my-channel">
-          <i class="fas fa-user-circle"></i>
-          <span id="myChannelLabel">Hesabım</span>
-        </div>
         <div class="guide-item" onclick="showPage('profile')" data-page="profile">
           <i class="fas fa-user-circle"></i>
           <span>Profilim</span>

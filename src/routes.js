@@ -2953,6 +2953,157 @@ router.get('/text/:textId/like-status/:userId', (req, res) => {
   }
 });
 
+// ==================== METİN PAYLAŞIMLARI ====================
+// Metin paylaş
+router.post('/text-posts', (req, res) => {
+  try {
+    const { user_id, title, content } = req.body;
+    
+    if (!content || !user_id) {
+      return res.status(400).json({ error: 'İçerik ve kullanıcı ID gerekli' });
+    }
+    
+    // Random share_id oluştur
+    const generateShareId = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let id = '';
+      for (let i = 0; i < 11; i++) {
+        id += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return id;
+    };
+    
+    let shareId = generateShareId();
+    while (db.prepare('SELECT id FROM texts WHERE share_id = ?').get(shareId)) {
+      shareId = generateShareId();
+    }
+    
+    const result = db.prepare(
+      'INSERT INTO texts (user_id, title, content, share_id) VALUES (?, ?, ?, ?)'
+    ).run(user_id, title, content, shareId);
+    
+    res.json({ success: true, textId: result.lastInsertRowid, shareId });
+  } catch (error) {
+    console.error('Metin paylaşma hatası:', error);
+    res.status(500).json({ error: 'Metin paylaşılamadı' });
+  }
+});
+
+// Metinleri getir (anasayfa için)
+router.get('/texts', (req, res) => {
+  try {
+    const { userId } = req.query;
+    
+    const texts = db.prepare(`
+      SELECT t.*, u.nickname, u.username, u.profile_photo,
+             COALESCE(ur.role, 'user') as role,
+             (SELECT COUNT(*) FROM text_likes WHERE text_id = t.id) as likes,
+             (SELECT COUNT(*) FROM text_comments WHERE text_id = t.id) as comment_count,
+             (SELECT like_type FROM text_likes WHERE text_id = t.id AND user_id = ?) as user_like
+      FROM texts t
+      JOIN users u ON t.user_id = u.id
+      LEFT JOIN user_roles ur ON u.id = ur.user_id
+      ORDER BY t.created_at DESC
+      LIMIT 50
+    `).all(userId || 0);
+    
+    res.json(texts);
+  } catch (error) {
+    console.error('Metinler getirme hatası:', error);
+    res.status(500).json({ error: 'Metinler getirilemedi' });
+  }
+});
+
+// Tek metin getir
+router.get('/text/:textId', (req, res) => {
+  try {
+    const { userId } = req.query;
+    
+    const text = db.prepare(`
+      SELECT t.*, u.nickname, u.username, u.profile_photo,
+             COALESCE(ur.role, 'user') as role,
+             (SELECT COUNT(*) FROM text_likes WHERE text_id = t.id) as likes,
+             (SELECT COUNT(*) FROM text_comments WHERE text_id = t.id) as comment_count,
+             (SELECT like_type FROM text_likes WHERE text_id = t.id AND user_id = ?) as user_like
+      FROM texts t
+      JOIN users u ON t.user_id = u.id
+      LEFT JOIN user_roles ur ON u.id = ur.user_id
+      WHERE t.id = ? OR t.share_id = ?
+    `).get(userId || 0, req.params.textId, req.params.textId);
+    
+    if (!text) {
+      return res.status(404).json({ error: 'Metin bulunamadı' });
+    }
+    
+    res.json(text);
+  } catch (error) {
+    console.error('Metin getirme hatası:', error);
+    res.status(500).json({ error: 'Metin getirilemedi' });
+  }
+});
+
+// Metin beğen
+router.post('/text-like', (req, res) => {
+  try {
+    const { textId, userId, likeType } = req.body;
+    
+    const existing = db.prepare('SELECT * FROM text_likes WHERE text_id = ? AND user_id = ?').get(textId, userId);
+    
+    if (existing) {
+      if (existing.like_type === likeType) {
+        db.prepare('DELETE FROM text_likes WHERE id = ?').run(existing.id);
+      } else {
+        db.prepare('UPDATE text_likes SET like_type = ? WHERE id = ?').run(likeType, existing.id);
+      }
+    } else {
+      db.prepare('INSERT INTO text_likes (text_id, user_id, like_type) VALUES (?, ?, ?)').run(textId, userId, likeType);
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Metin beğeni hatası:', error);
+    res.status(500).json({ error: 'Beğeni işlemi başarısız' });
+  }
+});
+
+// Metin yorumu ekle
+router.post('/text-comment', (req, res) => {
+  try {
+    const { textId, userId, comment } = req.body;
+    
+    const result = db.prepare(
+      'INSERT INTO text_comments (text_id, user_id, comment_text) VALUES (?, ?, ?)'
+    ).run(textId, userId, comment);
+    
+    res.json({ success: true, commentId: result.lastInsertRowid });
+  } catch (error) {
+    console.error('Yorum ekleme hatası:', error);
+    res.status(500).json({ error: 'Yorum eklenemedi' });
+  }
+});
+
+// Metin yorumlarını getir
+router.get('/text-comments/:textId', (req, res) => {
+  try {
+    const { userId } = req.query;
+    
+    const comments = db.prepare(`
+      SELECT tc.*, u.nickname, u.username, u.profile_photo,
+             COALESCE(ur.role, 'user') as role
+      FROM text_comments tc
+      JOIN users u ON tc.user_id = u.id
+      LEFT JOIN user_roles ur ON u.id = ur.user_id
+      WHERE tc.text_id = ?
+      ORDER BY tc.created_at DESC
+    `).all(req.params.textId);
+    
+    res.json(comments);
+  } catch (error) {
+    console.error('Yorumlar getirme hatası:', error);
+    res.status(500).json({ error: 'Yorumlar getirilemedi' });
+  }
+});
+
 module.exports = router;
 
 

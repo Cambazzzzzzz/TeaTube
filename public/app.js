@@ -6778,8 +6778,7 @@ function selectContentType(type) {
 
 // Metin yükleme modalı
 function showTextUploadModal() {
-  showToast('Metin paylaşım özelliği yakında eklenecek!', 'info');
-  // TODO: Metin paylaşım modalı eklenecek
+  showTextPostModal();
 }
 
 // Profil içerik render
