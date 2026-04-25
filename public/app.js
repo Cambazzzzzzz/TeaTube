@@ -664,6 +664,15 @@ function toggleSidebar() {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🔍 DOM yüklendi, ULTRA GÜÇLÜ OTURUM SİSTEMİ başlatılıyor...');
   
+  // INSTANT CHECK FLAG - Eğer kullanıcı varsa authScreen'i ASLA gösterme
+  if (window.__userLoggedIn === true) {
+    console.log('⚡⚡⚡ INSTANT FLAG: Kullanıcı var - authScreen ASLA GÖSTERİLMEYECEK!');
+    const authScreen = document.getElementById('authScreen');
+    const mainApp = document.getElementById('mainApp');
+    if (authScreen) authScreen.style.display = 'none';
+    if (mainApp) mainApp.style.display = 'block';
+  }
+  
   // ULTRA GÜÇLÜ OTURUM KONTROLÜ - 6 FARKLI YER KONTROL ET!
   const savedUser = localStorage.getItem('Tea_user');
   const timestamp = localStorage.getItem('Tea_user_timestamp');
@@ -708,14 +717,23 @@ document.addEventListener('DOMContentLoaded', () => {
       // MİSAFİR MODU KAPALI
       window.isGuestMode = false;
       
-      // GİRİŞ EKRANINI GİZLE, ANA EKRANI GÖSTER
+      // GİRİŞ EKRANINI GİZLE, ANA EKRANI GÖSTER - DOUBLE CHECK!
       const authScreen = document.getElementById('authScreen');
       const mainApp = document.getElementById('mainApp');
       const loginBtn = document.getElementById('loginButton');
       
-      if (authScreen) authScreen.style.display = 'none';
-      if (mainApp) mainApp.style.display = 'block';
-      if (loginBtn) loginBtn.style.display = 'none';
+      if (authScreen) {
+        authScreen.style.display = 'none';
+        console.log('✅ authScreen gizlendi');
+      }
+      if (mainApp) {
+        mainApp.style.display = 'block';
+        console.log('✅ mainApp gösterildi');
+      }
+      if (loginBtn) {
+        loginBtn.style.display = 'none';
+        console.log('✅ loginBtn gizlendi');
+      }
       
       console.log('🎉 ANA EKRAN GÖSTERİLDİ!');
       

@@ -89,8 +89,31 @@
   </script>
 </head>
 <body>
+  <!-- INSTANT LOGIN CHECK - Runs IMMEDIATELY before anything else -->
+  <script>
+    (function() {
+      // Check all possible localStorage locations
+      const savedUser = localStorage.getItem('Tea_user');
+      const backupUser = localStorage.getItem('Tea_user_backup');
+      const emergencyUser = localStorage.getItem('Tea_emergency_backup');
+      const ultraBackup = localStorage.getItem('Tea_ultra_backup');
+      
+      // If user exists in ANY location, ensure authScreen stays hidden
+      const userExists = savedUser || backupUser || emergencyUser || ultraBackup;
+      
+      if (userExists && userExists.length > 5) {
+        console.log('⚡ INSTANT CHECK: User found - authScreen will stay hidden');
+        // Set a flag that DOMContentLoaded can check
+        window.__userLoggedIn = true;
+      } else {
+        console.log('⚡ INSTANT CHECK: No user - guest mode');
+        window.__userLoggedIn = false;
+      }
+    })();
+  </script>
+  
   <!-- Giriş/Kayıt Ekranı -->
-  <div id="authScreen" class="auth-screen">
+  <div id="authScreen" class="auth-screen" style="display:none;">
     <div class="auth-container">
       <div class="auth-logo">
         <img src="logoteatube.png" alt="TeaTube" style="height:96px; object-fit:contain; filter:drop-shadow(0 0 20px #ff003344);" />
@@ -128,7 +151,7 @@
   </div>
 
   <!-- Ana Uygulama -->
-  <div id="mainApp" style="display: none;">
+  <div id="mainApp" style="display: block;">
     <!-- Masthead (Header) -->
     <div id="masthead">
       <div id="masthead-container">
