@@ -754,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
           console.log('🔗 URL sayfası:', urlPage);
           showPage(urlPage);
           switch(urlPage) {
-            case 'reals': loadRealsPage(); break;
+            case 'reals': loadShortsPage(); break;
             case 'ts-music': loadTSMusicPage(); break;
             case 'my-videos': loadMyVideosPage(); break;
             case 'my-songs': loadMySongsPage(); break;
@@ -813,7 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (urlPage && urlPage !== 'home') {
       showPage(urlPage);
       switch(urlPage) {
-        case 'reals': loadRealsPage(); break;
+        case 'reals': loadShortsPage(); break;
         case 'home': loadHomePage(); break;
         default: loadHomePage(); break;
       }
