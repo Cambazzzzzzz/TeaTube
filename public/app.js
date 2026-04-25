@@ -481,7 +481,7 @@ async function publishTextPost() {
       alert('Metin paylaşıldı! ✅');
       // Ana sayfayı yenile
       if (currentPage === 'home') {
-        loadHomeFeed();
+        loadHomePage();
       }
     } else {
       alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
@@ -763,12 +763,12 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'groups': loadGroupsPage(); break;
             case 'notifications': loadNotificationsPage(); break;
             case 'settings': loadSettingsPage(); break;
-            case 'home': loadHomeFeed(); break;
-            default: loadHomeFeed(); break;
+            case 'home': loadHomePage(); break;
+            default: loadHomePage(); break;
           }
         } else {
           showPage('home');
-          loadHomeFeed();
+          loadHomePage();
         }
       }).catch(e => {
         console.error('⚠️ Arka plan hatası:', e);
@@ -777,7 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
           showPage(urlPage);
         } else {
           showPage('home');
-          loadHomeFeed();
+          loadHomePage();
         }
       });
       
@@ -814,12 +814,12 @@ document.addEventListener('DOMContentLoaded', () => {
       showPage(urlPage);
       switch(urlPage) {
         case 'reals': loadRealsPage(); break;
-        case 'home': loadHomeFeed(); break;
-        default: loadHomeFeed(); break;
+        case 'home': loadHomePage(); break;
+        default: loadHomePage(); break;
       }
     } else {
       showPage('home');
-      loadHomeFeed();
+      loadHomePage();
     }
     
     console.log('✅ Misafir modu aktif');
@@ -1220,7 +1220,7 @@ async function login() {
         try {
           // URL'deki sayfayı yükle
           switch(urlPage) {
-            case 'home': loadHomeFeed(); break;
+            case 'home': loadHomePage(); break;
             case 'ts-music': loadTSMusicPage(); break;
             case 'my-videos': loadMyVideosPage(); break;
             case 'my-songs': loadMySongsPage(); break;
@@ -1238,7 +1238,7 @@ async function login() {
         // URL'de sayfa yoksa Anasayfa'yı aç
         showPage('home');
         try {
-          loadHomeFeed();
+          loadHomePage();
           console.log('🚀 Anasayfa yüklendi!');
         } catch (e) {
           console.log('Anasayfa yükleme hatası (önemli değil):', e);
@@ -1248,7 +1248,7 @@ async function login() {
       console.error('⚠️ Kullanıcı verileri yüklenemedi:', e);
       // Hata olsa bile sayfayı aç
       showPage('home');
-      loadHomeFeed();
+      loadHomePage();
     });
     
     console.log('✅ GİRİŞ TAMAMLANDI!');
