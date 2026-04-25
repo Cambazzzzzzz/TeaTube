@@ -669,8 +669,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const timestamp = localStorage.getItem('Tea_user_timestamp');
   const backupUser = localStorage.getItem('Tea_user_backup');
   const sessionActive = localStorage.getItem('Tea_session_active');
-  const emergencyUser = localStorage.getItem('Tea_emergency_backup'); // Yeni acil durum yedeği
-  const ultraBackup = localStorage.getItem('Tea_ultra_backup'); // Ultra yedek
+  const emergencyUser = localStorage.getItem('Tea_emergency_backup');
+  const ultraBackup = localStorage.getItem('Tea_ultra_backup');
   
   console.log('📦 ULTRA DETAYLI localStorage kontrol:', { 
     savedUser: savedUser ? 'VAR ✅' : 'YOK ❌', 
@@ -678,41 +678,21 @@ document.addEventListener('DOMContentLoaded', () => {
     backupUser: backupUser ? 'VAR ✅' : 'YOK ❌',
     sessionActive: sessionActive ? 'VAR ✅' : 'YOK ❌',
     emergencyUser: emergencyUser ? 'VAR ✅' : 'YOK ❌',
-    ultraBackup: ultraBackup ? 'VAR ✅' : 'YOK ❌',
-    savedUserLength: savedUser ? savedUser.length : 0,
-    backupUserLength: backupUser ? backupUser.length : 0
+    ultraBackup: ultraBackup ? 'VAR ✅' : 'YOK ❌'
   });
   
-  // EN GÜÇLÜ KULLANICI VERİSİNİ BUL - 6 FARKLI YERDEN!
-  const userToUse = savedUser || backupUser || emergencyUser || ultraBackup || sessionActive;
+  // EN GÜÇLÜ KULLANICI VERİSİNİ BUL
+  const userToUse = savedUser || backupUser || emergencyUser || ultraBackup;
   
-  // EĞER HERHANGI BİR YERDE KULLANICI VARSA - ASLA ŞİFRE SORMA!
+  // EĞER HERHANGI BİR YERDE KULLANICI VARSA - ASLA GİRİŞ EKRANI GÖSTERME!
   if (userToUse && userToUse.length > 5) {
-    console.log('🚀🚀🚀 KULLANICI BULUNDU - ULTRA HIZLI GİRİŞ!');
-    console.log('📍 Kullanıcı kaynağı:', 
-      savedUser ? 'Ana kayıt' : 
-      backupUser ? 'Yedek kayıt' : 
-      emergencyUser ? 'Acil durum yedeği' : 
-      ultraBackup ? 'Ultra yedek' : 'Session aktif');
+    console.log('🚀🚀🚀 KULLANICI BULUNDU - ANINDA ANA EKRAN!');
     
     try {
-      // Kullanıcı verisini parse et
-      let userData = userToUse;
-      if (userToUse !== 'true') { // sessionActive 'true' string'i olabilir
-        currentUser = JSON.parse(userToUse);
-      } else {
-        // sessionActive'den geliyorsa diğer yerlerden kullanıcıyı bul
-        const altUser = savedUser || backupUser || emergencyUser || ultraBackup;
-        if (altUser) {
-          currentUser = JSON.parse(altUser);
-        } else {
-          throw new Error('Session aktif ama kullanıcı verisi yok');
-        }
-      }
+      currentUser = JSON.parse(userToUse);
+      console.log('✅ Kullanıcı parse edildi:', currentUser.username);
       
-      console.log('✅✅✅ Kullanıcı başarıyla parse edildi:', currentUser.username);
-      
-      // TÜM YEDEKLERİ YENİLE - ULTRA GÜVENLİK!
+      // TÜM YEDEKLERİ YENİLE
       const currentUserStr = JSON.stringify(currentUser);
       const currentTime = Date.now().toString();
       
@@ -723,62 +703,58 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('Tea_emergency_backup', currentUserStr);
       localStorage.setItem('Tea_ultra_backup', currentUserStr);
       
-      console.log('💾💾💾 TÜM YEDEKLER YENİLENDİ - 6 FARKLI YER!');
+      console.log('💾 TÜM YEDEKLER YENİLENDİ!');
       
-      // ANINDA ANA EKRANI GÖSTER - HİÇBİR GECIKME YOK!
-      console.log('🎉🎉🎉 ANA EKRAN ANINDA GÖSTERİLİYOR!');
-      document.getElementById('authScreen').style.display = 'none';
-      document.getElementById('mainApp').style.display = 'block';
+      // MİSAFİR MODU KAPALI
+      window.isGuestMode = false;
       
-      // Temayı anında uygula
+      // GİRİŞ EKRANINI GİZLE, ANA EKRANI GÖSTER
+      const authScreen = document.getElementById('authScreen');
+      const mainApp = document.getElementById('mainApp');
+      const loginBtn = document.getElementById('loginButton');
+      
+      if (authScreen) authScreen.style.display = 'none';
+      if (mainApp) mainApp.style.display = 'block';
+      if (loginBtn) loginBtn.style.display = 'none';
+      
+      console.log('🎉 ANA EKRAN GÖSTERİLDİ!');
+      
+      // Temayı uygula
       const theme = currentUser.theme || 'dark';
       document.body.setAttribute('data-theme', theme);
       applyTheme(theme);
       
-      // Direkt İçeriklerim sayfasını göster
-      // Ama URL'de başka bir sayfa varsa onu aç
+      // URL'den sayfayı al
       const urlPage = getPageFromURL();
       
-      // ÖNCE KANAL VE KULLANICI VERİLERİNİ YÜK
+      // Kullanıcı verilerini yükle (arka planda)
       loadUserData().then(() => {
-        console.log('✅ Kullanıcı verileri yüklendi, sayfa açılıyor...');
+        console.log('✅ Kullanıcı verileri yüklendi');
         
+        // Sayfayı aç
         if (urlPage && urlPage !== 'home') {
-          // URL'de özel bir sayfa varsa onu aç
-          console.log('🔗 URL\'den sayfa yükleniyor:', urlPage);
+          console.log('🔗 URL sayfası:', urlPage);
           showPage(urlPage);
-          try {
-            // URL'deki sayfayı yükle
-            switch(urlPage) {
-              case 'reals': loadRealsPage(); break;
-              case 'ts-music': loadTSMusicPage(); break;
-              case 'my-videos': loadMyVideosPage(); break;
-              case 'my-songs': loadMySongsPage(); break;
-              case 'messages': loadMessagesPage(); break;
-              case 'friends': loadFriendsPage(); break;
-              case 'groups': loadGroupsPage(); break;
-              case 'notifications': loadNotificationsPage(); break;
-              case 'settings': loadSettingsPage(); break;
-              case 'home': loadHomeFeed(); break;
-              default: loadHomeFeed(); break;
-            }
-          } catch (e) {
-            console.log('Sayfa yükleme hatası:', e);
+          switch(urlPage) {
+            case 'reals': loadRealsPage(); break;
+            case 'ts-music': loadTSMusicPage(); break;
+            case 'my-videos': loadMyVideosPage(); break;
+            case 'my-songs': loadMySongsPage(); break;
+            case 'messages': loadMessagesPage(); break;
+            case 'friends': loadFriendsPage(); break;
+            case 'groups': loadGroupsPage(); break;
+            case 'notifications': loadNotificationsPage(); break;
+            case 'settings': loadSettingsPage(); break;
+            case 'home': loadHomeFeed(); break;
+            default: loadHomeFeed(); break;
           }
         } else {
-          // URL'de sayfa yoksa veya home ise Anasayfa'yı aç
           showPage('home');
-          try {
-            loadHomeFeed();
-            console.log('🚀 Otomatik giriş - anasayfa yüklendi!');
-          } catch (e) {
-            console.log('Anasayfa yükleme hatası (önemli değil):', e);
-          }
+          loadHomeFeed();
         }
       }).catch(e => {
-        console.error('⚠️ Arka plan hatası (TAMAMEN ÖNEMSIZ):', e);
-        console.log('🔒 Hata olmasına rağmen oturum güvenli şekilde devam ediyor!');
-        // Hata olsa bile URL'deki sayfayı aç
+        console.error('⚠️ Arka plan hatası:', e);
+        // Hata olsa bile sayfayı aç
         if (urlPage && urlPage !== 'home') {
           showPage(urlPage);
         } else {
@@ -787,93 +763,68 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
       
-      return; // BURADAN ÇIK - BAŞKA HİÇBİR ŞEY YAPMA!
-      
     } catch (e) {
-      console.error('💥 Parse hatası ama oturum devam ediyor:', e);
-      console.log('🔄 Parse hatası olsa bile giriş ekranını göster ama oturumu korumaya devam et');
-      // Parse hatası olsa bile oturum verilerini koru
+      console.error('💥 Parse hatası:', e);
+      // Parse hatası olursa giriş ekranını göster
+      showLogin();
     }
-  }
-  
-  // Sadece hiçbir yerde veri yoksa 30 gün kontrolü yap
-  if (timestamp && !userToUse) {
-    const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
-    const age = Date.now() - parseInt(timestamp);
-    console.log('⏰ Oturum yaşı:', Math.floor(age / (1000 * 60 * 60 * 24)), 'gün');
     
-    if (age > THIRTY_DAYS) {
-      console.log('❌ Oturum süresi dolmuş (30 gün), temizleniyor...');
-      localStorage.removeItem('Tea_user');
-      localStorage.removeItem('Tea_user_timestamp');
-      localStorage.removeItem('Tea_user_backup');
-      localStorage.removeItem('Tea_session_active');
-      localStorage.removeItem('Tea_emergency_backup');
-      localStorage.removeItem('Tea_ultra_backup');
-    }
-  }
-  
-  // Eğer buraya geldiyse kullanıcı yok - MİSAFİR MODU BAŞLAT!
-  console.log('👤 Kullanıcı yok - MİSAFİR MODU BAŞLATILIYOR');
-  
-  // Misafir modu bayrağı
-  window.isGuestMode = true;
-  currentUser = null;
-  
-  // Ana ekranı göster
-  document.getElementById('authScreen').style.display = 'none';
-  document.getElementById('mainApp').style.display = 'block';
-  
-  // Giriş Yap butonunu göster
-  const loginBtn = document.getElementById('loginButton');
-  if (loginBtn) loginBtn.style.display = 'flex';
-  
-  // Temayı uygula (varsayılan dark)
-  applyTheme('dark');
-  
-  // URL'den sayfayı al
-  const urlPage = getPageFromURL();
-  
-  // Misafir modda anasayfayı yükle
-  if (urlPage && urlPage !== 'home') {
-    showPage(urlPage);
-    try {
+  } else {
+    // KULLANICI YOK - MİSAFİR MODU
+    console.log('👤 Kullanıcı yok - MİSAFİR MODU');
+    
+    window.isGuestMode = true;
+    currentUser = null;
+    
+    // Ana ekranı göster
+    const authScreen = document.getElementById('authScreen');
+    const mainApp = document.getElementById('mainApp');
+    const loginBtn = document.getElementById('loginButton');
+    
+    if (authScreen) authScreen.style.display = 'none';
+    if (mainApp) mainApp.style.display = 'block';
+    if (loginBtn) loginBtn.style.display = 'flex';
+    
+    // Temayı uygula
+    applyTheme('dark');
+    
+    // URL'den sayfayı al
+    const urlPage = getPageFromURL();
+    
+    // Sayfayı aç
+    if (urlPage && urlPage !== 'home') {
+      showPage(urlPage);
       switch(urlPage) {
         case 'reals': loadRealsPage(); break;
         case 'home': loadHomeFeed(); break;
         default: loadHomeFeed(); break;
       }
-    } catch (e) {
-      console.log('Sayfa yükleme hatası:', e);
+    } else {
+      showPage('home');
       loadHomeFeed();
     }
-  } else {
-    showPage('home');
-    loadHomeFeed();
+    
+    console.log('✅ Misafir modu aktif');
   }
   
-  console.log('✅ Misafir modu aktif - içerikler görüntülenebilir, etkileşim için giriş gerekli');
-  
-  // Başlangıçta sidebar durumunu ayarla
+  // Sidebar ayarları
   if (window.innerWidth <= 1312) {
     const guide = document.getElementById('guide');
     if (guide) guide.classList.add('collapsed');
     sidebarOpen = false;
   } else {
-    sidebarOpen = true; // desktop'ta açık, mini mod yok
+    sidebarOpen = true;
   }
   
-  // Pencere boyutu değişince sidebar'ı ayarla
+  // Resize handler
   window.addEventListener('resize', () => {
     const guide = document.getElementById('guide');
     const overlay = document.getElementById('sidebarOverlay');
     const content = document.getElementById('content');
     
     if (window.innerWidth > 1312) {
-      // Desktop'a geçince overlay kaldır
       if (guide) guide.classList.remove('show');
       if (overlay) overlay.classList.remove('show');
-      // Mevcut sidebarOpen durumunu koru
       if (sidebarOpen) {
         if (guide) guide.classList.remove('collapsed');
         if (content) content.classList.remove('sidebar-collapsed');
@@ -882,7 +833,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (content) content.classList.add('sidebar-collapsed');
       }
     } else {
-      // Mobil: overlay moda geç
       if (guide) { guide.classList.add('collapsed'); guide.classList.remove('show'); }
       if (overlay) overlay.classList.remove('show');
       if (content) content.classList.remove('sidebar-collapsed');
