@@ -4342,8 +4342,7 @@ async function loadHomeVideos(category) {
 
     // Metin kategorisi
     if (category === 'text') {
-      const allVideos = await fetch(`${API_URL}/videos?limit=100`).then(r => r.json()).catch(() => []);
-      const texts = allVideos.filter(v => v.text_content && v.text_content.trim());
+      const texts = await fetch(`${API_URL}/texts?userId=${currentUser?.id || ''}`).then(r => r.json()).catch(() => []);
       if (loading) loading.style.display = 'none';
       if (!texts.length) {
         container.innerHTML = '<p style="color:var(--yt-spec-text-secondary);">Henüz metin içerik yok</p>';
@@ -4353,9 +4352,9 @@ async function loadHomeVideos(category) {
         <h2 class="section-header" style="margin-bottom:16px;">
           <i class="fas fa-align-left" style="color:var(--yt-spec-brand-background-solid); margin-right:8px;"></i>Metin İçerikler
         </h2>
-        <div class="text-grid" id="textGrid"></div>
+        <div class="text-posts-grid" id="textPostsGrid"></div>
       `;
-      renderTextGrid(texts, 'textGrid');
+      renderTextPostsGrid(texts, 'textPostsGrid');
       return;
     }
 
@@ -12800,5 +12799,85 @@ function initTextCharCounter() {
         counter.style.color = 'var(--yt-spec-text-secondary)';
       }
     });
+  }
+}
+
+
+// ==================== METİN GÖNDERİLERİ RENDER ====================
+function renderTextPostsGrid(texts, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  container.innerHTML = texts.map(t => `
+    <div class="text-post-card" style="background:var(--yt-spec-raised-background);border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid var(--yt-spec-border);transition:all 0.2s;cursor:pointer;"
+         onclick="openTextPost(${t.id})"
+         onmouseover="this.style.borderColor='var(--yt-spec-brand-background-solid)'"
+         onmouseout="this.style.borderColor='var(--yt-spec-border)'">
+      <!-- Kullanıcı Bilgisi -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+        <img src="${getProfilePhotoUrl(t.profile_photo)}" 
+             style="width:40px;height:40px;border-radius:50%;object-fit:cover;" 
+             onerror="onProfilePhotoError(this)" />
+        <div style="flex:1;min-width:0;">
+          ${formatUserNameWithUsername(t.nickname, t.username, t.role || 'user')}
+          <p style="font-size:12px;color:var(--yt-spec-text-secondary);margin:2px 0 0;">
+            ${t.created_at || ''}
+          </p>
+        </div>
+      </div>
+      
+      <!-- Başlık -->
+      ${t.title ? `
+        <h3 style="font-size:18px;font-weight:700;margin:0 0 12px;color:var(--yt-spec-text-primary);line-height:1.3;">
+          ${t.title}
+        </h3>
+      ` : ''}
+      
+      <!-- İçerik -->
+      <p style="font-size:15px;line-height:1.6;color:var(--yt-spec-text-primary);margin:0 0 16px;white-space:pre-wrap;max-height:200px;overflow:hidden;position:relative;">
+        ${t.content}
+        ${t.content.length > 300 ? '<span style="position:absolute;bottom:0;right:0;background:linear-gradient(to right, transparent, var(--yt-spec-raised-background) 50%);padding-left:40px;">...</span>' : ''}
+      </p>
+      
+      <!-- İstatistikler -->
+      <div style="display:flex;align-items:center;gap:20px;padding-top:12px;border-top:1px solid var(--yt-spec-border);">
+        <div style="display:flex;align-items:center;gap:6px;color:var(--yt-spec-text-secondary);font-size:13px;">
+          <i class="fas fa-heart" style="color:${t.user_like === 1 ? '#ff0033' : 'inherit'};"></i>
+          <span>${t.likes || 0}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;color:var(--yt-spec-text-secondary);font-size:13px;">
+          <i class="fas fa-comment"></i>
+          <span>${t.comment_count || 0}</span>
+        </div>
+        <div style="flex:1;"></div>
+        <button onclick="event.stopPropagation();shareTextPost(${t.id},'${(t.title || t.content.substring(0,30)).replace(/'/g,"\\'")}','${t.share_id}')" 
+                style="background:none;border:none;color:var(--yt-spec-text-secondary);cursor:pointer;font-size:13px;padding:4px 8px;border-radius:6px;transition:all 0.2s;"
+                onmouseover="this.style.background='rgba(255,255,255,0.08)'"
+                onmouseout="this.style.background='none'">
+          <i class="fas fa-share"></i>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Metin gönderisini aç
+function openTextPost(textId) {
+  showToast('Metin detay sayfası yakında eklenecek!', 'info');
+  // TODO: Metin detay sayfası
+}
+
+// Metin gönderisini paylaş
+function shareTextPost(textId, title, shareId) {
+  const url = `${window.location.origin}/text/${shareId}`;
+  
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('🔗 Link kopyalandı!', 'success');
+    }).catch(() => {
+      fallbackCopyText(url);
+    });
+  } else {
+    fallbackCopyText(url);
   }
 }
