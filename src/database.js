@@ -73,6 +73,14 @@ try {
   // Alan zaten varsa hata vermez
 }
 
+// share_id alanını ekle (eğer yoksa)
+try {
+  db.exec(`ALTER TABLE videos ADD COLUMN share_id TEXT UNIQUE`);
+  console.log('✅ share_id kolonu eklendi');
+} catch(e) {
+  // Alan zaten varsa hata vermez
+}
+
 // Abonelikler tablosu
 db.exec(`
   CREATE TABLE IF NOT EXISTS subscriptions (
