@@ -902,7 +902,7 @@ async function saveAgeSettings() {
         </div>
       </div>`;
   }
-}
+
 
 async function saveBypassPassword() {
   const pw = document.getElementById('bypassPwInput')?.value.trim();

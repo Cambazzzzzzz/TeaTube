@@ -1644,9 +1644,6 @@ function showPage(page) {
     case 'home':
       loadHomePage();
       break;
-    case 'profile':
-      loadProfilePage();
-      break;
     case 'my-channel':
       loadMyChannelPage();
       break;
