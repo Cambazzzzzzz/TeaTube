@@ -1,66 +1,42 @@
-const Database = require('better-sqlite3');
-const path = require('path');
+// Database.js'den db'yi al
+const db = require('./src/database');
 
-const dbPath = path.join(__dirname, 'data', 'teatube.db');
-const db = new Database(dbPath);
+console.log('🔄 Eski videolara share_id ekleniyor...\n');
 
-// Random ID oluştur
-function generateShareId() {
+// Random share_id oluştur
+const generateShareId = () => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
+  let id = '';
   for (let i = 0; i < 11; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+    id += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  return result;
-}
+  return id;
+};
 
-console.log('🔧 Share ID kolonu ekleniyor...');
-
+// share_id olmayan videoları bul
 try {
-  // Share ID kolonunu ekle (UNIQUE olmadan)
-  try {
-    db.prepare(`ALTER TABLE videos ADD COLUMN share_id TEXT`).run();
-    console.log('✅ Share ID kolonu eklendi');
-  } catch (err) {
-    if (err.message.includes('duplicate column')) {
-      console.log('ℹ️ Share ID kolonu zaten mevcut');
-    } else {
-      throw err;
-    }
-  }
-  
-  // Mevcut videolara random ID ekle
-  const videos = db.prepare(`SELECT id FROM videos WHERE share_id IS NULL`).all();
-  
-  console.log(`📹 ${videos.length} videoya share ID ekleniyor...`);
-  
-  const updateStmt = db.prepare(`UPDATE videos SET share_id = ? WHERE id = ?`);
-  
-  videos.forEach((video, index) => {
-    const shareId = generateShareId();
-    updateStmt.run(shareId, video.id);
+  const videosWithoutShareId = db.prepare('SELECT id, title FROM videos WHERE share_id IS NULL OR share_id = ""').all();
+
+  console.log(`📹 ${videosWithoutShareId.length} video bulundu\n`);
+
+  let updated = 0;
+  for (const video of videosWithoutShareId) {
+    let shareId = generateShareId();
     
-    if ((index + 1) % 10 === 0) {
-      console.log(`✅ ${index + 1}/${videos.length} video güncellendi...`);
+    // Benzersiz olduğundan emin ol
+    let existing = db.prepare('SELECT id FROM videos WHERE share_id = ?').get(shareId);
+    while (existing) {
+      shareId = generateShareId();
+      existing = db.prepare('SELECT id FROM videos WHERE share_id = ?').get(shareId);
     }
-  });
-  
-  if (videos.length === 0) {
-    console.log('ℹ️ Güncellenecek video yok');
-  } else {
-    console.log('🎉 Tüm videolar güncellendi!');
+    
+    db.prepare('UPDATE videos SET share_id = ? WHERE id = ?').run(shareId, video.id);
+    console.log(`✅ Video #${video.id} "${video.title}" → ${shareId}`);
+    updated++;
   }
-  
-  // UNIQUE index oluştur
-  try {
-    db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_videos_share_id ON videos(share_id)`).run();
-    console.log('✅ Share ID için UNIQUE index oluşturuldu');
-  } catch (err) {
-    console.log('ℹ️ UNIQUE index zaten mevcut veya oluşturulamadı:', err.message);
-  }
-  
-} catch (err) {
-  console.error('❌ Hata:', err);
-} finally {
-  db.close();
+
+  console.log(`\n✅ ${updated} video güncellendi!`);
+} catch(e) {
+  console.error('❌ Hata:', e.message);
+  console.log('\n💡 Sunucuyu yeniden başlatmayı deneyin!');
 }

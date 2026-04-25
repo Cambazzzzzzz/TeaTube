@@ -646,6 +646,7 @@ router.put('/channel/:channelId', upload.single('channel_banner'), async (req, r
 });
 
 // Video yÃ¼kle (disk storage - bÃ¼yÃ¼k dosyalar iÃ§in)
+// Video yÃ¼kle (disk storage - bÃ¼yÃ¼k dosyalar iÃ§in)
 router.post('/video', uploadDisk.fields([{ name: 'video' }, { name: 'banner' }]), async (req, res) => {
   const videoPath = req.files?.video?.[0]?.path;
   const bannerPath = req.files?.banner?.[0]?.path;
@@ -677,9 +678,25 @@ router.post('/video', uploadDisk.fields([{ name: 'video' }, { name: 'banner' }])
       bannerUrl = videoUrl.replace('/upload/', '/upload/so_0,w_400,h_400,c_fill/').replace('.mp4', '.jpg').replace('.mov', '.jpg').replace('.webm', '.jpg');
     }
 
+    // Random share_id oluştur (11 karakter)
+    const generateShareId = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let id = '';
+      for (let i = 0; i < 11; i++) {
+        id += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return id;
+    };
+    
+    let shareId = generateShareId();
+    // Benzersiz olduğundan emin ol
+    while (db.prepare('SELECT id FROM videos WHERE share_id = ?').get(shareId)) {
+      shareId = generateShareId();
+    }
+
     const result = db.prepare(
-      'INSERT INTO videos (channel_id, title, description, video_url, banner_url, video_type, tags, comments_enabled, likes_visible, is_short) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(channelId, title, description, videoUrl, bannerUrl, videoType, tags, commentsEnabled || 1, likesVisible || 1, isShort ? 1 : 0);
+      'INSERT INTO videos (channel_id, title, description, video_url, banner_url, video_type, tags, comments_enabled, likes_visible, is_short, share_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(channelId, title, description, videoUrl, bannerUrl, videoType, tags, commentsEnabled || 1, likesVisible || 1, isShort ? 1 : 0, shareId);
 
     // Abonelere bildirim
     const subscribers = db.prepare('SELECT user_id FROM subscriptions WHERE channel_id = ?').all(channelId);
@@ -691,7 +708,7 @@ router.post('/video', uploadDisk.fields([{ name: 'video' }, { name: 'banner' }])
       }
     }
 
-    res.json({ success: true, videoId: result.lastInsertRowid, videoUrl, bannerUrl });
+    res.json({ success: true, videoId: result.lastInsertRowid, shareId, videoUrl, bannerUrl });
   } catch (error) {
     console.error('Video yÃ¼kleme hatasÄ±:', error);
     res.status(500).json({ error: 'Video yÃ¼klenemedi', message: error.message });

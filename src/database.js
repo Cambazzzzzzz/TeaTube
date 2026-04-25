@@ -75,10 +75,18 @@ try {
 
 // share_id alanını ekle (eğer yoksa)
 try {
-  db.exec(`ALTER TABLE videos ADD COLUMN share_id TEXT UNIQUE`);
-  console.log('✅ share_id kolonu eklendi');
+  // Önce kolonun var olup olmadığını kontrol et
+  const columns = db.prepare("PRAGMA table_info(videos)").all();
+  const hasShareId = columns.some(col => col.name === 'share_id');
+  
+  if (!hasShareId) {
+    db.exec(`ALTER TABLE videos ADD COLUMN share_id TEXT UNIQUE`);
+    console.log('✅ share_id kolonu eklendi');
+  } else {
+    console.log('✅ share_id kolonu zaten mevcut');
+  }
 } catch(e) {
-  // Alan zaten varsa hata vermez
+  console.error('❌ share_id kolonu eklenirken hata:', e.message);
 }
 
 // Abonelikler tablosu

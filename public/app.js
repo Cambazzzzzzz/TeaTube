@@ -13,29 +13,35 @@ let sidebarOpen = true;
 // ==================== KULLANICI ROL SİSTEMİ ====================
 function getUserRoleInfo(role) {
   const roles = {
-    'admin': { emoji: '👑', color: '#ef4444', text: 'Admin' },
-    'moderator': { emoji: '🛡️', color: '#8b5cf6', text: 'Moderatör' },
-    'yetkili': { emoji: '⭐', color: '#6b7280', text: 'Yetkili' },
-    'user': { emoji: '', color: '#9ca3af', text: 'Kullanıcı' }
+    'admin': { icon: 'fa-crown', color: '#ef4444', text: 'Admin' },
+    'moderator': { icon: 'fa-shield-halved', color: '#8b5cf6', text: 'Moderatör' },
+    'yetkili': { icon: 'fa-shield', color: '#10b981', text: 'Yetkili' },
+    'user': { icon: '', color: '#9ca3af', text: 'Kullanıcı' }
   };
   return roles[role] || roles['user'];
 }
 
 function formatUserName(nickname, username, role = 'user') {
   const roleInfo = getUserRoleInfo(role);
-  const emoji = roleInfo.emoji ? ` ${roleInfo.emoji}` : '';
-  return `<span style="color:${roleInfo.color};font-weight:600">${nickname}${emoji}</span>`;
+  const icon = roleInfo.icon ? ` <i class="fas ${roleInfo.icon}" style="font-size:14px;cursor:pointer" title="${roleInfo.text}" onclick="showRoleInfo('${role}')"></i>` : '';
+  return `<span style="color:${roleInfo.color};font-weight:600">${nickname}${icon}</span>`;
 }
 
 function formatUserNameWithUsername(nickname, username, role = 'user') {
   const roleInfo = getUserRoleInfo(role);
-  const emoji = roleInfo.emoji ? ` ${roleInfo.emoji}` : '';
+  const icon = roleInfo.icon ? ` <i class="fas ${roleInfo.icon}" style="font-size:14px;cursor:pointer" title="${roleInfo.text}" onclick="showRoleInfo('${role}')"></i>` : '';
   return `
     <div>
-      <span style="color:${roleInfo.color};font-weight:600">${nickname}${emoji}</span>
+      <span style="color:${roleInfo.color};font-weight:600">${nickname}${icon}</span>
       <div style="font-size:12px;color:var(--yt-spec-text-secondary);">@${username}</div>
     </div>
   `;
+}
+
+// Rol bilgisi göster
+function showRoleInfo(role) {
+  const roleInfo = getUserRoleInfo(role);
+  showToast(`🎖️ ${roleInfo.text}`, 'info');
 }
 
 // ==================== MESAJ BİLDİRİM SİSTEMİ ====================
@@ -244,7 +250,7 @@ async function startGlobalMessageListeners() {
               const now = Date.now();
               if (now - msgTime < 10000) { // 10 saniye içinde
                 // Bildirim göster
-                const messageText = msg.text ? decodeURIComponent(msg.text) : (msg.imageUrl ? '📷 Fotoğraf' : (msg.videoShare ? '🎥 Video' : 'Yeni mesaj'));
+                const messageText = msg.text ? msg.text : (msg.imageUrl ? '📷 Fotoğraf' : (msg.videoShare ? '🎥 Video' : 'Yeni mesaj'));
                 showMessageNotification(
                   friend.nickname || friend.username,
                   messageText,
@@ -287,7 +293,7 @@ async function startGlobalMessageListeners() {
               const now = Date.now();
               if (now - msgTime < 10000) { // 10 saniye içinde
                 // Bildirim göster
-                const messageText = msg.text ? decodeURIComponent(msg.text) : (msg.imageUrl ? '📷 Fotoğraf' : 'Yeni mesaj');
+                const messageText = msg.text ? msg.text : (msg.imageUrl ? '📷 Fotoğraf' : 'Yeni mesaj');
                 showMessageNotification(
                   `${msg.userName} (${group.name})`,
                   messageText,
@@ -749,11 +755,15 @@ document.addEventListener('DOMContentLoaded', () => {
       loadUserData().then(() => {
         console.log('✅ Kullanıcı verileri yüklendi');
         
+        // Sadece URL'i kontrol et - son sayfa hafızası KALDIRILDI
+        const targetPage = urlPage || 'home';
+        console.log('🎯 Hedef sayfa:', targetPage);
+        
         // Sayfayı aç
-        if (urlPage && urlPage !== 'home') {
-          console.log('🔗 URL sayfası:', urlPage);
-          showPage(urlPage);
-          switch(urlPage) {
+        if (targetPage && targetPage !== 'home') {
+          console.log('🔗 Sayfa açılıyor:', targetPage);
+          showPage(targetPage);
+          switch(targetPage) {
             case 'reals': loadShortsPage(); break;
             case 'ts-music': loadTSMusicPage(); break;
             case 'my-videos': loadMyVideosPage(); break;
@@ -2286,7 +2296,7 @@ function _startFirebaseListeners(friendId, friendPhoto) {
                     <p style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${msg.videoShare.title}</p>
                   </div>
                 </div>
-              ` : msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width:200px;max-height:200px;border-radius:10px;display:block;" />` : `<p style="white-space:pre-wrap;">${decodeURIComponent(msg.text || '')}</p>`}
+              ` : msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width:200px;max-height:200px;border-radius:10px;display:block;" />` : `<p style="white-space:pre-wrap;">${msg.text || ''}</p>`}
               <div class="chat-meta">${time} ${readIcon}</div>
             </div>
             ${isMe ? `<img src="${getProfilePhotoUrl(currentUser.profile_photo)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;align-self:flex-end;margin-left:6px;" />` : ''}
@@ -2342,7 +2352,7 @@ function listenLastMessage(friendId, friendName) {
       const msg = child.val();
       const isMe = msg.senderId == currentUser.id;
       const deleted = isMe ? msg.deletedForSender : msg.deletedForReceiver;
-      el.textContent = deleted ? '' : (isMe ? 'Sen: ' : '') + (msg.text ? decodeURIComponent(msg.text) : (msg.imageUrl ? '📷 Fotoğraf' : ''));
+      el.textContent = deleted ? '' : (isMe ? 'Sen: ' : '') + (msg.text ? msg.text : (msg.imageUrl ? '📷 Fotoğraf' : ''));
     });
   });
 
@@ -2816,13 +2826,10 @@ async function sendMessage(friendId) {
 
   const msgsRef = window.firebaseRef(window.firebaseDB, `chats/${chatId}/messages`);
   
-  // Türkçe karakter encoding sorunu için text'i encode et
-  const encodedText = encodeURIComponent(text);
-  
   const msgData = {
     senderId: currentUser.id,
     receiverId: friendId,
-    text: encodedText, // Encoded text gönder
+    text: text, // Direkt text gönder, encoding KALDIRILDI
     timestamp: Date.now(),
     read: false,
     deletedForSender: false,
@@ -3289,7 +3296,7 @@ function openFloatingChat(friendId, friendName, friendPhoto) {
       div.innerHTML = `
         ${!isMe ? `<img src="${avatarSrc}" class="float-msg-avatar" />` : ''}
         <div class="float-bubble">
-          <p style="white-space:pre-wrap;margin:0;">${decodeURIComponent(msg.text || '')}</p>
+          <p style="white-space:pre-wrap;margin:0;">${msg.text || ''}</p>
           <span class="float-meta">${time}</span>
         </div>
         ${isMe ? `<img src="${avatarSrc}" class="float-msg-avatar" />` : ''}
@@ -5140,7 +5147,8 @@ function renderComment(c, videoId, isReply = false, videoOwnerId = null) {
   
   // Kullanıcı rolü ve renk bilgisi
   const roleInfo = getUserRoleInfo(c.role || 'user');
-  const userNameWithRole = `<span style="color:${roleInfo.color};font-weight:500">${c.nickname}${roleInfo.emoji ? ` ${roleInfo.emoji}` : ''}</span>`;
+  const roleIcon = roleInfo.icon ? ` <i class="fas ${roleInfo.icon}" style="font-size:12px;cursor:pointer" title="${roleInfo.text}" onclick="showRoleInfo('${c.role || 'user'}')"></i>` : '';
+  const userNameWithRole = `<span style="color:${roleInfo.color};font-weight:500">${c.nickname}${roleIcon}</span>`;
   
   return `
     <div style="display:flex; gap:12px; margin-bottom:${isReply ? '12px' : '20px'}; ${isReply ? 'margin-left:48px;' : ''} ${isPinned ? 'background:rgba(255,0,51,0.05); padding:12px; border-radius:8px; border-left:3px solid var(--yt-spec-brand-background-solid);' : ''} ${isHidden ? 'opacity:0.5;' : ''}">
@@ -10772,7 +10780,7 @@ function loadGroupMessages(groupId, members) {
           <div style="max-width:70%;${isMe ? 'align-items:flex-end' : 'align-items:flex-start'};display:flex;flex-direction:column;gap:2px">
             ${!isMe ? `<div style="display:flex;align-items:center;gap:3px;margin-bottom:2px"><span style="font-size:11px;font-weight:600;color:var(--yt-spec-text-secondary)">${senderName}</span>${roleIcon}</div>` : ''}
             ${msg.imageUrl ? `<img src="${msg.imageUrl}" style="max-width:200px;border-radius:10px;cursor:pointer" onclick="event.stopPropagation();window.open('${msg.imageUrl}')" />` : ''}
-            ${msg.text ? `<div style="background:${isMe ? 'var(--yt-spec-brand-background-solid)' : 'var(--yt-spec-raised-background)'};padding:8px 12px;border-radius:${isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};font-size:14px;line-height:1.4;word-break:break-word">${decodeURIComponent(msg.text)}</div>` : ''}
+            ${msg.text ? `<div style="background:${isMe ? 'var(--yt-spec-brand-background-solid)' : 'var(--yt-spec-raised-background)'};padding:8px 12px;border-radius:${isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};font-size:14px;line-height:1.4;word-break:break-word">${msg.text}</div>` : ''}
             <span style="font-size:10px;color:var(--yt-spec-text-secondary)">${time}</span>
           </div>
         </div>`;
