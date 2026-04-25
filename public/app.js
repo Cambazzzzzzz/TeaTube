@@ -6412,51 +6412,64 @@ async function uploadText() {
 
 // Profilim sayfası (Instagram tarzı)
 async function loadMyVideosPage() {
-  // HARD FIX: Kanal yoksa HEMEN oluştur ve BEKLE
+  // Kanal kontrolü - yoksa oluştur (arka planda)
   if (!currentChannel) {
     try {
-      console.log('🔧 KANAL YOK - HEMEN OLUŞTURULUYOR...');
-      const formData = new FormData();
-      formData.append('userId', currentUser.id);
-      formData.append('channelName', currentUser.nickname || currentUser.username);
-      formData.append('about', '');
-      formData.append('agreed', 'true');
+      console.log('🔧 Kanal bilgisi yükleniyor...');
+      const chRes = await fetch(`${API_URL}/channel/user/${currentUser.id}`);
+      if (chRes.ok) {
+        currentChannel = await chRes.json();
+        console.log('✅ Kanal yüklendi:', currentChannel?.id);
+      }
       
-      const createRes = await fetch(`${API_URL}/channel`, { 
-        method: 'POST', 
-        body: formData 
-      });
-      
-      if (createRes.ok) {
-        const chRes = await fetch(`${API_URL}/channel/user/${currentUser.id}`);
-        if (chRes.ok) {
-          currentChannel = await chRes.json();
-          console.log('✅ KANAL OLUŞTURULDU:', currentChannel.id);
-        } else {
-          throw new Error('Kanal bilgisi alınamadı');
+      // Hala yoksa sessizce oluştur
+      if (!currentChannel) {
+        console.log('🔧 Kanal yok - arka planda oluşturuluyor...');
+        const formData = new FormData();
+        formData.append('userId', currentUser.id);
+        formData.append('channelName', currentUser.nickname || currentUser.username);
+        formData.append('about', '');
+        formData.append('agreed', 'true');
+        
+        const createRes = await fetch(`${API_URL}/channel`, { 
+          method: 'POST', 
+          body: formData 
+        });
+        
+        if (createRes.ok) {
+          const chRes2 = await fetch(`${API_URL}/channel/user/${currentUser.id}`);
+          if (chRes2.ok) {
+            currentChannel = await chRes2.json();
+            console.log('✅ Kanal oluşturuldu:', currentChannel.id);
+          }
         }
-      } else {
-        throw new Error('Kanal oluşturulamadı');
       }
     } catch (e) {
-      console.error('❌ KANAL OLUŞTURMA HATASI:', e);
-      showToast('Kanal oluşturulamadı, lütfen sayfayı yenileyin', 'error');
-      return;
+      console.error('⚠️ Kanal yükleme hatası:', e);
+      // Hata olsa bile devam et - kanal olmadan da profil gösterilebilir
     }
   }
 
-  // Kanal var, profil bilgilerini ve içerikleri yükle
+  // Profil bilgilerini ve içerikleri yükle
   try {
     // Takipçi ve takip sayıları
-    const subsRes = await fetch(`${API_URL}/channel/${currentChannel.id}/subscribers`);
-    const subscribers = subsRes.ok ? await subsRes.json() : [];
+    let subscribers = [];
+    let following = [];
+    
+    if (currentChannel) {
+      const subsRes = await fetch(`${API_URL}/channel/${currentChannel.id}/subscribers`);
+      subscribers = subsRes.ok ? await subsRes.json() : [];
+    }
     
     const followingRes = await fetch(`${API_URL}/subscriptions/${currentUser.id}`);
-    const following = followingRes.ok ? await followingRes.json() : [];
+    following = followingRes.ok ? await followingRes.json() : [];
     
     // Tüm içerikleri yükle
-    const videosRes = await fetch(`${API_URL}/videos/channel/${currentChannel.id}`);
-    const allVideos = videosRes.ok ? await videosRes.json() : [];
+    let allVideos = [];
+    if (currentChannel) {
+      const videosRes = await fetch(`${API_URL}/videos/channel/${currentChannel.id}`);
+      allVideos = videosRes.ok ? await videosRes.json() : [];
+    }
     
     // İçerikleri türlerine göre ayır
     const videos = allVideos.filter(v => !v.is_short && v.video_type !== 'photo' && !v.text_content);
