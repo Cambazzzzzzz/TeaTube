@@ -403,19 +403,17 @@
     const timestamp = Date.now();
     loadScript('/api/app-script?v=' + timestamp, () => {
       loadScript('/song-writing.js?v=' + timestamp, () => {
-        loadScript('/voice-call.js?v=' + timestamp, () => {
-          console.log('🎉 Tüm scriptler yüklendi!');
-          
-          // APP.JS YÜKLEME KONTROLÜ
-          setTimeout(() => {
-            if (typeof login === 'undefined') {
-              console.error('❌ app.js yüklenmedi! login fonksiyonu bulunamadı');
-              alert('HATA: app.js yüklenmedi! Test route: /test-app-js');
-            } else {
-              console.log('✅ app.js başarıyla yüklendi');
+        console.log('🎉 Tüm scriptler yüklendi!');
+        
+        // APP.JS YÜKLEME KONTROLÜ
+        setTimeout(() => {
+          if (typeof login === 'undefined') {
+            console.error('❌ app.js yüklenmedi! login fonksiyonu bulunamadı');
+            alert('HATA: app.js yüklenmedi! Test route: /test-app-js');
+          } else {
+            console.log('✅ app.js başarıyla yüklendi');
             }
           }, 1000);
-        });
       });
     });
 
