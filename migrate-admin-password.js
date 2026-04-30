@@ -8,8 +8,8 @@ async function migrateAdminPassword() {
   try {
     console.log('🔧 Admin şifresi migration başlatılıyor...');
     
-    // Yeni şifre: bcics31622.4128
-    const newPassword = 'bcics31622.4128';
+    // Yeni şifre: admin123
+    const newPassword = 'admin123';
     const hashed = await bcrypt.hash(newPassword, 10);
     
     const result = db.prepare('UPDATE admins SET password = ? WHERE username = ?')
@@ -17,7 +17,7 @@ async function migrateAdminPassword() {
     
     if (result.changes > 0) {
       console.log('✅ Admin şifresi başarıyla güncellendi!');
-      console.log('   Şifre: bcics31622.4128');
+      console.log('   Şifre: admin123');
     } else {
       console.log('⚠️  Admin kullanıcısı bulunamadı veya zaten güncel');
     }
