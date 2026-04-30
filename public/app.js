@@ -667,7 +667,7 @@ function toggleSidebar() {
 }
 
 // Sayfa yüklendiğinde
-document.addEventListener('DOMContentLoaded', () => {
+function _initApp() {
   console.log('🔍 DOM yüklendi, ULTRA GÜÇLÜ OTURUM SİSTEMİ başlatılıyor...');
   
   // INSTANT CHECK FLAG - Eğer kullanıcı varsa authScreen'i ASLA gösterme
@@ -867,7 +867,14 @@ document.addEventListener('DOMContentLoaded', () => {
       sidebarOpen = false;
     }
   });
-});
+}
+
+// _initApp'i DOMContentLoaded veya hemen çalıştır (dinamik yükleme için)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initApp);
+} else {
+  _initApp();
+}
 
 // ==================== ULTRA GÜVENLİK: PERİYODİK OTURUM YEDEKLEME ====================
 // Her 10 saniyede bir oturum verilerini kontrol et ve yedekle
@@ -4357,11 +4364,12 @@ async function loadHomeVideos(category) {
 
     // Tümü: normal videolar üstte, shorts altta
     if (!category || category === '') {
+      const userId = currentUser?.id || null;
       const [recent, popular, subs, rec, shorts, songs] = await Promise.all([
         fetch(`${API_URL}/videos/recent?limit=8`).then(r => r.json()).catch(() => []),
         fetch(`${API_URL}/videos/popular?limit=8`).then(r => r.json()).catch(() => []),
-        fetch(`${API_URL}/videos/subscriptions/${currentUser.id}?limit=8`).then(r => r.json()).catch(() => []),
-        fetch(`${API_URL}/videos/recommended/${currentUser.id}?limit=8`).then(r => r.json()).catch(() => []),
+        userId ? fetch(`${API_URL}/videos/subscriptions/${userId}?limit=8`).then(r => r.json()).catch(() => []) : Promise.resolve([]),
+        userId ? fetch(`${API_URL}/videos/recommended/${userId}?limit=8`).then(r => r.json()).catch(() => []) : Promise.resolve([]),
         fetch(`${API_URL}/shorts`).then(r => r.json()).catch(() => []),
         fetch(`${API_URL}/music/home`).then(r => r.json()).catch(() => ({ popularSongs:[], newSongs:[] }))
       ]);
@@ -5592,16 +5600,23 @@ async function search() {
 }
 
 // Enter tuşu ile arama
-document.addEventListener('DOMContentLoaded', () => {
-  const searchInput = document.getElementById('searchInput');
-  if (searchInput) {
-    searchInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        search();
-      }
-    });
+(function() {
+  function _initSearch() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          search();
+        }
+      });
+    }
   }
-});
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _initSearch);
+  } else {
+    _initSearch();
+  }
+})();
 
 // Profil sayfası
 async function loadProfilePage() {
@@ -9203,9 +9218,14 @@ window.addEventListener('offline', () => {
 });
 
 // Sayfa yüklendiğinde infinite scroll'u başlat
-document.addEventListener('DOMContentLoaded', () => {
-  setupInfiniteScroll();
-});
+(function() {
+  function _initInfiniteScroll() { setupInfiniteScroll(); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _initInfiniteScroll);
+  } else {
+    _initInfiniteScroll();
+  }
+})();
 
 // URL parametrelerinden video ID'si varsa oynat
 window.addEventListener('load', () => {
@@ -9235,12 +9255,19 @@ const debouncedSearch = debounce(() => {
 }, 500);
 
 // Arama inputuna debounce ekle
-document.addEventListener('DOMContentLoaded', () => {
-  const searchInput = document.getElementById('searchInput');
-  if (searchInput) {
-    searchInput.addEventListener('input', debouncedSearch);
+(function() {
+  function _initDebounceSearch() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', debouncedSearch);
+    }
   }
-});
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _initDebounceSearch);
+  } else {
+    _initDebounceSearch();
+  }
+})();
 
 // Hata yakalama
 window.addEventListener('error', (e) => {
