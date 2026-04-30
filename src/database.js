@@ -11,7 +11,7 @@ const db = new Database(path.join(dataDir, 'teatube.db'));
 db.pragma('journal_mode = WAL');
 db.pragma('encoding = "UTF-8"');
 
-// KullanÄ±cÄ±lar tablosu
+// Kullanıcılar tablosu
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -128,7 +128,7 @@ db.exec(`
   )
 `);
 
-// Ä°zleme geÃ§miÅi tablosu
+// °zleme geçmişi tablosu
 db.exec(`
   CREATE TABLE IF NOT EXISTS watch_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -142,7 +142,7 @@ db.exec(`
   )
 `);
 
-// Arama geÃ§miÅi tablosu
+// Arama geçmişi tablosu
 db.exec(`
   CREATE TABLE IF NOT EXISTS search_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -183,7 +183,7 @@ try {
   db.prepare('ALTER TABLE comments ADD COLUMN suspended_reason TEXT').run();
 } catch(e) {}
 
-// BeÄeniler tablosu
+// Beeniler tablosu
 db.exec(`
   CREATE TABLE IF NOT EXISTS video_likes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -211,7 +211,7 @@ db.exec(`
   )
 `);
 
-// DestekÃ§i kanallar tablosu
+// Destekçi kanallar tablosu
 db.exec(`
   CREATE TABLE IF NOT EXISTS supporter_channels (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -225,7 +225,7 @@ db.exec(`
   )
 `);
 
-// GiriÅ denemeleri tablosu
+// Giriş denemeleri tablosu
 db.exec(`
   CREATE TABLE IF NOT EXISTS login_attempts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -259,7 +259,7 @@ db.exec(`
   )
 `);
 
-// is_private kolonu ekle (eski kayÄ±tlar iÃ§in)
+// is_private kolonu ekle (eski kayıtlar için)
 try {
   db.prepare('ALTER TABLE user_settings ADD COLUMN is_private INTEGER DEFAULT 0').run();
 } catch(e) {}
@@ -291,7 +291,7 @@ db.exec(`
   )
 `);
 
-// ArkadaÅlÄ±k tablolarÄ±
+// Arkadaşlık tabloları
 try {
   db.exec(`
     CREATE TABLE IF NOT EXISTS friendships (
@@ -353,7 +353,7 @@ db.exec(`
   )
 `);
 
-// text_content kolonu ekle (metin iÃ§erikler iÃ§in)
+// text_content kolonu ekle (metin içerikler için)
 try {
   db.prepare('ALTER TABLE videos ADD COLUMN text_content TEXT').run();
 } catch(e) {}
@@ -363,7 +363,7 @@ try {
   db.prepare('ALTER TABLE videos ADD COLUMN text_type TEXT DEFAULT "plain"').run();
 } catch(e) {}
 
-// Bug/Ä°stek tablosu
+// Bug/°stek tablosu
 db.exec(`
   CREATE TABLE IF NOT EXISTS bug_reports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -401,32 +401,32 @@ try {
   // Kolon zaten var
 }
 
-// Eski videolarÄ±n is_ad deÄerini dÃ¼zelt (migration) - HER BAÅLANGIÅTA ÃALIÅ
+// Eski videoların is_ad deerini düzelt (migration) - HER BAşLANGIşTA ÖALIş
 try {
   const nullCount = db.prepare('SELECT COUNT(*) as cnt FROM videos WHERE is_ad IS NULL').get();
   if (nullCount.cnt > 0) {
     const result = db.prepare('UPDATE videos SET is_ad = 0 WHERE is_ad IS NULL').run();
-    console.log(`â ${result.changes} video gÃ¼ncellendi (is_ad NULL â 0)`);
+    console.log(`â ${result.changes} video güncellendi (is_ad NULL â 0)`);
   }
   
-  // TÃ¼m videolarÄ± kontrol et ve 1 olanlarÄ± 0 yap (sadece ilk Ã§alÄ±ÅtÄ±rmada)
+  // Tüm videoları kontrol et ve 1 olanları 0 yap (sadece ilk çalıştırmada)
   const adCount = db.prepare('SELECT COUNT(*) as cnt FROM videos WHERE is_ad = 1').get();
   if (adCount.cnt > 0) {
-    console.log(`â ï¸  ${adCount.cnt} video is_ad=1 olarak iÅaretli, kontrol ediliyor...`);
-    // Sadece ads tablosunda olmayan videolarÄ± 0 yap
+    console.log(`â ï¸  ${adCount.cnt} video is_ad=1 olarak işaretli, kontrol ediliyor...`);
+    // Sadece ads tablosunda olmayan videoları 0 yap
     const result = db.prepare(`
       UPDATE videos SET is_ad = 0 
       WHERE is_ad = 1 AND id NOT IN (SELECT video_id FROM ads)
     `).run();
     if (result.changes > 0) {
-      console.log(`â ${result.changes} video dÃ¼zeltildi (is_ad 1 â 0, ads tablosunda yok)`);
+      console.log(`â ${result.changes} video düzeltildi (is_ad 1 â 0, ads tablosunda yok)`);
     }
   }
 } catch(e) {
-  console.error('Migration hatasÄ±:', e);
+  console.error('Migration hatası:', e);
 }
 
-// account_type ve is_private_account kolonlarÄ± ekle (yoksa)
+// account_type ve is_private_account kolonları ekle (yoksa)
 try {
   db.prepare('ALTER TABLE channels ADD COLUMN account_type TEXT DEFAULT "channel"').run();
 } catch(e) {}
@@ -435,7 +435,7 @@ try {
   db.prepare('ALTER TABLE channels ADD COLUMN is_private_account INTEGER DEFAULT 0').run();
 } catch(e) {}
 
-// Yorum beÄeni tablosu
+// Yorum beeni tablosu
 db.exec(`
   CREATE TABLE IF NOT EXISTS comment_likes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -449,7 +449,7 @@ db.exec(`
   )
 `);
 
-// Yorum yanÄ±tlarÄ± iÃ§in parent_id ekle (yoksa)
+// Yorum yanıtları için parent_id ekle (yoksa)
 try {
   db.prepare('ALTER TABLE comments ADD COLUMN parent_id INTEGER DEFAULT NULL').run();
 } catch(e) {} // Zaten varsa hata verir, ignore
@@ -469,7 +469,7 @@ db.exec(`
   )
 `);
 
-// Yorum sabitleme ve askÄ±ya alma iÃ§in kolonlar ekle
+// Yorum sabitleme ve askıya alma için kolonlar ekle
 try {
   db.prepare('ALTER TABLE comments ADD COLUMN is_pinned INTEGER DEFAULT 0').run();
 } catch(e) {}
@@ -482,16 +482,16 @@ try {
   db.prepare('ALTER TABLE comments ADD COLUMN liked_by_owner INTEGER DEFAULT 0').run();
 } catch(e) {}
 
-// Mevcut yorumlar iÃ§in NULL deÄerleri dÃ¼zelt
+// Mevcut yorumlar için NULL deerleri düzelt
 try {
   db.prepare('UPDATE comments SET is_pinned = 0 WHERE is_pinned IS NULL').run();
   db.prepare('UPDATE comments SET is_hidden = 0 WHERE is_hidden IS NULL').run();
   db.prepare('UPDATE comments SET liked_by_owner = 0 WHERE liked_by_owner IS NULL').run();
 } catch(e) {}
 
-console.log('TeaTube veritabanÄ± hazÄ±r!');
+console.log('TeaTube veritabanı hazır!');
 
-// Video gÃ¶rÃ¼ntÃ¼lenme takip tablosu (bot korumasÄ±)
+// Video görüntülenme takip tablosu (bot koruması)
 db.exec(`
   CREATE TABLE IF NOT EXISTS video_views (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -501,12 +501,12 @@ db.exec(`
   )
 `);
 
-// Eski kayÄ±tlarÄ± temizle (7 gÃ¼nden eski)
+// Eski kayıtları temizle (7 günden eski)
 try {
   db.prepare("DELETE FROM video_views WHERE viewed_at < datetime('now', '-7 days')").run();
 } catch(e) {}
 
-// Reklam kodlarÄ± tablosu (tek kullanÄ±mlÄ±k BCÄ°CS kodlarÄ±)
+// Reklam kodları tablosu (tek kullanımlık BC°CS kodları)
 db.exec(`
   CREATE TABLE IF NOT EXISTS ad_codes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -533,37 +533,37 @@ db.exec(`
   )
 `);
 
-// BCÄ°CS kodlarÄ±nÄ± ekle (yoksa)
+// BC°CS kodlarını ekle (yoksa)
 const adCodes = [
-  'BCÄ°CS-7f9K2mP4nL','BCÄ°CS-qR8tV5xY1z','BCÄ°CS-3M6bN9pQ7r','BCÄ°CS-W1vC4sD2gH','BCÄ°CS-kL0jH8fG6d',
-  'BCÄ°CS-pQ2wE4rT7y','BCÄ°CS-9nB5mV3cXz','BCÄ°CS-aS6dF1gH9j','BCÄ°CS-kL2mN4bP7v','BCÄ°CS-1rT5yU8iO0',
-  'BCÄ°CS-pL3kJ6hG9f','BCÄ°CS-qA4sW7eR1t','BCÄ°CS-zX2cV5bN8m','BCÄ°CS-9oI6uY3tR1','BCÄ°CS-pP0oL8kI5j',
-  'BCÄ°CS-uY2tR5eE8w','BCÄ°CS-mN7bV4cX1z','BCÄ°CS-8hG5fD2sA9','BCÄ°CS-kL1pQ4wE7r','BCÄ°CS-0xZ3cV6bN9',
-  'BCÄ°CS-mJ7hG4fD1s','BCÄ°CS-9oI2uY5tR8','BCÄ°CS-eE1wW4qQ7a','BCÄ°CS-sS2dD5fF8g','BCÄ°CS-hH1jJ4kK7l',
-  'BCÄ°CS-zZ2xX5cC8v','BCÄ°CS-bB1nN4mM7p','BCÄ°CS-qQ3wW6eE9r','BCÄ°CS-tT2yY5uU8i','BCÄ°CS-oO1pP4aA7s',
-  'BCÄ°CS-dD2fF5gG8h','BCÄ°CS-jJ1kK4lL7z','BCÄ°CS-xX2cC5vV8b','BCÄ°CS-nN1mM4pP7q','BCÄ°CS-wW2eE5rR8t',
-  'BCÄ°CS-yY1uU4iI7o','BCÄ°CS-aA2sS5dD8f','BCÄ°CS-gG1hH4jJ7k','BCÄ°CS-lL2zZ5xX8c','BCÄ°CS-vV1bB4nN7m',
-  'BCÄ°CS-pP2qQ5wW8e','BCÄ°CS-rR1tT4yY7u','BCÄ°CS-iI2oO5pP8a','BCÄ°CS-sS1dD4fF7g','BCÄ°CS-hH2jJ5kK8l',
-  'BCÄ°CS-zZ1xX4cC7v','BCÄ°CS-bB2nN5mM8p','BCÄ°CS-qQ1wW4eE7r','BCÄ°CS-tT3yY6uU9i','BCÄ°CS-oO2pP5aA8s',
-  'BCÄ°CS-dD1fF4gG7h','BCÄ°CS-jJ2kK5lL8z','BCÄ°CS-xX1cC4vV7b','BCÄ°CS-nN2mM5pP8q','BCÄ°CS-wW1eE4rR7t',
-  'BCÄ°CS-yY2uU5iI8o','BCÄ°CS-aA1sS4dD7f','BCÄ°CS-gG2hH5jJ8k','BCÄ°CS-lL1zZ4xX7c','BCÄ°CS-vV2bB5nN8m',
-  'BCÄ°CS-pP1qQ4wW7e','BCÄ°CS-rR2tT5yY8u','BCÄ°CS-iI1oO4pP7a','BCÄ°CS-sS3dD6fF9g','BCÄ°CS-hH3jJ6kK9l',
-  'BCÄ°CS-zZ3xX6cC9v','BCÄ°CS-bB3nN6mM9p','BCÄ°CS-qQ2wW5eE8r','BCÄ°CS-tT1yY4uU7i','BCÄ°CS-oO3pP6aA9s',
-  'BCÄ°CS-dD3fF6gG9h','BCÄ°CS-xX3cC6vV9b','BCÄ°CS-nN3mM6pP9q','BCÄ°CS-yY3uU6iI9o','BCÄ°CS-aA3sS6dD9f',
-  'BCÄ°CS-lL3zZ6xX9c','BCÄ°CS-vV3bB6nN9m','BCÄ°CS-rR3tT6yY9u','BCÄ°CS-iI3oO6pP9a','BCÄ°CS-hH3jJ6kK9l',
-  'BCÄ°CS-gG1hH4jJ7k','BCÄ°CS-lL1zZ4xX7c','BCÄ°CS-vV2bB5nN8m','BCÄ°CS-pP1qQ4wW7e','BCÄ°CS-rR1tT4yY7u',
-  'BCÄ°CS-iI2oO5pP8a','BCÄ°CS-sS1dD4fF7g','BCÄ°CS-zZ2xX5cC8v','BCÄ°CS-bB1nN4mM7p','BCÄ°CS-qQ3wW6eE9r',
-  'BCÄ°CS-tT2yY5uU8i','BCÄ°CS-oO1pP4aA7s','BCÄ°CS-dD3fF6gG9h','BCÄ°CS-jJ2kK5lL8z','BCÄ°CS-xX1cC4vV7b',
-  'BCÄ°CS-nN3mM6pP9q','BCÄ°CS-wW2eE5rR8t','BCÄ°CS-yY1uU4iI7o','BCÄ°CS-aA3sS6dD9f','BCÄ°CS-gG2hH5jJ8k'
+  'BC°CS-7f9K2mP4nL','BC°CS-qR8tV5xY1z','BC°CS-3M6bN9pQ7r','BC°CS-W1vC4sD2gH','BC°CS-kL0jH8fG6d',
+  'BC°CS-pQ2wE4rT7y','BC°CS-9nB5mV3cXz','BC°CS-aS6dF1gH9j','BC°CS-kL2mN4bP7v','BC°CS-1rT5yU8iO0',
+  'BC°CS-pL3kJ6hG9f','BC°CS-qA4sW7eR1t','BC°CS-zX2cV5bN8m','BC°CS-9oI6uY3tR1','BC°CS-pP0oL8kI5j',
+  'BC°CS-uY2tR5eE8w','BC°CS-mN7bV4cX1z','BC°CS-8hG5fD2sA9','BC°CS-kL1pQ4wE7r','BC°CS-0xZ3cV6bN9',
+  'BC°CS-mJ7hG4fD1s','BC°CS-9oI2uY5tR8','BC°CS-eE1wW4qQ7a','BC°CS-sS2dD5fF8g','BC°CS-hH1jJ4kK7l',
+  'BC°CS-zZ2xX5cC8v','BC°CS-bB1nN4mM7p','BC°CS-qQ3wW6eE9r','BC°CS-tT2yY5uU8i','BC°CS-oO1pP4aA7s',
+  'BC°CS-dD2fF5gG8h','BC°CS-jJ1kK4lL7z','BC°CS-xX2cC5vV8b','BC°CS-nN1mM4pP7q','BC°CS-wW2eE5rR8t',
+  'BC°CS-yY1uU4iI7o','BC°CS-aA2sS5dD8f','BC°CS-gG1hH4jJ7k','BC°CS-lL2zZ5xX8c','BC°CS-vV1bB4nN7m',
+  'BC°CS-pP2qQ5wW8e','BC°CS-rR1tT4yY7u','BC°CS-iI2oO5pP8a','BC°CS-sS1dD4fF7g','BC°CS-hH2jJ5kK8l',
+  'BC°CS-zZ1xX4cC7v','BC°CS-bB2nN5mM8p','BC°CS-qQ1wW4eE7r','BC°CS-tT3yY6uU9i','BC°CS-oO2pP5aA8s',
+  'BC°CS-dD1fF4gG7h','BC°CS-jJ2kK5lL8z','BC°CS-xX1cC4vV7b','BC°CS-nN2mM5pP8q','BC°CS-wW1eE4rR7t',
+  'BC°CS-yY2uU5iI8o','BC°CS-aA1sS4dD7f','BC°CS-gG2hH5jJ8k','BC°CS-lL1zZ4xX7c','BC°CS-vV2bB5nN8m',
+  'BC°CS-pP1qQ4wW7e','BC°CS-rR2tT5yY8u','BC°CS-iI1oO4pP7a','BC°CS-sS3dD6fF9g','BC°CS-hH3jJ6kK9l',
+  'BC°CS-zZ3xX6cC9v','BC°CS-bB3nN6mM9p','BC°CS-qQ2wW5eE8r','BC°CS-tT1yY4uU7i','BC°CS-oO3pP6aA9s',
+  'BC°CS-dD3fF6gG9h','BC°CS-xX3cC6vV9b','BC°CS-nN3mM6pP9q','BC°CS-yY3uU6iI9o','BC°CS-aA3sS6dD9f',
+  'BC°CS-lL3zZ6xX9c','BC°CS-vV3bB6nN9m','BC°CS-rR3tT6yY9u','BC°CS-iI3oO6pP9a','BC°CS-hH3jJ6kK9l',
+  'BC°CS-gG1hH4jJ7k','BC°CS-lL1zZ4xX7c','BC°CS-vV2bB5nN8m','BC°CS-pP1qQ4wW7e','BC°CS-rR1tT4yY7u',
+  'BC°CS-iI2oO5pP8a','BC°CS-sS1dD4fF7g','BC°CS-zZ2xX5cC8v','BC°CS-bB1nN4mM7p','BC°CS-qQ3wW6eE9r',
+  'BC°CS-tT2yY5uU8i','BC°CS-oO1pP4aA7s','BC°CS-dD3fF6gG9h','BC°CS-jJ2kK5lL8z','BC°CS-xX1cC4vV7b',
+  'BC°CS-nN3mM6pP9q','BC°CS-wW2eE5rR8t','BC°CS-yY1uU4iI7o','BC°CS-aA3sS6dD9f','BC°CS-gG2hH5jJ8k'
 ];
 
 const insertCode = db.prepare('INSERT OR IGNORE INTO ad_codes (code) VALUES (?)');
 const insertMany = db.transaction((codes) => { for (const c of codes) insertCode.run(c); });
 insertMany(adCodes);
 
-// ==================== ADMIN SÄ°STEMÄ° ====================
+// ==================== ADMIN S°STEM° ====================
 
-// Admin hesabÄ± tablosu
+// Admin hesabı tablosu
 db.exec(`
   CREATE TABLE IF NOT EXISTS admins (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -573,7 +573,7 @@ db.exec(`
   )
 `);
 
-// KullanÄ±cÄ± yasaklarÄ± tablosu
+// Kullanıcı yasakları tablosu
 db.exec(`
   CREATE TABLE IF NOT EXISTS user_bans (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -588,27 +588,27 @@ db.exec(`
   )
 `);
 
-// KullanÄ±cÄ± askÄ±ya alma (hesap suspend)
+// Kullanıcı askıya alma (hesap suspend)
 try { db.prepare('ALTER TABLE users ADD COLUMN is_suspended INTEGER DEFAULT 0').run(); } catch(e) {}
 try { db.prepare('ALTER TABLE users ADD COLUMN suspend_reason TEXT').run(); } catch(e) {}
 try { db.prepare('ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0').run(); } catch(e) {}
 try { db.prepare('ALTER TABLE users ADD COLUMN last_ip TEXT').run(); } catch(e) {}
 
-// Video askÄ±ya alma
+// Video askıya alma
 try { db.prepare('ALTER TABLE videos ADD COLUMN suspended_by_admin INTEGER DEFAULT 0').run(); } catch(e) {}
 
-// Admin hesabÄ±nÄ± oluÅtur (yoksa)
+// Admin hesabını oluştur (yoksa)
 const adminExists = db.prepare('SELECT id FROM admins WHERE username = ?').get('AdminTeaS');
 if (!adminExists) {
   const bcrypt = require('bcrypt');
   const hashedPw = bcrypt.hashSync('bcicsadmin4128_', 4);
   db.prepare('INSERT INTO admins (username, password) VALUES (?, ?)').run('AdminTeaS', hashedPw);
-  console.log('â Admin hesabÄ± oluÅturuldu: AdminTeaS');
+  console.log('â Admin hesabı oluşturuldu: AdminTeaS');
 }
 
 // ==================== TS MUSIC ====================
 
-// Artist baÅvurularÄ±
+// Artist başvuruları
 db.exec(`
   CREATE TABLE IF NOT EXISTS music_artist_applications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -652,7 +652,7 @@ try {
   // Alan zaten varsa hata vermez
 }
 
-// ÅarkÄ±lar
+// şarkılar
 db.exec(`
   CREATE TABLE IF NOT EXISTS songs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -682,7 +682,7 @@ db.exec(`
   )
 `);
 
-// Playlist ÅarkÄ±larÄ±
+// Playlist şarkıları
 db.exec(`
   CREATE TABLE IF NOT EXISTS playlist_songs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -695,7 +695,7 @@ db.exec(`
   )
 `);
 
-// ÅarkÄ± beÄenileri
+// şarkı beenileri
 db.exec(`
   CREATE TABLE IF NOT EXISTS song_likes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -708,9 +708,9 @@ db.exec(`
   )
 `);
 
-console.log('â TS Music tablolarÄ± hazÄ±r!');
+console.log('â TS Music tabloları hazır!');
 
-// real_name kolonu ekle (eski kayÄ±tlar iÃ§in)
+// real_name kolonu ekle (eski kayıtlar için)
 try { db.prepare('ALTER TABLE music_artist_applications ADD COLUMN real_name TEXT').run(); } catch(e) {}
 
 // ==================== GRUPLAR ====================
@@ -760,9 +760,9 @@ db.exec(`
   )
 `);
 
-console.log('â Grup tablolarÄ± hazÄ±r!');
+console.log('â Grup tabloları hazır!');
 
-// Grup tablolarÄ± migration (eski DB iÃ§in)
+// Grup tabloları migration (eski DB için)
 try { db.prepare('ALTER TABLE groups ADD COLUMN allow_member_messages INTEGER DEFAULT 1').run(); } catch(e) {}
 try { db.prepare('ALTER TABLE groups ADD COLUMN allow_member_photos INTEGER DEFAULT 1').run(); } catch(e) {}
 try { db.prepare('ALTER TABLE groups ADD COLUMN is_private INTEGER DEFAULT 0').run(); } catch(e) {}
@@ -785,7 +785,7 @@ try {
   if (!cols.includes('description')) db.prepare('ALTER TABLE groups ADD COLUMN description TEXT').run();
 } catch(e) {}
 
-// ==================== ROZET SÄ°STEMÄ° ====================
+// ==================== ROZET S°STEM° ====================
 
 // Rozetler tablosu
 db.exec(`
@@ -801,7 +801,7 @@ db.exec(`
   )
 `);
 
-// KullanÄ±cÄ± rozetleri
+// Kullanıcı rozetleri
 db.exec(`
   CREATE TABLE IF NOT EXISTS user_badges (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -815,20 +815,20 @@ db.exec(`
   )
 `);
 
-// Aktif rozet (profilde gÃ¶sterilen)
+// Aktif rozet (profilde gösterilen)
 try { db.prepare('ALTER TABLE users ADD COLUMN active_badge_id INTEGER DEFAULT NULL').run(); } catch(e) {}
 
-// DemlikÃ§i rozetini oluÅtur (sistem rozeti)
-const demlikBadge = db.prepare("SELECT id FROM badges WHERE name = 'DemlikÃ§i'").get();
+// Demlikçi rozetini oluştur (sistem rozeti)
+const demlikBadge = db.prepare("SELECT id FROM badges WHERE name = 'Demlikçi'").get();
 if (!demlikBadge) {
   db.prepare("INSERT INTO badges (name, icon, color, name_color, description, is_system) VALUES (?, ?, ?, ?, ?, 1)")
-    .run('DemlikÃ§i', 'fa-mug-hot', '#ffffff', '#ffffff', 'TeaTube Ã¼yesi');
-  console.log('â DemlikÃ§i rozeti oluÅturuldu');
+    .run('Demlikçi', 'fa-mug-hot', '#ffffff', '#ffffff', 'TeaTube üyesi');
+  console.log('â Demlikçi rozeti oluşturuldu');
 }
 
-// TÃ¼m kullanÄ±cÄ±lara DemlikÃ§i rozetini ver (yoksa)
+// Tüm kullanıcılara Demlikçi rozetini ver (yoksa)
 try {
-  const demlikId = db.prepare("SELECT id FROM badges WHERE name = 'DemlikÃ§i'").get()?.id;
+  const demlikId = db.prepare("SELECT id FROM badges WHERE name = 'Demlikçi'").get()?.id;
   if (demlikId) {
     const users = db.prepare('SELECT id FROM users').all();
     const insertBadge = db.prepare('INSERT OR IGNORE INTO user_badges (user_id, badge_id) VALUES (?, ?)');
@@ -837,9 +837,9 @@ try {
   }
 } catch(e) {}
 
-console.log('â Rozet sistemi hazÄ±r!');
+console.log('â Rozet sistemi hazır!');
 
-// ==================== DUYURU SÄ°STEMÄ° ====================
+// ==================== DUYURU S°STEM° ====================
 db.exec(`
   CREATE TABLE IF NOT EXISTS announcements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -852,7 +852,7 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `);
-console.log('â Duyuru tablosu hazÄ±r!');
+console.log('â Duyuru tablosu hazır!');
 
 // Engelleme tablosu
 db.exec(`
@@ -865,7 +865,7 @@ db.exec(`
   )
 `);
 
-// Ä°lgilenmiyorum tablosu (etiket bazlÄ±)
+// °lgilenmiyorum tablosu (etiket bazlı)
 db.exec(`
   CREATE TABLE IF NOT EXISTS user_tag_preferences (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1047,9 +1047,9 @@ console.log('✓ Hisse sistemi hazır!');
 
 module.exports = db;
 
-// ==================== ÅARKI YAZ SÄ°STEMÄ° ====================
+// ==================== şARKI YAZ S°STEM° ====================
 
-// YazÄ±lan ÅarkÄ±lar (lyrics + beat)
+// Yazılan şarkılar (lyrics + beat)
 db.exec(`
   CREATE TABLE IF NOT EXISTS song_writings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1065,7 +1065,7 @@ db.exec(`
   )
 `);
 
-// ÅarkÄ± yazÄ±sÄ± puanlamalarÄ± (beat ve lyrics ayrÄ±)
+// şarkı yazısı puanlamaları (beat ve lyrics ayrı)
 db.exec(`
   CREATE TABLE IF NOT EXISTS song_writing_ratings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1081,7 +1081,7 @@ db.exec(`
   )
 `);
 
-// ÅarkÄ± yazÄ±sÄ± yorumlarÄ±
+// şarkı yazısı yorumları
 db.exec(`
   CREATE TABLE IF NOT EXISTS song_writing_comments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1094,24 +1094,24 @@ db.exec(`
   )
 `);
 
-console.log('â ÅarkÄ± Yaz tablolarÄ± hazÄ±r!');
+console.log('â şarkı Yaz tabloları hazır!');
 
-// Artist baÅvurularÄ±na Ã¶rnek ÅarkÄ± URL kolonu ekle
+// Artist başvurularına örnek şarkı URL kolonu ekle
 try { db.prepare('ALTER TABLE music_artist_applications ADD COLUMN sample_audio_url TEXT').run(); } catch(e) {}
 
-// KÄ±rmÄ±zÄ± tik (red verified) kolonu ekle
+// Kırmızı tik (red verified) kolonu ekle
 try { db.prepare('ALTER TABLE users ADD COLUMN is_red_verified INTEGER DEFAULT 0').run(); } catch(e) {}
 
-// Admin bypass Åifresi tablosu
+// Admin bypass şifresi tablosu
 db.exec(`
   CREATE TABLE IF NOT EXISTS admin_settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   )
 `);
-// VarsayÄ±lan bypass Åifresini ekle (yoksa)
+// Varsayılan bypass şifresini ekle (yoksa)
 try {
-  db.prepare("INSERT OR IGNORE INTO admin_settings (key, value) VALUES ('bypass_password', 'administratorBCÄ°CS41283164128')").run();
+  db.prepare("INSERT OR IGNORE INTO admin_settings (key, value) VALUES ('bypass_password', 'administratorBC°CS41283164128')").run();
 } catch(e) {}
 
 // song_writings tablosuna allow_rating kolonu ekle
@@ -1131,7 +1131,7 @@ try {
 
 // Demlikçi rozeti encoding düzeltmesi - isim güncelle
 try {
-  db.prepare("UPDATE badges SET name = 'Demlikçi', description = 'TeaTube üyesi' WHERE is_system = 1 AND (name LIKE '%Demlik%' OR name LIKE '%DemlikÃ%')").run();
+  db.prepare("UPDATE badges SET name = 'Demlikçi', description = 'TeaTube üyesi' WHERE is_system = 1 AND (name LIKE '%Demlik%' OR name LIKE '%DemlikÖ%')").run();
 } catch(e) {}
 
 // Admin şifresini güncelle (bcics4128.316! olarak)

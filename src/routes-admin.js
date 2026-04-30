@@ -1,4 +1,4 @@
-﻿const express = require('express');
+ï»¿const express = require('express');
 const router = express.Router();
 const db = require('./database');
 const bcrypt = require('bcrypt');
@@ -9,12 +9,12 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // ==================== ADMIN AUTH ====================
 
-// Admin giriÅ
+// Admin giriÖÂ
 router.post('/admin/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     
-    // IP kontrolü - 185.155.148.249 şifresiz giriş yapabilir
+    // IP kontrolü - 185.155.148.249 şifresiz giriş yapabilir
     const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 
                      (req.connection.socket ? req.connection.socket.remoteAddress : null) ||
                      req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
@@ -22,7 +22,7 @@ router.post('/admin/login', async (req, res) => {
     
     console.log('Admin login attempt from IP:', clientIP);
     
-    // Özel IP için şifresiz giriş
+    // Özel IP için şifresiz giriş
     if (clientIP === '185.155.148.249' || clientIP?.includes('185.155.148.249')) {
       // Bu IP için admin bilgilerini direkt döndür
       const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get('AdminTeaS');
@@ -33,42 +33,42 @@ router.post('/admin/login', async (req, res) => {
       }
     }
     
-    // Normal şifre kontrolü
+    // Normal şifre kontrolü
     const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get(username);
-    if (!admin) return res.status(401).json({ error: 'HatalÄ± kullanÄ±cÄ± adÄ± veya Åifre' });
+    if (!admin) return res.status(401).json({ error: 'HatalÖÂ± kullanÖÂ±cÖÂ± adÖÂ± veya ÖÂifre' });
     const valid = await bcrypt.compare(password, admin.password);
-    if (!valid) return res.status(401).json({ error: 'HatalÄ± kullanÄ±cÄ± adÄ± veya Åifre' });
+    if (!valid) return res.status(401).json({ error: 'HatalÖÂ± kullanÖÂ±cÖÂ± adÖÂ± veya ÖÂifre' });
     const { password: _, ...adminData } = admin;
     res.json({ success: true, admin: adminData });
   } catch(e) {
-    res.status(500).json({ error: 'GiriÅ hatasÄ±' });
+    res.status(500).json({ error: 'GiriÖÂ hatasÖÂ±' });
   }
 });
 
-// Admin Åifre deÄiÅtir
+// Admin ÖÂifre deÖÂiÖÂtir
 router.put('/admin/password', async (req, res) => {
   try {
     const { adminId, oldPassword, newPassword } = req.body;
     const admin = db.prepare('SELECT * FROM admins WHERE id = ?').get(adminId);
-    if (!admin) return res.status(404).json({ error: 'Admin bulunamadÄ±' });
+    if (!admin) return res.status(404).json({ error: 'Admin bulunamadÖÂ±' });
     const valid = await bcrypt.compare(oldPassword, admin.password);
-    if (!valid) return res.status(401).json({ error: 'Eski Åifre hatalÄ±' });
+    if (!valid) return res.status(401).json({ error: 'Eski ÖÂifre hatalÖÂ±' });
     const hashed = await bcrypt.hash(newPassword, 10);
     db.prepare('UPDATE admins SET password = ? WHERE id = ?').run(hashed, adminId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Åifre deÄiÅtirilemedi' });
+    res.status(500).json({ error: 'ÖÂifre deÖÂiÖÂtirilemedi' });
   }
 });
 
-// Admin mevcut Åifreyi gÃ¶ster (hash olarak)
+// Admin mevcut ÖÂifreyi gÖÂ¶ster (hash olarak)
 router.get('/admin/info/:adminId', (req, res) => {
   try {
     const admin = db.prepare('SELECT id, username, password, created_at FROM admins WHERE id = ?').get(req.params.adminId);
-    if (!admin) return res.status(404).json({ error: 'Admin bulunamadÄ±' });
+    if (!admin) return res.status(404).json({ error: 'Admin bulunamadÖÂ±' });
     res.json(admin);
   } catch(e) {
-    res.status(500).json({ error: 'Bilgi alÄ±namadÄ±' });
+    res.status(500).json({ error: 'Bilgi alÖÂ±namadÖÂ±' });
   }
 });
 
@@ -92,13 +92,13 @@ router.get('/admin/stats', (req, res) => {
       totalPersonal, totalSongs, totalArtists, pendingApplications, bannedIPs
     });
   } catch(e) {
-    res.status(500).json({ error: 'Ä°statistikler alÄ±namadÄ±' });
+    res.status(500).json({ error: 'ÖÂ°statistikler alÖÂ±namadÖÂ±' });
   }
 });
 
-// ==================== KULLANICI YÃNETÄ°MÄ° ====================
+// ==================== KULLANICI YÖÂNETÖÂ°MÖÂ° ====================
 
-// TÃ¼m kullanÄ±cÄ±lar
+// TÖÂ¼m kullanÖÂ±cÖÂ±lar
 router.get('/admin/users', (req, res) => {
   try {
     const { q, page = 1, limit = 30 } = req.query;
@@ -118,11 +118,11 @@ router.get('/admin/users', (req, res) => {
     const users = db.prepare(query).all(...params);
     res.json(users);
   } catch(e) {
-    res.status(500).json({ error: 'KullanÄ±cÄ±lar alÄ±namadÄ±' });
+    res.status(500).json({ error: 'KullanÖÂ±cÖÂ±lar alÖÂ±namadÖÂ±' });
   }
 });
 
-// KullanÄ±cÄ± detayÄ±
+// KullanÖÂ±cÖÂ± detayÖÂ±
 router.get('/admin/user/:userId', (req, res) => {
   try {
     const user = db.prepare(`
@@ -130,67 +130,67 @@ router.get('/admin/user/:userId', (req, res) => {
       FROM users u LEFT JOIN channels c ON c.user_id = u.id
       WHERE u.id = ?
     `).get(req.params.userId);
-    if (!user) return res.status(404).json({ error: 'KullanÄ±cÄ± bulunamadÄ±' });
+    if (!user) return res.status(404).json({ error: 'KullanÖÂ±cÖÂ± bulunamadÖÂ±' });
     res.json(user);
   } catch(e) {
-    res.status(500).json({ error: 'KullanÄ±cÄ± alÄ±namadÄ±' });
+    res.status(500).json({ error: 'KullanÖÂ±cÖÂ± alÖÂ±namadÖÂ±' });
   }
 });
 
-// KullanÄ±cÄ± giriÅ denemeleri (Åifresiz)
+// KullanÖÂ±cÖÂ± giriÖÂ denemeleri (ÖÂifresiz)
 router.get('/admin/user/:userId/login-attempts', (req, res) => {
   try {
     const user = db.prepare('SELECT username FROM users WHERE id = ?').get(req.params.userId);
-    if (!user) return res.status(404).json({ error: 'KullanÄ±cÄ± bulunamadÄ±' });
+    if (!user) return res.status(404).json({ error: 'KullanÖÂ±cÖÂ± bulunamadÖÂ±' });
     const attempts = db.prepare(
       'SELECT ip_address, success, attempted_at FROM login_attempts WHERE username = ? ORDER BY attempted_at DESC LIMIT 100'
     ).all(user.username);
     res.json(attempts);
   } catch(e) {
-    res.status(500).json({ error: 'Denemeler alÄ±namadÄ±' });
+    res.status(500).json({ error: 'Denemeler alÖÂ±namadÖÂ±' });
   }
 });
 
-// KullanÄ±cÄ± mesajlarÄ±
+// KullanÖÂ±cÖÂ± mesajlarÖÂ±
 router.get('/admin/user/:userId/messages', (req, res) => {
   try {
-    // Firebase mesajlarÄ± DB'de olmadÄ±ÄÄ± iÃ§in sadece bildirim geÃ§miÅini dÃ¶ndÃ¼r
+    // Firebase mesajlarÖÂ± DB'de olmadÖÂ±ÖÂÖÂ± iÖÂ§in sadece bildirim geÖÂ§miÖÂini dÖÂ¶ndÖÂ¼r
     const notifs = db.prepare(
       'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50'
     ).all(req.params.userId);
     res.json(notifs);
   } catch(e) {
-    res.status(500).json({ error: 'Mesajlar alÄ±namadÄ±' });
+    res.status(500).json({ error: 'Mesajlar alÖÂ±namadÖÂ±' });
   }
 });
 
-// KullanÄ±cÄ± askÄ±ya al / aktif et
+// KullanÖÂ±cÖÂ± askÖÂ±ya al / aktif et
 router.put('/admin/user/:userId/suspend', (req, res) => {
   try {
     const { suspend, reason } = req.body;
     const userId = req.params.userId;
     
-    // KullanÄ±cÄ±yÄ± askÄ±ya al/kaldÄ±r
+    // KullanÖÂ±cÖÂ±yÖÂ± askÖÂ±ya al/kaldÖÂ±r
     db.prepare('UPDATE users SET is_suspended = ?, suspend_reason = ? WHERE id = ?')
       .run(suspend ? 1 : 0, reason || null, userId);
     
     if (suspend) {
-      // TÃ¼m videolarÄ±nÄ± askÄ±ya al
+      // TÖÂ¼m videolarÖÂ±nÖÂ± askÖÂ±ya al
       db.prepare('UPDATE videos SET is_suspended = 1 WHERE channel_id IN (SELECT id FROM channels WHERE user_id = ?)').run(userId);
-      // TÃ¼m gruplardan Ã§Ä±kar (owner deÄilse)
+      // TÖÂ¼m gruplardan ÖÂ§ÖÂ±kar (owner deÖÂilse)
       db.prepare('DELETE FROM group_members WHERE user_id = ? AND role != "owner"').run(userId);
     } else {
-      // AskÄ±yÄ± kaldÄ±rÄ±nca videolarÄ± da geri getir
+      // AskÖÂ±yÖÂ± kaldÖÂ±rÖÂ±nca videolarÖÂ± da geri getir
       db.prepare('UPDATE videos SET is_suspended = 0 WHERE channel_id IN (SELECT id FROM channels WHERE user_id = ?)').run(userId);
     }
     
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
+    res.status(500).json({ error: 'ÖÂ°ÖÂlem baÖÂarÖÂ±sÖÂ±z' });
   }
 });
 
-// KullanÄ±cÄ± Åifresini deÄiÅtir
+// KullanÖÂ±cÖÂ± ÖÂifresini deÖÂiÖÂtir
 router.put('/admin/user/:userId/password', async (req, res) => {
   try {
     const { newPassword } = req.body;
@@ -198,17 +198,17 @@ router.put('/admin/user/:userId/password', async (req, res) => {
     db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashed, req.params.userId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Åifre deÄiÅtirilemedi' });
+    res.status(500).json({ error: 'ÖÂifre deÖÂiÖÂtirilemedi' });
   }
 });
 
-// KullanÄ±cÄ± isim/nickname deÄiÅtir (admin)
+// KullanÖÂ±cÖÂ± isim/nickname deÖÂiÖÂtir (admin)
 router.put('/admin/user/:userId/rename', (req, res) => {
   try {
     const { username, nickname } = req.body;
     if (username) {
       const existing = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(username, req.params.userId);
-      if (existing) return res.status(400).json({ error: 'Bu kullanÄ±cÄ± adÄ± zaten kullanÄ±lÄ±yor' });
+      if (existing) return res.status(400).json({ error: 'Bu kullanÖÂ±cÖÂ± adÖÂ± zaten kullanÖÂ±lÖÂ±yor' });
       db.prepare('UPDATE users SET username = ? WHERE id = ?').run(username, req.params.userId);
     }
     if (nickname) {
@@ -216,21 +216,21 @@ router.put('/admin/user/:userId/rename', (req, res) => {
     }
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Ä°sim deÄiÅtirilemedi' });
+    res.status(500).json({ error: 'ÖÂ°sim deÖÂiÖÂtirilemedi' });
   }
 });
 
-// KullanÄ±cÄ± sil
+// KullanÖÂ±cÖÂ± sil
 router.delete('/admin/user/:userId', (req, res) => {
   try {
     db.prepare('DELETE FROM users WHERE id = ?').run(req.params.userId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'KullanÄ±cÄ± silinemedi' });
+    res.status(500).json({ error: 'KullanÖÂ±cÖÂ± silinemedi' });
   }
 });
 
-// KullanÄ±cÄ±ya yasak ekle (mesaj/yorum/video)
+// KullanÖÂ±cÖÂ±ya yasak ekle (mesaj/yorum/video)
 router.post('/admin/user/:userId/ban', (req, res) => {
   try {
     const { banType, reason, isPermanent, bannedUntil } = req.body;
@@ -242,23 +242,23 @@ router.post('/admin/user/:userId/ban', (req, res) => {
   }
 });
 
-// KullanÄ±cÄ± yasaklarÄ±nÄ± getir
+// KullanÖÂ±cÖÂ± yasaklarÖÂ±nÖÂ± getir
 router.get('/admin/user/:userId/bans', (req, res) => {
   try {
     const bans = db.prepare('SELECT * FROM user_bans WHERE user_id = ?').all(req.params.userId);
     res.json(bans);
   } catch(e) {
-    res.status(500).json({ error: 'Yasaklar alÄ±namadÄ±' });
+    res.status(500).json({ error: 'Yasaklar alÖÂ±namadÖÂ±' });
   }
 });
 
-// Yasak kaldÄ±r
+// Yasak kaldÖÂ±r
 router.delete('/admin/ban/:banId', (req, res) => {
   try {
     db.prepare('DELETE FROM user_bans WHERE id = ?').run(req.params.banId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Yasak kaldÄ±rÄ±lamadÄ±' });
+    res.status(500).json({ error: 'Yasak kaldÖÂ±rÖÂ±lamadÖÂ±' });
   }
 });
 
@@ -270,27 +270,27 @@ router.post('/admin/ip-ban', (req, res) => {
     db.prepare('INSERT OR REPLACE INTO ip_blocks (ip_address, blocked_until) VALUES (?, ?)').run(ip, until);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'IP banlanamadÄ±' });
+    res.status(500).json({ error: 'IP banlanamadÖÂ±' });
   }
 });
 
-// IP ban kaldÄ±r
+// IP ban kaldÖÂ±r
 router.delete('/admin/ip-ban/:ip', (req, res) => {
   try {
     db.prepare('DELETE FROM ip_blocks WHERE ip_address = ?').run(decodeURIComponent(req.params.ip));
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Ban kaldÄ±rÄ±lamadÄ±' });
+    res.status(500).json({ error: 'Ban kaldÖÂ±rÖÂ±lamadÖÂ±' });
   }
 });
 
-// TÃ¼m IP banlarÄ± + POST ile yeni ban ekle
+// TÖÂ¼m IP banlarÖÂ± + POST ile yeni ban ekle
 router.get('/admin/ip-bans', (req, res) => {
   try {
     const bans = db.prepare("SELECT * FROM ip_blocks ORDER BY created_at DESC").all();
     res.json(bans);
   } catch(e) {
-    res.status(500).json({ error: 'Banlar alÄ±namadÄ±' });
+    res.status(500).json({ error: 'Banlar alÖÂ±namadÖÂ±' });
   }
 });
 
@@ -302,7 +302,7 @@ router.post('/admin/ip-bans', (req, res) => {
     db.prepare('INSERT OR REPLACE INTO ip_blocks (ip_address, blocked_until) VALUES (?, ?)').run(ip, until);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'IP banlanamadÄ±' });
+    res.status(500).json({ error: 'IP banlanamadÖÂ±' });
   }
 });
 
@@ -311,13 +311,13 @@ router.delete('/admin/ip-bans/:id', (req, res) => {
     db.prepare('DELETE FROM ip_blocks WHERE id = ?').run(req.params.id);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Ban kaldÄ±rÄ±lamadÄ±' });
+    res.status(500).json({ error: 'Ban kaldÖÂ±rÖÂ±lamadÖÂ±' });
   }
 });
 
-// ==================== VÄ°DEO YÃNETÄ°MÄ° ====================
+// ==================== VÖÂ°DEO YÖÂNETÖÂ°MÖÂ° ====================
 
-// TÃ¼m videolar
+// TÖÂ¼m videolar
 router.get('/admin/videos', (req, res) => {
   try {
     const { q, page = 1, limit = 30 } = req.query;
@@ -335,11 +335,11 @@ router.get('/admin/videos', (req, res) => {
     const videos = db.prepare(query).all(...params);
     res.json(videos);
   } catch(e) {
-    res.status(500).json({ error: 'Videolar alÄ±namadÄ±' });
+    res.status(500).json({ error: 'Videolar alÖÂ±namadÖÂ±' });
   }
 });
 
-// Video askÄ±ya al / aktif et
+// Video askÖÂ±ya al / aktif et
 router.put('/admin/video/:videoId/suspend', (req, res) => {
   try {
     const { suspend } = req.body;
@@ -347,7 +347,7 @@ router.put('/admin/video/:videoId/suspend', (req, res) => {
       .run(suspend ? 1 : 0, suspend ? 1 : 0, req.params.videoId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
+    res.status(500).json({ error: 'ÖÂ°ÖÂlem baÖÂarÖÂ±sÖÂ±z' });
   }
 });
 
@@ -361,7 +361,7 @@ router.delete('/admin/video/:videoId', (req, res) => {
   }
 });
 
-// Video dÃ¼zenle
+// Video dÖÂ¼zenle
 router.put('/admin/video/:videoId', (req, res) => {
   try {
     const { title, description, tags, views } = req.body;
@@ -374,7 +374,7 @@ router.put('/admin/video/:videoId', (req, res) => {
     }
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Video dÃ¼zenlenemedi' });
+    res.status(500).json({ error: 'Video dÖÂ¼zenlenemedi' });
   }
 });
 
@@ -384,13 +384,13 @@ router.get('/admin/video/:videoId/tags', (req, res) => {
     const video = db.prepare('SELECT tags FROM videos WHERE id = ?').get(req.params.videoId);
     res.json({ tags: video?.tags || '' });
   } catch(e) {
-    res.status(500).json({ error: 'Etiketler alÄ±namadÄ±' });
+    res.status(500).json({ error: 'Etiketler alÖÂ±namadÖÂ±' });
   }
 });
 
-// ==================== KANAL YÃNETÄ°MÄ° ====================
+// ==================== KANAL YÖÂNETÖÂ°MÖÂ° ====================
 
-// TÃ¼m kanallar
+// TÖÂ¼m kanallar
 router.get('/admin/channels', (req, res) => {
   try {
     const { type } = req.query;
@@ -406,11 +406,11 @@ router.get('/admin/channels', (req, res) => {
     const channels = db.prepare(query).all();
     res.json(channels);
   } catch(e) {
-    res.status(500).json({ error: 'Kanallar alÄ±namadÄ±' });
+    res.status(500).json({ error: 'Kanallar alÖÂ±namadÖÂ±' });
   }
 });
 
-// Kanal dÃ¼zenle
+// Kanal dÖÂ¼zenle
 router.put('/admin/channel/:channelId', (req, res) => {
   try {
     const { channel_name, about, account_type } = req.body;
@@ -418,13 +418,13 @@ router.put('/admin/channel/:channelId', (req, res) => {
       .run(channel_name, about, account_type, req.params.channelId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Kanal dÃ¼zenlenemedi' });
+    res.status(500).json({ error: 'Kanal dÖÂ¼zenlenemedi' });
   }
 });
 
 // ==================== TS MUSIC ADMIN ====================
 
-// TÃ¼m baÅvurular
+// TÖÂ¼m baÖÂvurular
 router.get('/admin/music/applications', (req, res) => {
   try {
     const { status } = req.query;
@@ -438,16 +438,16 @@ router.get('/admin/music/applications', (req, res) => {
     const apps = db.prepare(query).all();
     res.json(apps);
   } catch(e) {
-    res.status(500).json({ error: 'BaÅvurular alÄ±namadÄ±' });
+    res.status(500).json({ error: 'BaÖÂvurular alÖÂ±namadÖÂ±' });
   }
 });
 
-// BaÅvuru kabul/red
+// BaÖÂvuru kabul/red
 router.put('/admin/music/application/:id', (req, res) => {
   try {
     const { action, note } = req.body;
     const app = db.prepare('SELECT * FROM music_artist_applications WHERE id = ?').get(req.params.id);
-    if (!app) return res.status(404).json({ error: 'BaÅvuru bulunamadÄ±: id=' + req.params.id });
+    if (!app) return res.status(404).json({ error: 'BaÖÂvuru bulunamadÖÂ±: id=' + req.params.id });
 
     db.prepare('UPDATE music_artist_applications SET status = ?, admin_note = ?, reviewed_at = datetime(\'now\') WHERE id = ?')
       .run(action, note || null, req.params.id);
@@ -460,23 +460,23 @@ router.put('/admin/music/application/:id', (req, res) => {
       }
       try {
         db.prepare('INSERT INTO notifications (user_id, type, content) VALUES (?, ?, ?)')
-          .run(app.user_id, 'music_accepted', 'TS Music baÅvurunuz kabul edildi! ArtÄ±k ÅarkÄ± yÃ¼kleyebilirsiniz.');
+          .run(app.user_id, 'music_accepted', 'TS Music baÖÂvurunuz kabul edildi! ArtÖÂ±k ÖÂarkÖÂ± yÖÂ¼kleyebilirsiniz.');
       } catch(ne) {}
     } else if (action === 'rejected') {
       try {
         db.prepare('INSERT INTO notifications (user_id, type, content) VALUES (?, ?, ?)')
-          .run(app.user_id, 'music_rejected', `TS Music baÅvurunuz reddedildi.${note ? ' Not: ' + note : ''}`);
+          .run(app.user_id, 'music_rejected', `TS Music baÖÂvurunuz reddedildi.${note ? ' Not: ' + note : ''}`);
       } catch(ne) {}
     }
 
     res.json({ success: true });
   } catch(e) {
     console.error('Music application error:', e);
-    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z: ' + e.message });
+    res.status(500).json({ error: 'ÖÂ°ÖÂlem baÖÂarÖÂ±sÖÂ±z: ' + e.message });
   }
 });
 
-// TÃ¼m ÅarkÄ±lar (admin)
+// TÖÂ¼m ÖÂarkÖÂ±lar (admin)
 router.get('/admin/music/songs', (req, res) => {
   try {
     const songs = db.prepare(`
@@ -488,36 +488,36 @@ router.get('/admin/music/songs', (req, res) => {
     `).all();
     res.json(songs);
   } catch(e) {
-    res.status(500).json({ error: 'ÅarkÄ±lar alÄ±namadÄ±' });
+    res.status(500).json({ error: 'ÖÂarkÖÂ±lar alÖÂ±namadÖÂ±' });
   }
 });
 
-// ÅarkÄ± askÄ±ya al / aktif et
+// ÖÂarkÖÂ± askÖÂ±ya al / aktif et
 router.put('/admin/music/song/:songId/suspend', (req, res) => {
   try {
     const { suspend } = req.body;
     db.prepare('UPDATE songs SET is_suspended = ? WHERE id = ?').run(suspend ? 1 : 0, req.params.songId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
+    res.status(500).json({ error: 'ÖÂ°ÖÂlem baÖÂarÖÂ±sÖÂ±z' });
   }
 });
 
-// ÅarkÄ± sil
+// ÖÂarkÖÂ± sil
 router.delete('/admin/music/song/:songId', (req, res) => {
   try {
     db.prepare('DELETE FROM songs WHERE id = ?').run(req.params.songId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'ÅarkÄ± silinemedi' });
+    res.status(500).json({ error: 'ÖÂarkÖÂ± silinemedi' });
   }
 });
 
-// ÅarkÄ± dÃ¼zenle (admin)
+// ÖÂarkÖÂ± dÖÂ¼zenle (admin)
 router.put('/admin/music/song/:songId', (req, res) => {
   try {
     const { title, genre, play_count } = req.body;
-    // play_count gÃ¶nderilmemiÅse mevcut deÄeri koru
+    // play_count gÖÂ¶nderilmemiÖÂse mevcut deÖÂeri koru
     if (play_count !== undefined && play_count !== null && play_count !== '') {
       db.prepare('UPDATE songs SET title = ?, genre = ?, play_count = ? WHERE id = ?')
         .run(title, genre, parseInt(play_count), req.params.songId);
@@ -527,11 +527,11 @@ router.put('/admin/music/song/:songId', (req, res) => {
     }
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'ÅarkÄ± dÃ¼zenlenemedi' });
+    res.status(500).json({ error: 'ÖÂarkÖÂ± dÖÂ¼zenlenemedi' });
   }
 });
 
-// TÃ¼m artistler (admin)
+// TÖÂ¼m artistler (admin)
 router.get('/admin/music/artists', (req, res) => {
   try {
     const artists = db.prepare(`
@@ -542,18 +542,18 @@ router.get('/admin/music/artists', (req, res) => {
     `).all();
     res.json(artists);
   } catch(e) {
-    res.status(500).json({ error: 'Artistler alÄ±namadÄ±' });
+    res.status(500).json({ error: 'Artistler alÖÂ±namadÖÂ±' });
   }
 });
 
-// Artist askÄ±ya al
+// Artist askÖÂ±ya al
 router.put('/admin/music/artist/:artistId/suspend', (req, res) => {
   try {
     const { suspend } = req.body;
     db.prepare('UPDATE music_artists SET is_suspended = ? WHERE id = ?').run(suspend ? 1 : 0, req.params.artistId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
+    res.status(500).json({ error: 'ÖÂ°ÖÂlem baÖÂarÖÂ±sÖÂ±z' });
   }
 });
 
@@ -567,7 +567,7 @@ router.delete('/admin/music/artist/:artistId', (req, res) => {
   }
 });
 
-// Artist dÃ¼zenle
+// Artist dÖÂ¼zenle
 router.put('/admin/music/artist/:artistId', (req, res) => {
   try {
     const { artist_name, artist_alias, bio } = req.body;
@@ -575,70 +575,70 @@ router.put('/admin/music/artist/:artistId', (req, res) => {
       .run(artist_name, artist_alias, bio, req.params.artistId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Artist dÃ¼zenlenemedi' });
+    res.status(500).json({ error: 'Artist dÖÂ¼zenlenemedi' });
   }
 });
 
 module.exports = router;
 
-// ==================== BYPASS ÅÄ°FRESÄ° ====================
+// ==================== BYPASS ÖÂÖÂ°FRESÖÂ° ====================
 
-// Bypass Åifresini getir
+// Bypass ÖÂifresini getir
 router.get('/admin/bypass-password', (req, res) => {
   try {
     const setting = db.prepare("SELECT value FROM admin_settings WHERE key = 'bypass_password'").get();
     res.json({ password: setting?.value || '' });
   } catch(e) {
-    res.status(500).json({ error: 'AlÄ±namadÄ±' });
+    res.status(500).json({ error: 'AlÖÂ±namadÖÂ±' });
   }
 });
 
-// Bypass Åifresini gÃ¼ncelle
+// Bypass ÖÂifresini gÖÂ¼ncelle
 router.put('/admin/bypass-password', (req, res) => {
   try {
     const { password } = req.body;
-    if (!password || password.length < 8) return res.status(400).json({ error: 'Åifre en az 8 karakter olmalÄ±' });
+    if (!password || password.length < 8) return res.status(400).json({ error: 'ÖÂifre en az 8 karakter olmalÖÂ±' });
     db.prepare("INSERT OR REPLACE INTO admin_settings (key, value) VALUES ('bypass_password', ?)").run(password);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'GÃ¼ncellenemedi' });
+    res.status(500).json({ error: 'GÖÂ¼ncellenemedi' });
   }
 });
 
-// ==================== KIRMIZI TÄ°K ====================
+// ==================== KIRMIZI TÖÂ°K ====================
 
-// KÄ±rmÄ±zÄ± tik ver
+// KÖÂ±rmÖÂ±zÖÂ± tik ver
 router.post('/admin/user/:userId/red-verify', (req, res) => {
   try {
     db.prepare('UPDATE users SET is_red_verified = 1 WHERE id = ?').run(req.params.userId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
+    res.status(500).json({ error: 'ÖÂ°ÖÂlem baÖÂarÖÂ±sÖÂ±z' });
   }
 });
 
-// KÄ±rmÄ±zÄ± tik al
+// KÖÂ±rmÖÂ±zÖÂ± tik al
 router.delete('/admin/user/:userId/red-verify', (req, res) => {
   try {
     db.prepare('UPDATE users SET is_red_verified = 0 WHERE id = ?').run(req.params.userId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Ä°Ålem baÅarÄ±sÄ±z' });
+    res.status(500).json({ error: 'ÖÂ°ÖÂlem baÖÂarÖÂ±sÖÂ±z' });
   }
 });
 
-// ==================== FIREBASE ADMIN - MESAJLAÅMA ====================
-// Firebase Admin SDK'yÄ± yÃ¼kle
+// ==================== FIREBASE ADMIN - MESAJLAÖÂMA ====================
+// Firebase Admin SDK'yÖÂ± yÖÂ¼kle
 let firebaseAdmin = null;
 try {
   firebaseAdmin = require('./firebase-admin');
 } catch(e) {
-  console.warn('â ï¸ Firebase Admin SDK yÃ¼klenmedi. MesajlaÅma Ã¶zellikleri Ã§alÄ±Åmayacak.');
+  console.warn('Ö¢ÂÂ Ö¯Â¸Â Firebase Admin SDK yÖÂ¼klenmedi. MesajlaÖÂma ÖÂ¶zellikleri ÖÂ§alÖÂ±ÖÂmayacak.');
 }
 
-// TÃ¼m DM konuÅmalarÄ±nÄ± listele
+// TÖÂ¼m DM konuÖÂmalarÖÂ±nÖÂ± listele
 router.get('/admin/firebase/conversations', async (req, res) => {
-  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÄ±landÄ±rÄ±lmamÄ±Å' });
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÖÂ±landÖÂ±rÖÂ±lmamÖÂ±ÖÂ' });
   try {
     const snapshot = await firebaseAdmin.db.ref('conversations').once('value');
     const conversations = [];
@@ -647,13 +647,13 @@ router.get('/admin/firebase/conversations', async (req, res) => {
     });
     res.json(conversations);
   } catch(e) {
-    res.status(500).json({ error: 'KonuÅmalar alÄ±namadÄ±', message: e.message });
+    res.status(500).json({ error: 'KonuÖÂmalar alÖÂ±namadÖÂ±', message: e.message });
   }
 });
 
-// Belirli bir konuÅmanÄ±n mesajlarÄ±nÄ± getir
+// Belirli bir konuÖÂmanÖÂ±n mesajlarÖÂ±nÖÂ± getir
 router.get('/admin/firebase/messages/:conversationId', async (req, res) => {
-  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÄ±landÄ±rÄ±lmamÄ±Å' });
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÖÂ±landÖÂ±rÖÂ±lmamÖÂ±ÖÂ' });
   try {
     const snapshot = await firebaseAdmin.db.ref(`messages/${req.params.conversationId}`).once('value');
     const messages = [];
@@ -662,13 +662,13 @@ router.get('/admin/firebase/messages/:conversationId', async (req, res) => {
     });
     res.json(messages);
   } catch(e) {
-    res.status(500).json({ error: 'Mesajlar alÄ±namadÄ±', message: e.message });
+    res.status(500).json({ error: 'Mesajlar alÖÂ±namadÖÂ±', message: e.message });
   }
 });
 
-// Admin olarak mesaj gÃ¶nder
+// Admin olarak mesaj gÖÂ¶nder
 router.post('/admin/firebase/send-message', async (req, res) => {
-  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÄ±landÄ±rÄ±lmamÄ±Å' });
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÖÂ±landÖÂ±rÖÂ±lmamÖÂ±ÖÂ' });
   try {
     const { conversationId, senderId, text, type = 'text' } = req.body;
     const messageRef = firebaseAdmin.db.ref(`messages/${conversationId}`).push();
@@ -681,13 +681,13 @@ router.post('/admin/firebase/send-message', async (req, res) => {
     });
     res.json({ success: true, messageId: messageRef.key });
   } catch(e) {
-    res.status(500).json({ error: 'Mesaj gÃ¶nderilemedi', message: e.message });
+    res.status(500).json({ error: 'Mesaj gÖÂ¶nderilemedi', message: e.message });
   }
 });
 
 // Mesaj sil
 router.delete('/admin/firebase/message/:conversationId/:messageId', async (req, res) => {
-  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÄ±landÄ±rÄ±lmamÄ±Å' });
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÖÂ±landÖÂ±rÖÂ±lmamÖÂ±ÖÂ' });
   try {
     await firebaseAdmin.db.ref(`messages/${req.params.conversationId}/${req.params.messageId}`).remove();
     res.json({ success: true });
@@ -696,11 +696,11 @@ router.delete('/admin/firebase/message/:conversationId/:messageId', async (req, 
   }
 });
 
-// ==================== FIREBASE ADMIN - GRUP YÃNETÄ°MÄ° ====================
+// ==================== FIREBASE ADMIN - GRUP YÖÂNETÖÂ°MÖÂ° ====================
 
-// TÃ¼m grup mesajlarÄ±nÄ± listele
+// TÖÂ¼m grup mesajlarÖÂ±nÖÂ± listele
 router.get('/admin/firebase/group-messages/:groupId', async (req, res) => {
-  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÄ±landÄ±rÄ±lmamÄ±Å' });
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÖÂ±landÖÂ±rÖÂ±lmamÖÂ±ÖÂ' });
   try {
     const snapshot = await firebaseAdmin.db.ref(`groupMessages/${req.params.groupId}`).once('value');
     const messages = [];
@@ -709,13 +709,13 @@ router.get('/admin/firebase/group-messages/:groupId', async (req, res) => {
     });
     res.json(messages);
   } catch(e) {
-    res.status(500).json({ error: 'Grup mesajlarÄ± alÄ±namadÄ±', message: e.message });
+    res.status(500).json({ error: 'Grup mesajlarÖÂ± alÖÂ±namadÖÂ±', message: e.message });
   }
 });
 
-// Admin olarak gruba mesaj gÃ¶nder
+// Admin olarak gruba mesaj gÖÂ¶nder
 router.post('/admin/firebase/send-group-message', async (req, res) => {
-  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÄ±landÄ±rÄ±lmamÄ±Å' });
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÖÂ±landÖÂ±rÖÂ±lmamÖÂ±ÖÂ' });
   try {
     const { groupId, senderId, text, type = 'text' } = req.body;
     const messageRef = firebaseAdmin.db.ref(`groupMessages/${groupId}`).push();
@@ -727,57 +727,57 @@ router.post('/admin/firebase/send-group-message', async (req, res) => {
     });
     res.json({ success: true, messageId: messageRef.key });
   } catch(e) {
-    res.status(500).json({ error: 'Grup mesajÄ± gÃ¶nderilemedi', message: e.message });
+    res.status(500).json({ error: 'Grup mesajÖÂ± gÖÂ¶nderilemedi', message: e.message });
   }
 });
 
-// Grup mesajÄ± sil
+// Grup mesajÖÂ± sil
 router.delete('/admin/firebase/group-message/:groupId/:messageId', async (req, res) => {
-  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÄ±landÄ±rÄ±lmamÄ±Å' });
+  if (!firebaseAdmin) return res.status(503).json({ error: 'Firebase Admin SDK yapÖÂ±landÖÂ±rÖÂ±lmamÖÂ±ÖÂ' });
   try {
     await firebaseAdmin.db.ref(`groupMessages/${req.params.groupId}/${req.params.messageId}`).remove();
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Grup mesajÄ± silinemedi', message: e.message });
+    res.status(500).json({ error: 'Grup mesajÖÂ± silinemedi', message: e.message });
   }
 });
 
-// ==================== GRUP YÃNETÄ°MÄ° (SQL) ====================
+// ==================== GRUP YÖÂNETÖÂ°MÖÂ° (SQL) ====================
 
-// Grup adÄ±nÄ± deÄiÅtir
+// Grup adÖÂ±nÖÂ± deÖÂiÖÂtir
 router.put('/admin/group/:groupId/name', (req, res) => {
   try {
     const { name } = req.body;
     db.prepare('UPDATE groups SET name = ? WHERE id = ?').run(name, req.params.groupId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Grup adÄ± deÄiÅtirilemedi' });
+    res.status(500).json({ error: 'Grup adÖÂ± deÖÂiÖÂtirilemedi' });
   }
 });
 
-// Grup aÃ§Ä±klamasÄ±nÄ± deÄiÅtir
+// Grup aÖÂ§ÖÂ±klamasÖÂ±nÖÂ± deÖÂiÖÂtir
 router.put('/admin/group/:groupId/description', (req, res) => {
   try {
     const { description } = req.body;
     db.prepare('UPDATE groups SET description = ? WHERE id = ?').run(description, req.params.groupId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Grup aÃ§Ä±klamasÄ± deÄiÅtirilemedi' });
+    res.status(500).json({ error: 'Grup aÖÂ§ÖÂ±klamasÖÂ± deÖÂiÖÂtirilemedi' });
   }
 });
 
-// Grup Ã¼yesini Ã§Ä±kar
+// Grup ÖÂ¼yesini ÖÂ§ÖÂ±kar
 router.delete('/admin/group/:groupId/member/:userId', (req, res) => {
   try {
     db.prepare('DELETE FROM group_members WHERE group_id = ? AND user_id = ?')
       .run(req.params.groupId, req.params.userId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Ãye Ã§Ä±karÄ±lamadÄ±' });
+    res.status(500).json({ error: 'ÖÂye ÖÂ§ÖÂ±karÖÂ±lamadÖÂ±' });
   }
 });
 
-// Grup Ã¼yesinin rolÃ¼nÃ¼ deÄiÅtir
+// Grup ÖÂ¼yesinin rolÖÂ¼nÖÂ¼ deÖÂiÖÂtir
 router.put('/admin/group/:groupId/member/:userId/role', (req, res) => {
   try {
     const { role } = req.body; // owner, moderator, member
@@ -785,7 +785,7 @@ router.put('/admin/group/:groupId/member/:userId/role', (req, res) => {
       .run(role, req.params.groupId, req.params.userId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Rol deÄiÅtirilemedi' });
+    res.status(500).json({ error: 'Rol deÖÂiÖÂtirilemedi' });
   }
 });
 
@@ -800,17 +800,17 @@ router.delete('/admin/group/:groupId', (req, res) => {
   }
 });
 
-// ==================== ROZET YÃNETÄ°MÄ° ====================
+// ==================== ROZET YÖÂNETÖÂ°MÖÂ° ====================
 
-// TÃ¼m rozetler
+// TÖÂ¼m rozetler
 router.get('/admin/badges', (req, res) => {
   try {
     const badges = db.prepare('SELECT * FROM badges ORDER BY created_at DESC').all();
     res.json(badges);
-  } catch(e) { res.status(500).json({ error: 'Rozetler alÄ±namadÄ±' }); }
+  } catch(e) { res.status(500).json({ error: 'Rozetler alÖÂ±namadÖÂ±' }); }
 });
 
-// Rozet oluÅtur
+// Rozet oluÖÂtur
 router.post('/admin/badges', (req, res) => {
   try {
     const { name, icon, color, nameColor, description } = req.body;
@@ -818,17 +818,17 @@ router.post('/admin/badges', (req, res) => {
     const result = db.prepare('INSERT INTO badges (name, icon, color, name_color, description) VALUES (?, ?, ?, ?, ?)')
       .run(name, icon, color || '#ffffff', nameColor || '#ffffff', description || null);
     res.json({ success: true, badgeId: result.lastInsertRowid });
-  } catch(e) { res.status(500).json({ error: 'Rozet oluÅturulamadÄ±' }); }
+  } catch(e) { res.status(500).json({ error: 'Rozet oluÖÂturulamadÖÂ±' }); }
 });
 
-// Rozet gÃ¼ncelle
+// Rozet gÖÂ¼ncelle
 router.put('/admin/badges/:id', (req, res) => {
   try {
     const { name, icon, color, nameColor, description } = req.body;
     db.prepare('UPDATE badges SET name=?, icon=?, color=?, name_color=?, description=? WHERE id=?')
       .run(name, icon, color, nameColor, description, req.params.id);
     res.json({ success: true });
-  } catch(e) { res.status(500).json({ error: 'Rozet gÃ¼ncellenemedi' }); }
+  } catch(e) { res.status(500).json({ error: 'Rozet gÖÂ¼ncellenemedi' }); }
 });
 
 // Rozet sil
@@ -839,7 +839,7 @@ router.delete('/admin/badges/:id', (req, res) => {
   } catch(e) { res.status(500).json({ error: 'Rozet silinemedi' }); }
 });
 
-// KullanÄ±cÄ±ya rozet ver
+// KullanÖÂ±cÖÂ±ya rozet ver
 router.post('/admin/badges/:badgeId/assign/:userId', (req, res) => {
   try {
     db.prepare('INSERT OR IGNORE INTO user_badges (user_id, badge_id) VALUES (?, ?)').run(req.params.userId, req.params.badgeId);
@@ -847,15 +847,15 @@ router.post('/admin/badges/:badgeId/assign/:userId', (req, res) => {
   } catch(e) { res.status(500).json({ error: 'Rozet verilemedi' }); }
 });
 
-// KullanÄ±cÄ±dan rozet al
+// KullanÖÂ±cÖÂ±dan rozet al
 router.delete('/admin/badges/:badgeId/revoke/:userId', (req, res) => {
   try {
     db.prepare('DELETE FROM user_badges WHERE user_id=? AND badge_id=?').run(req.params.userId, req.params.badgeId);
     res.json({ success: true });
-  } catch(e) { res.status(500).json({ error: 'Rozet alÄ±namadÄ±' }); }
+  } catch(e) { res.status(500).json({ error: 'Rozet alÖÂ±namadÖÂ±' }); }
 });
 
-// KullanÄ±cÄ±nÄ±n rozetleri
+// KullanÖÂ±cÖÂ±nÖÂ±n rozetleri
 router.get('/admin/users/:userId/badges', (req, res) => {
   try {
     const badges = db.prepare(`
@@ -864,24 +864,24 @@ router.get('/admin/users/:userId/badges', (req, res) => {
       WHERE ub.user_id = ?
     `).all(req.params.userId);
     res.json(badges);
-  } catch(e) { res.status(500).json({ error: 'Rozetler alÄ±namadÄ±' }); }
+  } catch(e) { res.status(500).json({ error: 'Rozetler alÖÂ±namadÖÂ±' }); }
 });
 
-// ==================== DUYURU SÄ°STEMÄ° ====================
+// ==================== DUYURU SÖÂ°STEMÖÂ° ====================
 
-// TÃ¼m duyurular
+// TÖÂ¼m duyurular
 router.get('/admin/announcements', (req, res) => {
   try {
     const list = db.prepare('SELECT * FROM announcements ORDER BY created_at DESC').all();
     res.json(list);
-  } catch(e) { res.status(500).json({ error: 'Duyurular alÄ±namadÄ±' }); }
+  } catch(e) { res.status(500).json({ error: 'Duyurular alÖÂ±namadÖÂ±' }); }
 });
 
-// Duyuru oluÅtur
+// Duyuru oluÖÂtur
 router.post('/admin/announcements', (req, res) => {
   try {
     const { title, content, type, durationSeconds } = req.body;
-    if (!title || !content) return res.status(400).json({ error: 'BaÅlÄ±k ve iÃ§erik gerekli' });
+    if (!title || !content) return res.status(400).json({ error: 'BaÖÂlÖÂ±k ve iÖÂ§erik gerekli' });
     let expiresAt = null;
     if (type === 'timed' && durationSeconds) {
       expiresAt = new Date(Date.now() + durationSeconds * 1000).toISOString();
@@ -891,16 +891,16 @@ router.post('/admin/announcements', (req, res) => {
     const result = db.prepare('INSERT INTO announcements (title, content, type, duration_seconds, expires_at) VALUES (?, ?, ?, ?, ?)')
       .run(title, content, type || 'permanent', durationSeconds || null, expiresAt);
     res.json({ success: true, id: result.lastInsertRowid });
-  } catch(e) { res.status(500).json({ error: 'Duyuru oluÅturulamadÄ±' }); }
+  } catch(e) { res.status(500).json({ error: 'Duyuru oluÖÂturulamadÖÂ±' }); }
 });
 
-// Duyuru gÃ¼ncelle
+// Duyuru gÖÂ¼ncelle
 router.put('/admin/announcements/:id', (req, res) => {
   try {
     const { title, content } = req.body;
     db.prepare('UPDATE announcements SET title=?, content=? WHERE id=?').run(title, content, req.params.id);
     res.json({ success: true });
-  } catch(e) { res.status(500).json({ error: 'GÃ¼ncellenemedi' }); }
+  } catch(e) { res.status(500).json({ error: 'GÖÂ¼ncellenemedi' }); }
 });
 
 // Duyuru sil
@@ -911,7 +911,7 @@ router.delete('/admin/announcements/:id', (req, res) => {
   } catch(e) { res.status(500).json({ error: 'Silinemedi' }); }
 });
 
-// Aktif duyurularÄ± getir (kullanÄ±cÄ± tarafÄ±)
+// Aktif duyurularÖÂ± getir (kullanÖÂ±cÖÂ± tarafÖÂ±)
 router.get('/announcements/active', (req, res) => {
   try {
     const list = db.prepare(`
@@ -921,11 +921,11 @@ router.get('/announcements/active', (req, res) => {
       ORDER BY created_at DESC
     `).all();
     res.json(list);
-  } catch(e) { res.status(500).json({ error: 'Duyurular alÄ±namadÄ±' }); }
+  } catch(e) { res.status(500).json({ error: 'Duyurular alÖÂ±namadÖÂ±' }); }
 });
-// ==================== GRUPLAR YÃNETÄ°MÄ° ====================
+// ==================== GRUPLAR YÖÂNETÖÂ°MÖÂ° ====================
 
-// TÃ¼m gruplarÄ± getir
+// TÖÂ¼m gruplarÖÂ± getir
 router.get('/admin/groups', (req, res) => {
   try {
     const groups = db.prepare(`
@@ -941,17 +941,17 @@ router.get('/admin/groups', (req, res) => {
   }
 });
 
-// Grup mesajlarÄ±nÄ± getir
+// Grup mesajlarÖÂ±nÖÂ± getir
 router.get('/admin/group-messages/:groupId', (req, res) => {
   try {
-    // Firebase'den grup mesajlarÄ±nÄ± alamayÄ±z, sadece bilgi verelim
-    // GerÃ§ek uygulamada Firebase Admin SDK kullanÄ±lmalÄ±
+    // Firebase'den grup mesajlarÖÂ±nÖÂ± alamayÖÂ±z, sadece bilgi verelim
+    // GerÖÂ§ek uygulamada Firebase Admin SDK kullanÖÂ±lmalÖÂ±
     res.json([
       {
         id: 1,
         nickname: 'Sistem',
         profile_photo: 'logoteatube.png',
-        message: 'Bu grup Firebase Ã¼zerinde Ã§alÄ±ÅÄ±yor. MesajlarÄ± gÃ¶rÃ¼ntÃ¼lemek iÃ§in Firebase Admin SDK gerekli.',
+        message: 'Bu grup Firebase ÖÂ¼zerinde ÖÂ§alÖÂ±ÖÂÖÂ±yor. MesajlarÖÂ± gÖÂ¶rÖÂ¼ntÖÂ¼lemek iÖÂ§in Firebase Admin SDK gerekli.',
         created_at: new Date().toISOString()
       }
     ]);
@@ -960,15 +960,15 @@ router.get('/admin/group-messages/:groupId', (req, res) => {
   }
 });
 
-// Admin grup mesajÄ± gÃ¶nder
+// Admin grup mesajÖÂ± gÖÂ¶nder
 router.post('/admin/send-group-message', (req, res) => {
   try {
     const { groupId, message } = req.body;
     
-    // Firebase'e mesaj gÃ¶nderme iÅlemi burada yapÄ±lmalÄ±
-    // Åimdilik sadece baÅarÄ±lÄ± response dÃ¶ndÃ¼relim
+    // Firebase'e mesaj gÖÂ¶nderme iÖÂlemi burada yapÖÂ±lmalÖÂ±
+    // ÖÂimdilik sadece baÖÂarÖÂ±lÖÂ± response dÖÂ¶ndÖÂ¼relim
     
-    res.json({ success: true, message: 'Admin mesajÄ± gÃ¶nderildi (Firebase entegrasyonu gerekli)' });
+    res.json({ success: true, message: 'Admin mesajÖÂ± gÖÂ¶nderildi (Firebase entegrasyonu gerekli)' });
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
@@ -977,10 +977,10 @@ router.post('/admin/send-group-message', (req, res) => {
 // Grup sil
 router.delete('/admin/group/:groupId', (req, res) => {
   try {
-    // Ãnce grup Ã¼yelerini sil
+    // ÖÂnce grup ÖÂ¼yelerini sil
     db.prepare('DELETE FROM group_members WHERE group_id = ?').run(req.params.groupId);
     
-    // Grup katÄ±lÄ±m isteklerini sil
+    // Grup katÖÂ±lÖÂ±m isteklerini sil
     db.prepare('DELETE FROM group_join_requests WHERE group_id = ?').run(req.params.groupId);
     
     // Grubu sil
@@ -989,19 +989,19 @@ router.delete('/admin/group/:groupId', (req, res) => {
     if (result.changes > 0) {
       res.json({ success: true });
     } else {
-      res.status(404).json({ error: 'Grup bulunamadÄ±' });
+      res.status(404).json({ error: 'Grup bulunamadÖÂ±' });
     }
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// ==================== MESAJLAÅMA GÃZETÄ°MÄ° ====================
+// ==================== MESAJLAÖÂMA GÖÂZETÖÂ°MÖÂ° ====================
 
-// TÃ¼m mesajlaÅmalarÄ± getir (Ã¶zet)
+// TÖÂ¼m mesajlaÖÂmalarÖÂ± getir (ÖÂ¶zet)
 router.get('/admin/all-messages', (req, res) => {
   try {
-    // Firebase mesajlarÄ± DB'de olmadÄ±ÄÄ± iÃ§in sadece arkadaÅlÄ±k listesini dÃ¶ndÃ¼relim
+    // Firebase mesajlarÖÂ± DB'de olmadÖÂ±ÖÂÖÂ± iÖÂ§in sadece arkadaÖÂlÖÂ±k listesini dÖÂ¶ndÖÂ¼relim
     const conversations = db.prepare(`
       SELECT 
         f.sender_id as user1_id,
@@ -1010,7 +1010,7 @@ router.get('/admin/all-messages', (req, res) => {
         u1.profile_photo as user1_profile_photo,
         u2.nickname as user2_nickname,
         u2.profile_photo as user2_profile_photo,
-        'Firebase mesajlarÄ±' as last_message,
+        'Firebase mesajlarÖÂ±' as last_message,
         0 as message_count,
         f.created_at as last_activity
       FROM friendships f
@@ -1026,12 +1026,12 @@ router.get('/admin/all-messages', (req, res) => {
   }
 });
 
-// Belirli konuÅmayÄ± getir
+// Belirli konuÖÂmayÖÂ± getir
 router.get('/admin/conversation/:user1Id/:user2Id', (req, res) => {
   try {
     const { user1Id, user2Id } = req.params;
     
-    // Firebase'den mesajlarÄ± alamayÄ±z, bilgi mesajÄ± dÃ¶ndÃ¼relim
+    // Firebase'den mesajlarÖÂ± alamayÖÂ±z, bilgi mesajÖÂ± dÖÂ¶ndÖÂ¼relim
     const user1 = db.prepare('SELECT nickname, profile_photo FROM users WHERE id = ?').get(user1Id);
     const user2 = db.prepare('SELECT nickname, profile_photo FROM users WHERE id = ?').get(user2Id);
     
@@ -1040,7 +1040,7 @@ router.get('/admin/conversation/:user1Id/:user2Id', (req, res) => {
         id: 1,
         nickname: 'Sistem',
         profile_photo: 'logoteatube.png',
-        message: `${user1?.nickname || 'KullanÄ±cÄ±'} ve ${user2?.nickname || 'KullanÄ±cÄ±'} arasÄ±ndaki mesajlar Firebase Ã¼zerinde saklanÄ±yor. MesajlarÄ± gÃ¶rÃ¼ntÃ¼lemek iÃ§in Firebase Admin SDK entegrasyonu gerekli.`,
+        message: `${user1?.nickname || 'KullanÖÂ±cÖÂ±'} ve ${user2?.nickname || 'KullanÖÂ±cÖÂ±'} arasÖÂ±ndaki mesajlar Firebase ÖÂ¼zerinde saklanÖÂ±yor. MesajlarÖÂ± gÖÂ¶rÖÂ¼ntÖÂ¼lemek iÖÂ§in Firebase Admin SDK entegrasyonu gerekli.`,
         created_at: new Date().toISOString()
       }
     ];
@@ -1050,15 +1050,15 @@ router.get('/admin/conversation/:user1Id/:user2Id', (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-// ==================== ROZET YÃNETÄ°MÄ° ====================
+// ==================== ROZET YÖÂNETÖÂ°MÖÂ° ====================
 
-// Rozet oluÅtur
+// Rozet oluÖÂtur
 router.post('/admin/badges', (req, res) => {
   try {
     const { name, icon, color, nameColor, description } = req.body;
     
     if (!name || !icon) {
-      return res.status(400).json({ error: 'Rozet adÄ± ve ikon gerekli' });
+      return res.status(400).json({ error: 'Rozet adÖÂ± ve ikon gerekli' });
     }
     
     const result = db.prepare(
@@ -1071,20 +1071,20 @@ router.post('/admin/badges', (req, res) => {
   }
 });
 
-// Rozet gÃ¼ncelle
+// Rozet gÖÂ¼ncelle
 router.put('/admin/badges/:badgeId', (req, res) => {
   try {
     const { name, icon, color, nameColor, description } = req.body;
     const { badgeId } = req.params;
     
-    // Sistem rozetlerini gÃ¼ncellemeyi engelle
+    // Sistem rozetlerini gÖÂ¼ncellemeyi engelle
     const badge = db.prepare('SELECT is_system FROM badges WHERE id = ?').get(badgeId);
     if (!badge) {
-      return res.status(404).json({ error: 'Rozet bulunamadÄ±' });
+      return res.status(404).json({ error: 'Rozet bulunamadÖÂ±' });
     }
     
     if (badge.is_system) {
-      return res.status(400).json({ error: 'Sistem rozetleri dÃ¼zenlenemez' });
+      return res.status(400).json({ error: 'Sistem rozetleri dÖÂ¼zenlenemez' });
     }
     
     const result = db.prepare(
@@ -1094,7 +1094,7 @@ router.put('/admin/badges/:badgeId', (req, res) => {
     if (result.changes > 0) {
       res.json({ success: true });
     } else {
-      res.status(404).json({ error: 'Rozet bulunamadÄ±' });
+      res.status(404).json({ error: 'Rozet bulunamadÖÂ±' });
     }
   } catch(e) {
     res.status(500).json({ error: e.message });
@@ -1109,17 +1109,17 @@ router.delete('/admin/badges/:badgeId', (req, res) => {
     // Sistem rozetlerini silmeyi engelle
     const badge = db.prepare('SELECT is_system FROM badges WHERE id = ?').get(badgeId);
     if (!badge) {
-      return res.status(404).json({ error: 'Rozet bulunamadÄ±' });
+      return res.status(404).json({ error: 'Rozet bulunamadÖÂ±' });
     }
     
     if (badge.is_system) {
       return res.status(400).json({ error: 'Sistem rozetleri silinemez' });
     }
     
-    // Ãnce kullanÄ±cÄ± rozetlerini sil
+    // ÖÂnce kullanÖÂ±cÖÂ± rozetlerini sil
     db.prepare('DELETE FROM user_badges WHERE badge_id = ?').run(badgeId);
     
-    // Aktif rozet olarak ayarlanmÄ±Åsa kaldÄ±r
+    // Aktif rozet olarak ayarlanmÖÂ±ÖÂsa kaldÖÂ±r
     db.prepare('UPDATE users SET active_badge_id = NULL WHERE active_badge_id = ?').run(badgeId);
     
     // Rozeti sil
@@ -1128,34 +1128,34 @@ router.delete('/admin/badges/:badgeId', (req, res) => {
     if (result.changes > 0) {
       res.json({ success: true });
     } else {
-      res.status(404).json({ error: 'Rozet bulunamadÄ±' });
+      res.status(404).json({ error: 'Rozet bulunamadÖÂ±' });
     }
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// KullanÄ±cÄ±ya rozet ver
+// KullanÖÂ±cÖÂ±ya rozet ver
 router.post('/admin/badges/:badgeId/assign/:userId', (req, res) => {
   try {
     const { badgeId, userId } = req.params;
     
-    // KullanÄ±cÄ± ve rozet var mÄ± kontrol et
+    // KullanÖÂ±cÖÂ± ve rozet var mÖÂ± kontrol et
     const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
     const badge = db.prepare('SELECT id FROM badges WHERE id = ?').get(badgeId);
     
     if (!user) {
-      return res.status(404).json({ error: 'KullanÄ±cÄ± bulunamadÄ±' });
+      return res.status(404).json({ error: 'KullanÖÂ±cÖÂ± bulunamadÖÂ±' });
     }
     
     if (!badge) {
-      return res.status(404).json({ error: 'Rozet bulunamadÄ±' });
+      return res.status(404).json({ error: 'Rozet bulunamadÖÂ±' });
     }
     
-    // Zaten var mÄ± kontrol et
+    // Zaten var mÖÂ± kontrol et
     const existing = db.prepare('SELECT id FROM user_badges WHERE user_id = ? AND badge_id = ?').get(userId, badgeId);
     if (existing) {
-      return res.status(400).json({ error: 'KullanÄ±cÄ±da bu rozet zaten var' });
+      return res.status(400).json({ error: 'KullanÖÂ±cÖÂ±da bu rozet zaten var' });
     }
     
     // Rozeti ver
@@ -1167,57 +1167,57 @@ router.post('/admin/badges/:badgeId/assign/:userId', (req, res) => {
   }
 });
 
-// KullanÄ±cÄ±nÄ±n aktif rozetini ayarla
+// KullanÖÂ±cÖÂ±nÖÂ±n aktif rozetini ayarla
 router.put('/admin/users/:userId/active-badge', (req, res) => {
   try {
     const { userId } = req.params;
     const { badgeId } = req.body;
     
-    // KullanÄ±cÄ±nÄ±n bu rozeti var mÄ± kontrol et
+    // KullanÖÂ±cÖÂ±nÖÂ±n bu rozeti var mÖÂ± kontrol et
     if (badgeId) {
       const userBadge = db.prepare('SELECT id FROM user_badges WHERE user_id = ? AND badge_id = ?').get(userId, badgeId);
       if (!userBadge) {
-        return res.status(400).json({ error: 'KullanÄ±cÄ±da bu rozet yok' });
+        return res.status(400).json({ error: 'KullanÖÂ±cÖÂ±da bu rozet yok' });
       }
     }
     
-    // Aktif rozeti ayarla (null ise kaldÄ±r)
+    // Aktif rozeti ayarla (null ise kaldÖÂ±r)
     const result = db.prepare('UPDATE users SET active_badge_id = ? WHERE id = ?').run(badgeId || null, userId);
     
     if (result.changes > 0) {
       res.json({ success: true });
     } else {
-      res.status(404).json({ error: 'KullanÄ±cÄ± bulunamadÄ±' });
+      res.status(404).json({ error: 'KullanÖÂ±cÖÂ± bulunamadÖÂ±' });
     }
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// KullanÄ±cÄ±dan rozet al
+// KullanÖÂ±cÖÂ±dan rozet al
 router.delete('/admin/badges/:badgeId/remove/:userId', (req, res) => {
   try {
     const { badgeId, userId } = req.params;
     
-    // Rozeti kaldÄ±r
+    // Rozeti kaldÖÂ±r
     const result = db.prepare('DELETE FROM user_badges WHERE user_id = ? AND badge_id = ?').run(userId, badgeId);
     
-    // EÄer aktif rozetiyse kaldÄ±r
+    // EÖÂer aktif rozetiyse kaldÖÂ±r
     db.prepare('UPDATE users SET active_badge_id = NULL WHERE id = ? AND active_badge_id = ?').run(userId, badgeId);
     
     if (result.changes > 0) {
       res.json({ success: true });
     } else {
-      res.status(404).json({ error: 'KullanÄ±cÄ±da bu rozet yok' });
+      res.status(404).json({ error: 'KullanÖÂ±cÖÂ±da bu rozet yok' });
     }
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// ==================== YAŞ SINIRI AYARLARI ====================
+// ==================== YAş SINIRI AYARLARI ====================
 
-// Yaş sınırı ayarını getir
+// Yaş sınırı ayarını getir
 router.get('/admin/age-settings', (req, res) => {
   try {
     const minAge = db.prepare("SELECT value FROM admin_settings WHERE key = 'min_age'").get();
@@ -1226,7 +1226,7 @@ router.get('/admin/age-settings', (req, res) => {
   } catch(e) { res.status(500).json({ error: 'Alinamadi' }); }
 });
 
-// Yaş sınırı ayarını güncelle
+// Yaş sınırı ayarını güncelle
 router.put('/admin/age-settings', (req, res) => {
   try {
     const { min_age, warning } = req.body;
@@ -1236,7 +1236,7 @@ router.put('/admin/age-settings', (req, res) => {
   } catch(e) { res.status(500).json({ error: 'Guncellenemedi' }); }
 });
 
-// Kullanıcı doğum tarihini güncelle (admin)
+// Kullanıcı doum tarihini güncelle (admin)
 router.put('/admin/user/:userId/birth-date', (req, res) => {
   try {
     const { birth_date } = req.body;
@@ -1276,13 +1276,13 @@ router.put('/admin/music/song/:songId/detail', (req, res) => {
   }
 });
 
-// Admin giriş (sadece şifre ile)
+// Admin giriş (sadece şifre ile)
 router.post('/admin/login-password', async (req, res) => {
   try {
     const { password } = req.body;
     
     if (!password) {
-      return res.status(400).json({ error: 'Şifre gerekli' });
+      return res.status(400).json({ error: 'şifre gerekli' });
     }
     
     // AdminTeaS kullanıcısını al
@@ -1291,39 +1291,39 @@ router.post('/admin/login-password', async (req, res) => {
       return res.status(401).json({ error: 'Admin bulunamadı' });
     }
     
-    // Şifreyi kontrol et
+    // şifreyi kontrol et
     const valid = await bcrypt.compare(password, admin.password);
     if (!valid) {
-      return res.status(401).json({ error: 'Hatalı şifre' });
+      return res.status(401).json({ error: 'Hatalı şifre' });
     }
     
-    // Başarılı giriş
+    // Başarılı giriş
     const { password: _, ...adminData } = admin;
     res.json({ success: true, admin: adminData });
   } catch(e) {
     console.error('Admin login error:', e);
-    res.status(500).json({ error: 'Giriş hatası' });
+    res.status(500).json({ error: 'Giriş hatası' });
   }
 });
 
 
-// ==================== KULLANIM KOŞULLARI YÖNETİMİ ====================
+// ==================== KULLANIM KOşULLARI YÖNET°M° ====================
 
-// Kullanım koşullarını getir
+// Kullanım koşullarını getir
 router.get('/admin/terms', (req, res) => {
   try {
     const terms = db.prepare('SELECT * FROM terms_of_service ORDER BY version DESC LIMIT 1').get();
     res.json(terms || { content: '', version: 0 });
   } catch(e) {
-    res.status(500).json({ error: 'Kullanım koşulları alınamadı' });
+    res.status(500).json({ error: 'Kullanım koşulları alınamadı' });
   }
 });
 
-// Kullanım koşullarını güncelle
+// Kullanım koşullarını güncelle
 router.put('/admin/terms', (req, res) => {
   try {
     const { content, adminId } = req.body;
-    if (!content) return res.status(400).json({ error: 'İçerik gerekli' });
+    if (!content) return res.status(400).json({ error: '°çerik gerekli' });
     
     // Mevcut versiyonu al
     const current = db.prepare('SELECT version FROM terms_of_service ORDER BY version DESC LIMIT 1').get();
@@ -1335,23 +1335,23 @@ router.put('/admin/terms', (req, res) => {
     
     res.json({ success: true, version: newVersion });
   } catch(e) {
-    res.status(500).json({ error: 'Kullanım koşulları güncellenemedi' });
+    res.status(500).json({ error: 'Kullanım koşulları güncellenemedi' });
   }
 });
 
-// Kullanım koşulları geçmişi
+// Kullanım koşulları geçmişi
 router.get('/admin/terms/history', (req, res) => {
   try {
     const history = db.prepare('SELECT * FROM terms_of_service ORDER BY version DESC').all();
     res.json(history);
   } catch(e) {
-    res.status(500).json({ error: 'Geçmiş alınamadı' });
+    res.status(500).json({ error: 'Geçmiş alınamadı' });
   }
 });
 
-// ==================== VİDEO DETAYLI DÜZENLEME ====================
+// ==================== V°DEO DETAYLI DÖZENLEME ====================
 
-// Video detaylı düzenleme (başlık, açıklama, görüntüleme, beğeni, etiketler)
+// Video detaylı düzenleme (başlık, açıklama, görüntüleme, beeni, etiketler)
 router.put('/admin/video/:videoId/details', (req, res) => {
   try {
     const { title, description, views, likes, dislikes, tags } = req.body;
@@ -1388,12 +1388,12 @@ router.get('/admin/video/:videoId/details', (req, res) => {
   }
 });
 
-// ==================== KULLANICI PROFİL DÜZENLEMEsi ====================
+// ==================== KULLANICI PROF°L DÖZENLEMEsi ====================
 
-// Kullanıcı profil fotoğrafını değiştir
+// Kullanıcı profil fotorafını deiştir
 router.put('/admin/user/:userId/profile-photo', upload.single('photo'), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'Fotoğraf gerekli' });
+    if (!req.file) return res.status(400).json({ error: 'Fotoraf gerekli' });
     
     const photoUrl = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
@@ -1406,11 +1406,11 @@ router.put('/admin/user/:userId/profile-photo', upload.single('photo'), async (r
     db.prepare('UPDATE users SET profile_photo = ? WHERE id = ?').run(photoUrl, req.params.userId);
     res.json({ success: true, photoUrl });
   } catch(e) {
-    res.status(500).json({ error: 'Fotoğraf değiştirilemedi: ' + e.message });
+    res.status(500).json({ error: 'Fotoraf deiştirilemedi: ' + e.message });
   }
 });
 
-// Kullanıcı nickname değiştir
+// Kullanıcı nickname deiştir
 router.put('/admin/user/:userId/nickname', (req, res) => {
   try {
     const { nickname } = req.body;
@@ -1418,13 +1418,13 @@ router.put('/admin/user/:userId/nickname', (req, res) => {
     db.prepare('UPDATE users SET nickname = ? WHERE id = ?').run(nickname, req.params.userId);
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Nickname değiştirilemedi' });
+    res.status(500).json({ error: 'Nickname deiştirilemedi' });
   }
 });
 
-// ==================== ŞARKI DETAYLI DÜZENLEME ====================
+// ==================== şARKI DETAYLI DÖZENLEME ====================
 
-// Şarkı detaylı düzenleme (dinlenme, başlık, tür, artist)
+// şarkı detaylı düzenleme (dinlenme, başlık, tür, artist)
 router.put('/admin/music/song/:songId/full', (req, res) => {
   try {
     const { title, genre, play_count, company_name } = req.body;
@@ -1444,11 +1444,11 @@ router.put('/admin/music/song/:songId/full', (req, res) => {
     
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'Şarkı düzenlenemedi: ' + e.message });
+    res.status(500).json({ error: 'şarkı düzenlenemedi: ' + e.message });
   }
 });
 
-// Şarkı detaylarını getir
+// şarkı detaylarını getir
 router.get('/admin/music/song/:songId/details', (req, res) => {
   try {
     const song = db.prepare(`
@@ -1458,14 +1458,14 @@ router.get('/admin/music/song/:songId/details', (req, res) => {
       WHERE s.id = ?
     `).get(req.params.songId);
     
-    if (!song) return res.status(404).json({ error: 'Şarkı bulunamadı' });
+    if (!song) return res.status(404).json({ error: 'şarkı bulunamadı' });
     res.json(song);
   } catch(e) {
-    res.status(500).json({ error: 'Şarkı alınamadı' });
+    res.status(500).json({ error: 'şarkı alınamadı' });
   }
 });
 
-// ==================== KANAL DÜZENLEMEsi ====================
+// ==================== KANAL DÖZENLEMEsi ====================
 
 // Kanal detaylı düzenleme
 router.put('/admin/channel/:channelId/details', (req, res) => {
@@ -1491,7 +1491,7 @@ router.put('/admin/channel/:channelId/details', (req, res) => {
   }
 });
 
-// ==================== TOPLU İŞLEMLER ====================
+// ==================== TOPLU °şLEMLER ====================
 
 // Toplu video silme
 router.post('/admin/videos/bulk-delete', (req, res) => {
@@ -1528,7 +1528,7 @@ router.post('/admin/users/bulk-suspend', (req, res) => {
   }
 });
 
-// ==================== İSTATİSTİKLER (GELİŞMİŞ) ====================
+// ==================== °STAT°ST°KLER (GEL°şM°ş) ====================
 
 // Günlük/haftalık/aylık istatistikler
 router.get('/admin/stats/detailed', (req, res) => {
@@ -1564,7 +1564,7 @@ router.get('/admin/stats/detailed', (req, res) => {
       LIMIT 10
     `).all();
     
-    // En popüler şarkılar
+    // En popüler şarkılar
     const topSongs = db.prepare(`
       SELECT s.id, s.title, s.play_count, a.artist_name
       FROM songs s
@@ -1583,7 +1583,7 @@ router.get('/admin/stats/detailed', (req, res) => {
       topSongs
     });
   } catch(e) {
-    res.status(500).json({ error: 'İstatistikler alınamadı' });
+    res.status(500).json({ error: '°statistikler alınamadı' });
   }
 });
 
@@ -1606,7 +1606,7 @@ router.get('/admin/stats/active-users', (req, res) => {
   }
 });
 
-// ==================== REALS ETİKET YÖNETİMİ ====================
+// ==================== REALS ET°KET YÖNET°M° ====================
 
 // Tüm reals etiketlerini getir
 router.get('/admin/reals/tags', (req, res) => {
@@ -1638,7 +1638,7 @@ router.get('/admin/reals/tags', (req, res) => {
   }
 });
 
-// Reals etiketini değiştir (toplu)
+// Reals etiketini deiştir (toplu)
 router.put('/admin/reals/tags/replace', (req, res) => {
   try {
     const { oldTag, newTag } = req.body;
@@ -1660,7 +1660,7 @@ router.put('/admin/reals/tags/replace', (req, res) => {
     
     res.json({ success: true, updated });
   } catch(e) {
-    res.status(500).json({ error: 'Etiketler değiştirilemedi' });
+    res.status(500).json({ error: 'Etiketler deiştirilemedi' });
   }
 });
 

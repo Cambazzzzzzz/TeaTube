@@ -12,15 +12,19 @@ async function migrateAdminPassword() {
     const newPassword = 'admin123';
     const hashed = await bcrypt.hash(newPassword, 10);
     
-    const result = db.prepare('UPDATE admins SET password = ? WHERE username = ?')
-      .run(hashed, 'AdminTeaS');
-    
-    if (result.changes > 0) {
-      console.log('✅ Admin şifresi başarıyla güncellendi!');
-      console.log('   Şifre: admin123');
+    // admin_password tablosunu güncelle (/admin sayfası bunu kullanıyor)
+    const existing = db.prepare('SELECT id FROM admin_password WHERE id = 1').get();
+    if (existing) {
+      db.prepare('UPDATE admin_password SET password = ? WHERE id = 1').run(hashed);
     } else {
-      console.log('⚠️  Admin kullanıcısı bulunamadı veya zaten güncel');
+      db.prepare('INSERT INTO admin_password (id, password) VALUES (1, ?)').run(hashed);
     }
+    
+    // admins tablosunu da güncelle (eski sistem için)
+    db.prepare('UPDATE admins SET password = ? WHERE username = ?').run(hashed, 'AdminTeaS');
+    
+    console.log('✅ Admin şifresi başarıyla güncellendi!');
+    console.log('   Şifre: admin123');
   } catch (error) {
     console.error('❌ Migration hatası:', error.message);
   }
