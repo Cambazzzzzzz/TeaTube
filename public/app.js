@@ -869,12 +869,7 @@ function _initApp() {
   });
 }
 
-// _initApp'i DOMContentLoaded veya hemen çalıştır (dinamik yükleme için)
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', _initApp);
-} else {
-  _initApp();
-}
+// NOT: _initApp çağrısı dosyanın sonunda yapılıyor (tüm değişkenler tanımlandıktan sonra)
 
 // ==================== ULTRA GÜVENLİK: PERİYODİK OTURUM YEDEKLEME ====================
 // Her 10 saniyede bir oturum verilerini kontrol et ve yedekle
@@ -1402,7 +1397,7 @@ function logout() {
 }
 
 // ==================== URL ROUTING SİSTEMİ ====================
-const PAGE_ROUTES = {
+var PAGE_ROUTES = {
   'home': '/anasayfa',
   'reals': '/reals',
   'shorts': '/shorts',
@@ -12951,4 +12946,13 @@ function shareTextPost(textId, title, shareId) {
   } else {
     fallbackCopyText(url);
   }
+}
+
+
+// ==================== UYGULAMA BAŞLATMA ====================
+// Tüm değişkenler ve fonksiyonlar tanımlandıktan sonra çalıştır
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initApp);
+} else {
+  _initApp();
 }
