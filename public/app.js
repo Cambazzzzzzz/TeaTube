@@ -4436,11 +4436,14 @@ async function loadHomeVideos(category) {
     } else if (category === 'Popüler') {
       videos = await fetch(`${API_URL}/videos/popular?limit=24`).then(r => r.json()).catch(() => []);
     } else if (category === 'Abonelikler') {
-      videos = await fetch(`${API_URL}/videos/subscriptions/${currentUser.id}?limit=24`).then(r => r.json()).catch(() => []);
+      const uid = currentUser?.id || null;
+      videos = uid ? await fetch(`${API_URL}/videos/subscriptions/${uid}?limit=24`).then(r => r.json()).catch(() => []) : [];
     } else if (category === 'Önerilen') {
-      videos = await fetch(`${API_URL}/videos/recommended/${currentUser.id}?limit=24`).then(r => r.json()).catch(() => []);
+      const uid = currentUser?.id || null;
+      videos = uid ? await fetch(`${API_URL}/videos/recommended/${uid}?limit=24`).then(r => r.json()).catch(() => []) : [];
     } else {
-      videos = await fetch(`${API_URL}/search?q=${encodeURIComponent(category)}&userId=${currentUser.id}&limit=24`).then(r => r.json()).catch(() => []);
+      const uid = currentUser?.id || '';
+      videos = await fetch(`${API_URL}/search?q=${encodeURIComponent(category)}&userId=${uid}&limit=24`).then(r => r.json()).catch(() => []);
     }
 
     if (loading) loading.style.display = 'none';
@@ -4788,7 +4791,8 @@ async function playVideo(videoId) {
     // URL'i güncelle
     updateURL('home', videoId, 'video');
     
-    const response = await fetch(`${API_URL}/video/${videoId}?userId=${currentUser.id}`);
+    const userId = currentUser?.id || 0;
+    const response = await fetch(`${API_URL}/video/${videoId}?userId=${userId}`);
     const video = await response.json();
 
     // Engel kontrolü - engellenen veya engelleyen kişinin videosunu gösterme
@@ -4894,13 +4898,21 @@ async function playVideo(videoId) {
           ${video.comments_enabled ? `
             <div class="watch-comments">
               <h3 style="font-size:18px; font-weight:500; margin-bottom:20px;">Yorumlar</h3>
+              ${currentUser ? `
               <div style="display:flex; gap:12px; margin-bottom:24px;">
-                <img src="${getProfilePhotoUrl(currentUser.profile_photo)}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; flex-shrink:0;" />
+                <img src="${getProfilePhotoUrl(currentUser?.profile_photo)}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; flex-shrink:0;" />
                 <div style="flex:1; display:flex; gap:8px;">
                   <input type="text" id="commentInput" class="yt-input" placeholder="Yorum ekle..." style="margin-bottom:0;" onkeydown="if(event.key==='Enter'){event.preventDefault();addComment(${video.id})}" />
                   <button class="yt-btn" onclick="addComment(${video.id})">Gönder</button>
                 </div>
               </div>
+              ` : `
+              <div style="margin-bottom:16px;">
+                <button onclick="showLoginPrompt()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--yt-spec-text-primary);padding:10px 20px;border-radius:20px;cursor:pointer;font-size:13px;width:100%;text-align:center;">
+                  <i class="fas fa-sign-in-alt" style="margin-right:6px;"></i>Yorum yapmak için giriş yap
+                </button>
+              </div>
+              `}
               <div id="commentsList" data-owner-id="${video.user_id || ''}"></div>
             </div>
           ` : '<p style="color: var(--yt-spec-text-secondary); padding: 20px 0;">Yorumlar kapalı</p>'}
@@ -4935,8 +4947,10 @@ async function playVideo(videoId) {
     }
 
     // Beğeni ve abonelik durumu
-    checkLikeStatus(video.id);
-    checkSubscriptionStatus(video.channel_id);
+    if (currentUser) {
+      checkLikeStatus(video.id);
+      checkSubscriptionStatus(video.channel_id);
+    }
     if (video.comments_enabled) loadComments(video.id, video.user_id);
     saveWatchProgress(video.id, 0, 0);
     
@@ -5102,6 +5116,10 @@ async function likeVideo(videoId, likeType) {
 }
 
 async function toggleSubscribe(channelId) {
+  if (window.isGuestMode || !currentUser) {
+    showLoginPrompt();
+    return;
+  }
   try {
     const checkResponse = await fetch(`${API_URL}/is-subscribed/${currentUser.id}/${channelId}`);
     const checkData = await checkResponse.json();
@@ -5165,6 +5183,10 @@ async function getChannelOwnerId(channelId) {
 }
 
 async function toggleFavorite(videoId) {
+  if (window.isGuestMode || !currentUser) {
+    showLoginPrompt();
+    return;
+  }
   try {
     await fetch(`${API_URL}/favorite`, {
       method: 'POST',
@@ -5178,6 +5200,10 @@ async function toggleFavorite(videoId) {
 }
 
 async function toggleSaved(videoId) {
+  if (window.isGuestMode || !currentUser) {
+    showLoginPrompt();
+    return;
+  }
   try {
     await fetch(`${API_URL}/saved`, {
       method: 'POST',
@@ -5193,8 +5219,28 @@ async function toggleSaved(videoId) {
 async function loadComments(videoId, videoOwnerId = null) {
   try {
     if (!currentUser || !currentUser.id) {
+      // Misafir: yorumları göster ama yorum yapma alanını gizle
       const commentsList = document.getElementById('commentsList');
-      if (commentsList) commentsList.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:8px 0;font-size:13px;">Yorumları görmek için giriş yapın</p>';
+      const commentInput = document.getElementById('commentInput');
+      const commentSubmitBtn = document.querySelector('[onclick*="addComment"]');
+      if (commentInput) commentInput.style.display = 'none';
+      if (commentSubmitBtn) commentSubmitBtn.style.display = 'none';
+      // Yorumları yine de yükle
+      const response = await fetch(`${API_URL}/comments/${videoId}?userId=0`);
+      if (!response.ok) return;
+      const comments = await response.json();
+      if (commentsList) {
+        if (!comments.length) {
+          commentsList.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:8px 0;font-size:13px;">Henüz yorum yok</p>';
+        } else {
+          commentsList.innerHTML = comments.map(c => renderComment(c, videoId, false, videoOwnerId)).join('');
+        }
+        // Yorum yapmak için giriş butonu
+        const loginNote = document.createElement('div');
+        loginNote.style.cssText = 'text-align:center;padding:12px;margin-top:8px;';
+        loginNote.innerHTML = '<button onclick="showLoginPrompt()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--yt-spec-text-primary);padding:8px 20px;border-radius:20px;cursor:pointer;font-size:13px;"><i class="fas fa-sign-in-alt" style="margin-right:6px;"></i>Yorum yapmak için giriş yap</button>';
+        commentsList.appendChild(loginNote);
+      }
       return;
     }
 
@@ -5423,6 +5469,7 @@ async function addComment(videoId) {
 }
 
 async function saveWatchProgress(videoId, watchDuration, totalDuration) {
+  if (!currentUser) return; // Misafir için kaydetme
   try {
     await fetch(`${API_URL}/watch-history`, {
       method: 'POST',
@@ -5444,8 +5491,7 @@ async function search() {
   }
 
   if (!currentUser || !currentUser.id) {
-    showToast('Arama yapmak için giriş yapmalısın', 'error');
-    return;
+    // Misafir de arama yapabilir
   }
 
   // Önce home sayfasına geç ki pageContent görünür olsun
@@ -5456,8 +5502,9 @@ async function search() {
 
   try {
     // PARALEL ARAMA - HER ŞEYİ ARAT!
+    const uid = currentUser?.id || 0;
     const [videosRes, songsRes, usersRes, groupsRes] = await Promise.allSettled([
-      fetch(`${API_URL}/search?q=${encodeURIComponent(query)}&userId=${currentUser.id}`),
+      fetch(`${API_URL}/search?q=${encodeURIComponent(query)}&userId=${uid}`),
       fetch(`${API_URL}/music/search?q=${encodeURIComponent(query)}`),
       fetch(`${API_URL}/users/search?q=${encodeURIComponent(query)}`),
       fetch(`${API_URL}/groups/search?q=${encodeURIComponent(query)}`)
