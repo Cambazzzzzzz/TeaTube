@@ -375,23 +375,23 @@ function showMobileUploadMenu() {
     <div style="width:100%; background:var(--yt-spec-raised-background); border-radius:20px 20px 0 0; padding:20px 16px 32px;">
       <div style="width:40px; height:4px; background:rgba(255,255,255,0.2); border-radius:2px; margin:0 auto 20px;"></div>
       <button onclick="event.stopPropagation(); document.getElementById('mobileUploadSheet').remove(); setTimeout(() => { showUploadVideoModal(); setTimeout(() => switchUploadType('reals'), 50); }, 100);"
-        style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
+        style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:#ffffff; padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
         <div style="width:44px; height:44px; background:rgba(255,0,51,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
           <i class="fas fa-film" style="color:#ff0033; font-size:18px;"></i>
         </div>
         <div style="text-align:left;">
           <p style="font-weight:600; margin-bottom:2px;">Reals</p>
-          <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Kısa video paylaş</p>
+          <p style="font-size:12px; color:rgba(255,255,255,0.6);">Kısa video paylaş</p>
         </div>
       </button>
       <button onclick="event.stopPropagation(); document.getElementById('mobileUploadSheet').remove(); setTimeout(() => { showUploadVideoModal(); setTimeout(() => switchUploadType('photo'), 50); }, 100);"
-        style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:var(--yt-spec-text-primary); padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
+        style="width:100%; display:flex; align-items:center; gap:16px; background:none; border:none; color:#ffffff; padding:14px 8px; font-size:16px; cursor:pointer; border-radius:10px;">
         <div style="width:44px; height:44px; background:rgba(255,165,0,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center;">
           <i class="fas fa-image" style="color:orange; font-size:18px;"></i>
         </div>
         <div style="text-align:left;">
           <p style="font-weight:600; margin-bottom:2px;">Fotoğraf</p>
-          <p style="font-size:12px; color:var(--yt-spec-text-secondary);">Fotoğraf paylaş</p>
+          <p style="font-size:12px; color:rgba(255,255,255,0.6);">Fotoğraf paylaş</p>
         </div>
       </button>
       <button onclick="event.stopPropagation(); document.getElementById('mobileUploadSheet').remove();"
@@ -6759,51 +6759,51 @@ function showContentTypeSelector() {
       </div>
       
       <div style="display:grid;gap:12px;">
-        <button onclick="selectContentType('video')" style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--yt-spec-base-background);border:2px solid var(--yt-spec-border);border-radius:12px;cursor:pointer;transition:all 0.2s;text-align:left;"
+        <button onclick="selectContentType('video')" style="display:flex;align-items:center;gap:16px;padding:16px;background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.12);border-radius:12px;cursor:pointer;transition:all 0.2s;text-align:left;color:#ffffff;"
                 onmouseover="this.style.borderColor='var(--yt-spec-brand-background-solid)'"
-                onmouseout="this.style.borderColor='var(--yt-spec-border)'">
+                onmouseout="this.style.borderColor='rgba(255,255,255,0.12)'">
           <div style="width:48px;height:48px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:12px;display:flex;align-items:center;justify-content:center;">
             <i class="fas fa-play-circle" style="font-size:24px;color:white;"></i>
           </div>
           <div>
             <div style="font-size:16px;font-weight:600;margin-bottom:4px;">Uzun Video</div>
-            <div style="font-size:13px;color:var(--yt-spec-text-secondary);">Normal video yükle</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.6);">Normal video yükle</div>
           </div>
         </button>
         
-        <button onclick="selectContentType('reals')" style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--yt-spec-base-background);border:2px solid var(--yt-spec-border);border-radius:12px;cursor:pointer;transition:all 0.2s;text-align:left;"
+        <button onclick="selectContentType('reals')" style="display:flex;align-items:center;gap:16px;padding:16px;background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.12);border-radius:12px;cursor:pointer;transition:all 0.2s;text-align:left;color:#ffffff;"
                 onmouseover="this.style.borderColor='var(--yt-spec-brand-background-solid)'"
-                onmouseout="this.style.borderColor='var(--yt-spec-border)'">
+                onmouseout="this.style.borderColor='rgba(255,255,255,0.12)'">
           <div style="width:48px;height:48px;background:linear-gradient(135deg,#f43f5e,#e11d48);border-radius:12px;display:flex;align-items:center;justify-content:center;">
             <i class="fas fa-film" style="font-size:24px;color:white;"></i>
           </div>
           <div>
             <div style="font-size:16px;font-weight:600;margin-bottom:4px;">Reals</div>
-            <div style="font-size:13px;color:var(--yt-spec-text-secondary);">Kısa video paylaş</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.6);">Kısa video paylaş</div>
           </div>
         </button>
         
-        <button onclick="selectContentType('photo')" style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--yt-spec-base-background);border:2px solid var(--yt-spec-border);border-radius:12px;cursor:pointer;transition:all 0.2s;text-align:left;"
+        <button onclick="selectContentType('photo')" style="display:flex;align-items:center;gap:16px;padding:16px;background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.12);border-radius:12px;cursor:pointer;transition:all 0.2s;text-align:left;color:#ffffff;"
                 onmouseover="this.style.borderColor='var(--yt-spec-brand-background-solid)'"
-                onmouseout="this.style.borderColor='var(--yt-spec-border)'">
+                onmouseout="this.style.borderColor='rgba(255,255,255,0.12)'">
           <div style="width:48px;height:48px;background:linear-gradient(135deg,#10b981,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;">
             <i class="fas fa-image" style="font-size:24px;color:white;"></i>
           </div>
           <div>
             <div style="font-size:16px;font-weight:600;margin-bottom:4px;">Fotoğraf</div>
-            <div style="font-size:13px;color:var(--yt-spec-text-secondary);">Fotoğraf paylaş</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.6);">Fotoğraf paylaş</div>
           </div>
         </button>
         
-        <button onclick="selectContentType('text')" style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--yt-spec-base-background);border:2px solid var(--yt-spec-border);border-radius:12px;cursor:pointer;transition:all 0.2s;text-align:left;"
+        <button onclick="selectContentType('text')" style="display:flex;align-items:center;gap:16px;padding:16px;background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.12);border-radius:12px;cursor:pointer;transition:all 0.2s;text-align:left;color:#ffffff;"
                 onmouseover="this.style.borderColor='var(--yt-spec-brand-background-solid)'"
-                onmouseout="this.style.borderColor='var(--yt-spec-border)'">
+                onmouseout="this.style.borderColor='rgba(255,255,255,0.12)'">
           <div style="width:48px;height:48px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:12px;display:flex;align-items:center;justify-content:center;">
             <i class="fas fa-align-left" style="font-size:24px;color:white;"></i>
           </div>
           <div>
             <div style="font-size:16px;font-weight:600;margin-bottom:4px;">Metin</div>
-            <div style="font-size:13px;color:var(--yt-spec-text-secondary);">Düşüncelerini paylaş</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.6);">Düşüncelerini paylaş</div>
           </div>
         </button>
       </div>
