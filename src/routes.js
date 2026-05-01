@@ -1467,7 +1467,7 @@ router.get('/comments/:videoId', (req, res) => {
              ${hasHidden ? 'COALESCE(c.is_hidden, 0)' : '0'} as is_hidden,
              ${hasLikedByOwner ? 'COALESCE(c.liked_by_owner, 0)' : '0'} as liked_by_owner
       FROM comments c
-      JOIN users u ON c.user_id = u.id
+      LEFT JOIN users u ON c.user_id = u.id
       ${hasUserRoles ? 'LEFT JOIN user_roles ur ON u.id = ur.user_id' : ''}
       WHERE c.video_id = ? AND c.parent_id IS NULL
       ORDER BY ${hasPinned ? 'c.is_pinned DESC,' : ''} c.created_at DESC
@@ -1486,18 +1486,23 @@ router.get('/comments/:videoId', (req, res) => {
 router.get('/comment-replies/:commentId', (req, res) => {
   try {
     const { userId } = req.query;
-    const replies = db.prepare(`
+    let hasCommentLikesR = false, hasUserRolesR = false;
+    try { db.prepare('SELECT 1 FROM comment_likes LIMIT 1').get(); hasCommentLikesR = true; } catch(e) {}
+    try { db.prepare('SELECT 1 FROM user_roles LIMIT 1').get(); hasUserRolesR = true; } catch(e) {}
+    const replyQuery = `
       SELECT c.*, u.nickname, u.profile_photo,
-             COALESCE(ur.role, 'user') as role,
-             (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = 1) as likes,
-             (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = -1) as dislikes,
-             (SELECT like_type FROM comment_likes WHERE comment_id = c.id AND user_id = ?) as user_like
+             ${hasUserRolesR ? "COALESCE(ur.role, 'user')" : "'user'"} as role,
+             ${hasCommentLikesR ? '(SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = 1)' : '0'} as likes,
+             ${hasCommentLikesR ? '(SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = -1)' : '0'} as dislikes,
+             ${hasCommentLikesR ? '(SELECT like_type FROM comment_likes WHERE comment_id = c.id AND user_id = ?)' : '0'} as user_like
       FROM comments c
-      JOIN users u ON c.user_id = u.id
-      LEFT JOIN user_roles ur ON u.id = ur.user_id
+      LEFT JOIN users u ON c.user_id = u.id
+      ${hasUserRolesR ? 'LEFT JOIN user_roles ur ON u.id = ur.user_id' : ''}
       WHERE c.parent_id = ?
       ORDER BY c.created_at ASC
-    `).all(userId || 0, req.params.commentId);
+    `;
+    const replyParams = hasCommentLikesR ? [userId || 0, req.params.commentId] : [req.params.commentId];
+    const replies = db.prepare(replyQuery).all(...replyParams);
     res.json(replies);
   } catch(e) {
     res.status(500).json({ error: 'Yanıtlar alınamadı' });
