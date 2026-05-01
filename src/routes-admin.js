@@ -170,23 +170,39 @@ router.put('/admin/user/:userId/suspend', (req, res) => {
     const { suspend, reason } = req.body;
     const userId = req.params.userId;
     
-    // KullanÖÂ±cÖÂ±yÖÂ± askÖÂ±ya al/kaldÖÂ±r
+    // Kullaniciyi askiya al/kaldir
     db.prepare('UPDATE users SET is_suspended = ?, suspend_reason = ? WHERE id = ?')
       .run(suspend ? 1 : 0, reason || null, userId);
     
     if (suspend) {
-      // TÖÂ¼m videolarÖÂ±nÖÂ± askÖÂ±ya al
+      // Tum videolarini askiya al
       db.prepare('UPDATE videos SET is_suspended = 1 WHERE channel_id IN (SELECT id FROM channels WHERE user_id = ?)').run(userId);
-      // TÖÂ¼m gruplardan ÖÂ§ÖÂ±kar (owner deÖÂilse)
-      db.prepare('DELETE FROM group_members WHERE user_id = ? AND role != "owner"').run(userId);
+      // Tum gruplardan cikar (owner degilse)
+      db.prepare("DELETE FROM group_members WHERE user_id = ? AND role != 'owner'").run(userId);
+      
+      // Kullanicinin son IP'sini kalici olarak engelle
+      const user = db.prepare('SELECT last_ip FROM users WHERE id = ?').get(userId);
+      if (user && user.last_ip && user.last_ip !== 'unknown') {
+        db.prepare("INSERT OR REPLACE INTO ip_blocks (ip_address, blocked_until, reason) VALUES (?, '9999-12-31 23:59:59', ?)")
+          .run(user.last_ip, reason || 'Hesap askiya alindi');
+        console.log('IP engellendi: ' + user.last_ip);
+      }
     } else {
-      // AskÖÂ±yÖÂ± kaldÖÂ±rÖÂ±nca videolarÖÂ± da geri getir
+      // Askiyi kaldirinca videolari da geri getir
       db.prepare('UPDATE videos SET is_suspended = 0 WHERE channel_id IN (SELECT id FROM channels WHERE user_id = ?)').run(userId);
+      
+      // Kullanicinin IP engelini de kaldir
+      const user = db.prepare('SELECT last_ip FROM users WHERE id = ?').get(userId);
+      if (user && user.last_ip && user.last_ip !== 'unknown') {
+        db.prepare('DELETE FROM ip_blocks WHERE ip_address = ?').run(user.last_ip);
+        console.log('IP engeli kaldirildi: ' + user.last_ip);
+      }
     }
     
     res.json({ success: true });
   } catch(e) {
-    res.status(500).json({ error: 'ÖÂ°ÖÂlem baÖÂarÖÂ±sÖÂ±z' });
+    console.error('Suspend hatasi:', e);
+    res.status(500).json({ error: 'Islem basarisiz' });
   }
 });
 

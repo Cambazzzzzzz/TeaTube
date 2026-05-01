@@ -81,6 +81,24 @@ router.post('/register', upload.single('profile_photo'), async (req, res) => {
   try {
     const { username, nickname, password, agreed, birth_date } = req.body;
 
+    // IP ban kontrolu - yasakli IP ile kayit olamaz
+    let regIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+      || req.headers['x-real-ip']
+      || req.headers['cf-connecting-ip']
+      || req.connection?.remoteAddress
+      || req.socket?.remoteAddress
+      || '0.0.0.0';
+    regIp = regIp.replace(/^::ffff:/, '').replace(/^::1$/, '127.0.0.1');
+    
+    const ipBan = db.prepare("SELECT * FROM ip_blocks WHERE ip_address = ? AND blocked_until > datetime('now')").get(regIp);
+    if (ipBan) {
+      const banMsg = ipBan.reason && ipBan.reason !== 'Cok fazla basarisiz giris denemesi'
+        ? ipBan.reason
+        : 'Bu IP adresi yasaklanmistir.';
+      return res.status(403).json({ error: 'Hesap olusturulamadi: ' + banMsg });
+    }
+
+
     if (!agreed || agreed !== 'true') {
       return res.status(400).json({ error: 'Kullanım sözleşmesini kabul etmelisiniz' });
     }
@@ -183,7 +201,14 @@ router.post('/login', async (req, res) => {
     } else {
       const block = checkIPBlock(ip);
       if (block) {
-        return res.status(403).json({ error: 'Çok fazla başarısız deneme! Lütfen 1 saat sonra tekrar dene.', blockedUntil: block.blocked_until });
+        // Ban notunu goster
+        const banReason = block.reason && block.reason !== 'Cok fazla basarisiz giris denemesi'
+          ? block.reason
+          : null;
+        const errMsg = banReason
+          ? '\uD83D\uDEAB Hesabiniz yasaklandi: ' + banReason
+          : 'Cok fazla basarisiz deneme! Lutfen 1 saat sonra tekrar dene.';
+        return res.status(403).json({ error: errMsg, blockedUntil: block.blocked_until, banReason });
       }
     }
 
