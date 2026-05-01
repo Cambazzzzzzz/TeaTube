@@ -5956,7 +5956,7 @@ function showUploadVideoModal() {
     <!-- Format Seçimi -->
     <div class="yt-form-group">
       <label class="yt-form-label">Ne yüklemek istiyorsun?</label>
-      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:4px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; margin-bottom:4px;">
         <label class="upload-type-btn active" id="typeBtn_reals" onclick="switchUploadType('reals')">
           <input type="radio" name="uploadType" value="reals" checked style="display:none;" />
           <i class="fas fa-film" style="font-size:18px; margin-bottom:4px;"></i>
@@ -5974,6 +5974,12 @@ function showUploadVideoModal() {
           <i class="fas fa-image" style="font-size:18px; margin-bottom:4px;"></i>
           <span>Foto</span>
           <small>Fotoğraf paylaş</small>
+        </label>
+        <label class="upload-type-btn" id="typeBtn_text" onclick="switchUploadType('text')">
+          <input type="radio" name="uploadType" value="text" style="display:none;" />
+          <i class="fas fa-align-left" style="font-size:18px; margin-bottom:4px;"></i>
+          <span>Metin</span>
+          <small>Yazı paylaş</small>
         </label>
       </div>
     </div>
@@ -6022,6 +6028,29 @@ function showUploadVideoModal() {
       <div class="yt-form-group">
         <label class="yt-form-label">Fotoğraf</label>
         <input type="file" id="photoFile" class="yt-input" accept="image/*" multiple />
+      </div>
+    </div>
+
+    <!-- Metin alanları -->
+    <div id="textFields" style="display:none;">
+      <div class="yt-form-group">
+        <label class="yt-form-label">Metin Türü</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button type="button" id="textTypeBtn_teaweet" class="upload-type-btn active" onclick="switchTextType('teaweet')" style="flex:1;padding:8px;font-size:13px;">
+            <i class="fas fa-shield-alt" style="color:#1da1f2;margin-right:4px;"></i>TeaWeet
+          </button>
+          <button type="button" id="textTypeBtn_plain" class="upload-type-btn" onclick="switchTextType('plain')" style="flex:1;padding:8px;font-size:13px;">
+            <i class="fas fa-align-left" style="margin-right:4px;"></i>Düz Metin
+          </button>
+        </div>
+        <p id="textTypeHint" style="font-size:12px;color:var(--yt-spec-text-secondary);"><i class="fas fa-info-circle"></i> TeaWeet: #hashtag kullanabilirsiniz, kısa ve öz olmalı</p>
+      </div>
+      <div class="yt-form-group">
+        <label class="yt-form-label">İçerik <span style="color:#ff0033">*</span></label>
+        <textarea id="textContent" class="yt-textarea" placeholder="Ne düşünüyorsun?" style="min-height:120px;"></textarea>
+        <div style="text-align:right;font-size:12px;color:var(--yt-spec-text-secondary);margin-top:4px;">
+          <span id="textCharCount">0</span>/500
+        </div>
       </div>
     </div>
 

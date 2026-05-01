@@ -422,9 +422,9 @@ router.post('/users/:id/ban', requireRole('moderator'), (req, res) => {
     }
     
     db.prepare(`
-      INSERT INTO user_bans (user_id, banned_by, reason, banned_until, is_permanent)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(userId, req.userId, reason, bannedUntil, is_permanent ? 1 : 0);
+      INSERT INTO user_bans (user_id, banned_by, reason, banned_until, is_permanent, ban_type)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(userId, req.userId, reason, bannedUntil, is_permanent ? 1 : 0, 'manual');
     
     db.prepare('UPDATE users SET is_banned = 1 WHERE id = ?').run(userId);
     
