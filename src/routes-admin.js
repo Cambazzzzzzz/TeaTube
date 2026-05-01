@@ -107,7 +107,8 @@ router.get('/admin/users', (req, res) => {
       SELECT u.id, u.username, u.nickname, u.profile_photo, u.created_at, u.is_suspended, u.suspend_reason, u.last_ip, u.is_red_verified,
              c.id as channel_id, c.channel_name, c.account_type,
              (SELECT COUNT(*) FROM videos WHERE channel_id = c.id) as video_count,
-             (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as sub_count
+             (SELECT COUNT(*) FROM subscriptions WHERE channel_id = c.id) as sub_count,
+             (SELECT attempted_at FROM login_attempts WHERE username = u.username AND success = 1 ORDER BY attempted_at DESC LIMIT 1) as last_login_at
       FROM users u
       LEFT JOIN channels c ON c.user_id = u.id
     `;

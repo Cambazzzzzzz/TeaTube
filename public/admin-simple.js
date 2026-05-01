@@ -176,7 +176,8 @@ async function loadUsers() {
               <th>Takma Ad</th>
               <th>Son IP</th>
               <th>Durum</th>
-              <th>Oluşturma Tarihi</th>
+              <th>Kayıt Tarihi</th>
+              <th>Son Giriş</th>
               <th>İşlemler</th>
             </tr>
           </thead>
@@ -199,6 +200,7 @@ async function loadUsers() {
             <td>${lastIp}</td>
             <td>${status}</td>
             <td title="${regTime}">${new Date(user.created_at).toLocaleDateString('tr-TR')}</td>
+            <td style="font-size:12px;color:#888">${user.last_login_at ? user.last_login_at.slice(0,16).replace('T',' ') : '-'}</td>
             <td>
               <button class="a-btn a-btn-sm a-btn-gray" onclick="viewUserDetails('${user.id}')">Detay</button>
               ${user.last_ip ? `<button class="a-btn a-btn-sm a-btn-orange" onclick="banUserIP('${user.last_ip}', '${user.username}')"><i class="fas fa-ban"></i> IP Yasakla</button>` : ''}

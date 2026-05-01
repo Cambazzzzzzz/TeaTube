@@ -201,6 +201,7 @@ async function loadUsers(search='') {
         <td style="font-size:12px;color:#888;font-family:monospace">${esc(u.last_ip||'-')}</td>
         <td>${u.is_suspended?'<span class="badge badge-red">Askida</span>':'<span class="badge badge-green">Aktif</span>'}</td>
         <td style="font-size:12px;color:#888">${u.created_at?u.created_at.slice(0,10):'-'}</td>
+        <td style="font-size:12px;color:#888">${u.last_login_at?u.last_login_at.slice(0,16).replace('T',' '):'-'}</td>
         <td>
           <div style="display:flex;gap:4px;flex-wrap:wrap">
             <button class="a-btn a-btn-sm a-btn-gray" onclick="showUserDetail(${u.id})">Detay</button>
@@ -212,7 +213,7 @@ async function loadUsers(search='') {
     document.getElementById('userTableWrap').innerHTML = `
       <div class="table-wrap">
         <table class="a-table">
-          <thead><tr><th>ID</th><th>Kullanici</th><th>Son IP</th><th>Durum</th><th>Kayit</th><th>Islemler</th></tr></thead>
+          <thead><tr><th>ID</th><th>Kullanici</th><th>Son IP</th><th>Durum</th><th>Kayit</th><th>Son Giris</th><th>Islemler</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;
@@ -236,6 +237,7 @@ async function showUserDetail(userId) {
       <p><b>Email:</b> ${esc(u.email||'-')}</p>
       <p><b>Durum:</b> ${u.is_suspended?'Askida':'Aktif'}</p>
       <p><b>Kayit:</b> ${u.created_at?u.created_at.slice(0,10):'-'}</p>
+      <p><b>Son Giris:</b> ${u.last_login_at?u.last_login_at.slice(0,16).replace('T',' '):'-'}</p>
       <div style="margin:12px 0;padding:10px;background:#1a1a1a;border-radius:8px;display:flex;align-items:center;justify-content:space-between;">
         <span style="font-size:14px;display:flex;align-items:center;gap:8px;">
           <i class="fas fa-certificate" style="color:#ff0033;font-size:18px;"></i>
