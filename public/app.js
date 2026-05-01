@@ -4056,9 +4056,10 @@ async function loadShortsComments(videoId, channelId) {
       const canDelete = isMyComment || isOwner;
       const canPin = isOwner;
       const liked = c.user_like === 1;
+      const commentChannelId = c.channel_id || 0;
       return `
         <div style="display:flex;gap:10px;margin-bottom:18px;${c.is_pinned ? 'background:rgba(255,255,255,0.03);border-radius:10px;padding:8px;' : ''}">
-          <img src="${getProfilePhotoUrl(c.profile_photo)}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer" onclick="viewChannel(${c.channel_id || 0})" />
+          <img src="${getProfilePhotoUrl(c.profile_photo)}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer" onclick="viewChannel(${commentChannelId})" />
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
               <span style="font-size:13px;font-weight:600;color:#fff">${c.nickname}</span>

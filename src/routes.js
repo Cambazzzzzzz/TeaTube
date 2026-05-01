@@ -1457,7 +1457,7 @@ router.get('/comments/:videoId', (req, res) => {
     try { db.prepare('SELECT 1 FROM user_roles LIMIT 1').get(); hasUserRoles = true; } catch(e) {}
 
     const commentQuery = `
-      SELECT c.*, u.nickname, u.profile_photo,
+      SELECT c.*, u.nickname, u.profile_photo, ch.id as channel_id,
              ${hasUserRoles ? "COALESCE(ur.role, 'user')" : "'user'"} as role,
              (SELECT COUNT(*) FROM comments r WHERE r.parent_id = c.id) as reply_count,
              ${hasCommentLikes ? '(SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = 1)' : '0'} as likes,
@@ -1468,6 +1468,7 @@ router.get('/comments/:videoId', (req, res) => {
              ${hasLikedByOwner ? 'COALESCE(c.liked_by_owner, 0)' : '0'} as liked_by_owner
       FROM comments c
       LEFT JOIN users u ON c.user_id = u.id
+      LEFT JOIN channels ch ON u.id = ch.user_id
       ${hasUserRoles ? 'LEFT JOIN user_roles ur ON u.id = ur.user_id' : ''}
       WHERE c.video_id = ? AND c.parent_id IS NULL
       ORDER BY ${hasPinned ? 'c.is_pinned DESC,' : ''} c.created_at DESC
@@ -1490,13 +1491,14 @@ router.get('/comment-replies/:commentId', (req, res) => {
     try { db.prepare('SELECT 1 FROM comment_likes LIMIT 1').get(); hasCommentLikesR = true; } catch(e) {}
     try { db.prepare('SELECT 1 FROM user_roles LIMIT 1').get(); hasUserRolesR = true; } catch(e) {}
     const replyQuery = `
-      SELECT c.*, u.nickname, u.profile_photo,
+      SELECT c.*, u.nickname, u.profile_photo, ch.id as channel_id,
              ${hasUserRolesR ? "COALESCE(ur.role, 'user')" : "'user'"} as role,
              ${hasCommentLikesR ? '(SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = 1)' : '0'} as likes,
              ${hasCommentLikesR ? '(SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = -1)' : '0'} as dislikes,
              ${hasCommentLikesR ? '(SELECT like_type FROM comment_likes WHERE comment_id = c.id AND user_id = ?)' : '0'} as user_like
       FROM comments c
       LEFT JOIN users u ON c.user_id = u.id
+      LEFT JOIN channels ch ON u.id = ch.user_id
       ${hasUserRolesR ? 'LEFT JOIN user_roles ur ON u.id = ur.user_id' : ''}
       WHERE c.parent_id = ?
       ORDER BY c.created_at ASC
