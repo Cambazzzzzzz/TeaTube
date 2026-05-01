@@ -1451,22 +1451,29 @@ router.get('/comments/:videoId', (req, res) => {
       hasLikedByOwner = colNames.includes('liked_by_owner');
     } catch(e) {}
 
-    const comments = db.prepare(`
+    // comment_likes ve user_roles tablolarinin varligini kontrol et
+    let hasCommentLikes = false, hasUserRoles = false;
+    try { db.prepare('SELECT 1 FROM comment_likes LIMIT 1').get(); hasCommentLikes = true; } catch(e) {}
+    try { db.prepare('SELECT 1 FROM user_roles LIMIT 1').get(); hasUserRoles = true; } catch(e) {}
+
+    const commentQuery = `
       SELECT c.*, u.nickname, u.profile_photo,
-             COALESCE(ur.role, 'user') as role,
+             ${hasUserRoles ? "COALESCE(ur.role, 'user')" : "'user'"} as role,
              (SELECT COUNT(*) FROM comments r WHERE r.parent_id = c.id) as reply_count,
-             (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = 1) as likes,
-             (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = -1) as dislikes,
-             (SELECT like_type FROM comment_likes WHERE comment_id = c.id AND user_id = ?) as user_like,
+             ${hasCommentLikes ? '(SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = 1)' : '0'} as likes,
+             ${hasCommentLikes ? '(SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id AND like_type = -1)' : '0'} as dislikes,
+             ${hasCommentLikes ? '(SELECT like_type FROM comment_likes WHERE comment_id = c.id AND user_id = ?)' : '0'} as user_like,
              ${hasPinned ? 'COALESCE(c.is_pinned, 0)' : '0'} as is_pinned,
              ${hasHidden ? 'COALESCE(c.is_hidden, 0)' : '0'} as is_hidden,
              ${hasLikedByOwner ? 'COALESCE(c.liked_by_owner, 0)' : '0'} as liked_by_owner
       FROM comments c
       JOIN users u ON c.user_id = u.id
-      LEFT JOIN user_roles ur ON u.id = ur.user_id
+      ${hasUserRoles ? 'LEFT JOIN user_roles ur ON u.id = ur.user_id' : ''}
       WHERE c.video_id = ? AND c.parent_id IS NULL
       ORDER BY ${hasPinned ? 'c.is_pinned DESC,' : ''} c.created_at DESC
-    `).all(userId || 0, req.params.videoId);
+    `;
+    const queryParams = hasCommentLikes ? [userId || 0, req.params.videoId] : [req.params.videoId];
+    const comments = db.prepare(commentQuery).all(...queryParams);
 
     res.json(comments);
   } catch (error) {

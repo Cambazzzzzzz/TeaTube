@@ -5222,7 +5222,10 @@ async function loadComments(videoId, videoOwnerId = null) {
       if (commentSubmitBtn) commentSubmitBtn.style.display = 'none';
       // Yorumları yine de yükle
       const response = await fetch(`${API_URL}/comments/${videoId}?userId=0`);
-      if (!response.ok) return;
+      if (!response.ok) {
+        if (commentsList) commentsList.innerHTML = '<p style="color:var(--yt-spec-text-secondary);padding:8px 0;font-size:13px;">Yorumlar yüklenemedi</p>';
+        return;
+      }
       const comments = await response.json();
       if (commentsList) {
         if (!comments.length) {
