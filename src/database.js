@@ -243,9 +243,13 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ip_address TEXT UNIQUE NOT NULL,
     blocked_until DATETIME NOT NULL,
+    reason TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `);
+
+// reason kolonu yoksa ekle
+try { db.prepare('ALTER TABLE ip_blocks ADD COLUMN reason TEXT').run(); } catch(e) {}
 
 // Ayarlar tablosu
 db.exec(`

@@ -281,7 +281,11 @@ async function showUserDetail(userId) {
 
 async function toggleSuspend(userId, suspend) {
   try {
-    const r = await fetch(API+'/admin/user/'+userId+'/suspend', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({suspend:!!suspend})});
+    let reason = null;
+    if (suspend) {
+      reason = prompt('Yasaklama sebebi (opsiyonel):') || 'Admin tarafından yasaklandı';
+    }
+    const r = await fetch(API+'/admin/user/'+userId+'/suspend', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({suspend:!!suspend, reason})});
     const d = await r.json();
     if (!r.ok) { showToast(d.error||'Hata', false); return; }
     showToast(suspend?'Kullanici askiya alindi':'Kullanici aktif edildi');
