@@ -34,20 +34,14 @@ function getClientIP(req) {
 // Auth middleware
 function requireRole(minRole) {
   return (req, res, next) => {
-    const authHeader = req.headers.authorization || '';
-    const bearer =
-      authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+    const bearer = teatubeAdminAuth.parseBearer(req.headers.authorization);
+    const session = bearer ? teatubeAdminAuth.parseSessionToken(bearer) : null;
 
-    // /admin şifre girişi ile alınan token: paneldeki tüm süper-admin işlemleri için tam yetki
-    if (bearer && teatubeAdminAuth.isValidToken(bearer)) {
-      const adminRow = db
-        .prepare("SELECT id FROM users WHERE lower(username) = 'admin' LIMIT 1")
-        .get();
-      if (adminRow) {
-        req.userId = String(adminRow.id);
-        req.userRole = 'admin';
-        return next();
-      }
+    // /admin şifre girişi ile alınan imzalı token: tüm süper-admin işlemleri (cluster uyumlu)
+    if (session) {
+      req.userId = String(session.userId);
+      req.userRole = 'admin';
+      return next();
     }
 
     const userId = req.headers['x-user-id'];

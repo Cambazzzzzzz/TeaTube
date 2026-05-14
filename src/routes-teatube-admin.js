@@ -2,15 +2,10 @@ const express = require('express');
 const router = express.Router();
 const db = require('./database');
 const bcrypt = require('bcrypt');
-const crypto = require('crypto');
 const siteFeatures = require('./site-features');
 const teatubeAdminAuth = require('./teatube-admin-auth');
 
 // ==================== HELPER FUNCTIONS ====================
-
-function generateToken() {
-  return crypto.randomBytes(32).toString('hex');
-}
 
 function getClientIP(req) {
   return req.ip || 
@@ -33,8 +28,8 @@ function logAction(userId, username, ipAddress, action, details = null) {
 
 // Auth middleware
 function requireAuth(req, res, next) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token || !teatubeAdminAuth.isValidToken(token)) {
+  const token = teatubeAdminAuth.parseBearer(req.headers.authorization);
+  if (!teatubeAdminAuth.parseSessionToken(token)) {
     return res.status(401).json({ error: 'Yetkisiz erişim' });
   }
   next();
@@ -64,8 +59,10 @@ router.post('/teatube-admin/giris', async (req, res) => {
       return res.status(401).json({ error: 'Yanlış şifre' });
     }
     
-    // Admin kullanıcısını bul veya oluştur
-    let adminUser = db.prepare("SELECT id FROM users WHERE username = 'admin'").get();
+    // Admin kullanıcısını bul veya oluştur (kullanıcı adı büyük/küçük harf duyarsız)
+    let adminUser = db
+      .prepare("SELECT id FROM users WHERE lower(username) = lower(?) LIMIT 1")
+      .get('admin');
     if (!adminUser) {
       // Admin kullanıcısı yoksa oluştur
       const adminId = db.prepare(`
@@ -91,9 +88,8 @@ router.post('/teatube-admin/giris', async (req, res) => {
       }
     }
     
-    // Token oluştur
-    const token = generateToken();
-    teatubeAdminAuth.addToken(token);
+    // İmzalı oturum token'ı (cluster / çoklu worker uyumlu)
+    const token = teatubeAdminAuth.createSessionToken(adminUser.id);
     
     logAction(adminUser.id, 'Admin', clientIP, 'admin_login_success', 'Başarılı giriş');
     
