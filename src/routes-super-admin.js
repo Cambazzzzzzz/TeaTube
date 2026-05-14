@@ -437,6 +437,26 @@ router.post('/users/:id/ban', requireRole('moderator'), (req, res) => {
   }
 });
 
+// Kullanıcı ban kaldır (unban)
+router.delete('/users/:id/ban', requireRole('moderator'), (req, res) => {
+  try {
+    const userId = req.params.id;
+    
+    // Ban kayıtlarını sil
+    db.prepare('DELETE FROM user_bans WHERE user_id = ?').run(userId);
+    
+    // Kullanıcının ban durumunu kaldır
+    db.prepare('UPDATE users SET is_banned = 0 WHERE id = ?').run(userId);
+    
+    logAdminAction(req.userId, 'user_unban', 'user', userId, userId, 
+      { is_banned: true }, { is_banned: false }, 'Ban kaldırıldı', getClientIP(req));
+    
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Kullanıcı sil
 router.delete('/users/:id', requireRole('admin'), (req, res) => {
   try {

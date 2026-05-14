@@ -6,6 +6,17 @@ const multer = require('multer');
 const cloudinary = require('./cloudinary');
 const path = require('path');
 const fs = require('fs');
+const siteFeatures = require('./site-features');
+
+function requirePostingEnabled(req, res, next) {
+  if (!siteFeatures.isEnabled(siteFeatures.KEYS.POSTING)) {
+    return res.status(403).json({
+      error: 'Gönderi ve video yükleme yönetici tarafından geçici olarak kapatıldı.',
+      code: 'POSTING_DISABLED'
+    });
+  }
+  next();
+}
 
 // ==================== LOGGING HELPER ====================
 function logAction(userId, username, ipAddress, action, details = null) {
@@ -39,6 +50,15 @@ const diskStorage = multer.diskStorage({
 
 const upload = multer({ storage: multer.memoryStorage() });
 const uploadDisk = multer({ storage: diskStorage });
+
+// Herkese açık site bayrakları (istemci uyarıları)
+router.get('/site-features', (req, res) => {
+  try {
+    res.json(siteFeatures.getPublicSnapshot());
+  } catch (e) {
+    res.status(500).json({ error: 'Site ayarları alınamadı' });
+  }
+});
 
 // Video türleri listesi
 const VIDEO_TYPES = [
@@ -672,7 +692,7 @@ router.put('/channel/:channelId', upload.single('channel_banner'), async (req, r
 
 // Video yükle (disk storage - büyük dosyalar için)
 // Video yükle (disk storage - büyük dosyalar için)
-router.post('/video', uploadDisk.fields([{ name: 'video' }, { name: 'banner' }]), async (req, res) => {
+router.post('/video', requirePostingEnabled, uploadDisk.fields([{ name: 'video' }, { name: 'banner' }]), async (req, res) => {
   const videoPath = req.files?.video?.[0]?.path;
   const bannerPath = req.files?.banner?.[0]?.path;
   
@@ -865,6 +885,13 @@ router.get('/videos/subscriptions/:userId', (req, res) => {
 // Video detayı
 router.get('/video/:videoId', (req, res) => {
   try {
+    if (!siteFeatures.isEnabled(siteFeatures.KEYS.VIDEO_WATCHING)) {
+      return res.status(403).json({
+        error: 'Video izleme yönetici tarafından geçici olarak kapatıldı.',
+        code: 'VIDEO_WATCHING_DISABLED'
+      });
+    }
+
     const { userId } = req.query;
     const videoIdParam = req.params.videoId;
     
@@ -1062,6 +1089,13 @@ router.get('/watched-unique/:userId', (req, res) => {
 // zleme geçmişine ekle
 router.post('/watch-history', (req, res) => {
   try {
+    if (!siteFeatures.isEnabled(siteFeatures.KEYS.VIDEO_WATCHING)) {
+      return res.status(403).json({
+        error: 'Video izleme yönetici tarafından geçici olarak kapatıldı.',
+        code: 'VIDEO_WATCHING_DISABLED'
+      });
+    }
+
     const { userId, videoId, watchDuration, totalDuration } = req.body;
 
     const settings = db.prepare('SELECT watch_history_enabled FROM user_settings WHERE user_id = ?').get(userId);
@@ -1904,7 +1938,7 @@ router.post('/upload-chat-photo', upload.single('photo'), async (req, res) => {
 });
 
 // FotoŸraf paylaşŸımı (kanal gönderisi olarak)
-router.post('/photo', upload.single('photo'), async (req, res) => {
+router.post('/photo', requirePostingEnabled, upload.single('photo'), async (req, res) => {
   try {
     const { channelId, title, description, isAd } = req.body;
     if (!req.file) return res.status(400).json({ error: 'FotoŸraf gerekli' });
@@ -1923,7 +1957,7 @@ router.post('/photo', upload.single('photo'), async (req, res) => {
 });
 
 // Metin paylaşŸımı (TeaWeet veya Düz Metin)
-router.post('/text', upload.none(), async (req, res) => {
+router.post('/text', requirePostingEnabled, upload.none(), async (req, res) => {
   try {
     const { channelId, title, description, textContent, textType, tags } = req.body;
     
@@ -2116,6 +2150,15 @@ router.get('/video-types', (req, res) => {
 router.get('/upload-signature/:type', (req, res) => {
   try {
     const type = req.params.type;
+    if (
+      (type === 'video' || type === 'banner') &&
+      !siteFeatures.isEnabled(siteFeatures.KEYS.POSTING)
+    ) {
+      return res.status(403).json({
+        error: 'Gönderi ve video yükleme yönetici tarafından geçici olarak kapatıldı.',
+        code: 'POSTING_DISABLED'
+      });
+    }
     const folderMap = {
       video: 'teatube/videos',
       banner: 'teatube/banners',
@@ -2144,7 +2187,7 @@ router.post('/upload-banner', upload.single('banner'), async (req, res) => {
 });
 
 // Video URL'lerini kaydet (frontend Cloudinary'e yükledikten sonra)
-router.post('/video-save', (req, res) => {
+router.post('/video-save', requirePostingEnabled, (req, res) => {
   try {
     const { channelId, title, description, videoType, tags, videoUrl, bannerUrl, commentsEnabled, likesVisible, isShort } = req.body;
 
@@ -3164,7 +3207,7 @@ router.get('/terms', (req, res) => {
 const uploadSessions = new Map();
 
 // Upload session başlat
-router.post('/video/start-upload', async (req, res) => {
+router.post('/video/start-upload', requirePostingEnabled, async (req, res) => {
   try {
     const { channelId, title, description, videoType, tags, commentsEnabled, likesVisible, isShort, totalSize, totalChunks, fileName } = req.body;
     
@@ -3195,7 +3238,7 @@ router.post('/video/start-upload', async (req, res) => {
 });
 
 // Banner yükle
-router.post('/video/upload-banner', upload.single('banner'), async (req, res) => {
+router.post('/video/upload-banner', requirePostingEnabled, upload.single('banner'), async (req, res) => {
   try {
     const { uploadId } = req.body;
     const session = uploadSessions.get(uploadId);
@@ -3213,7 +3256,7 @@ router.post('/video/upload-banner', upload.single('banner'), async (req, res) =>
 });
 
 // Chunk yükle
-router.post('/video/upload-chunk', upload.single('chunk'), async (req, res) => {
+router.post('/video/upload-chunk', requirePostingEnabled, upload.single('chunk'), async (req, res) => {
   try {
     const { uploadId, chunkIndex, totalChunks } = req.body;
     const session = uploadSessions.get(uploadId);
@@ -3231,7 +3274,7 @@ router.post('/video/upload-chunk', upload.single('chunk'), async (req, res) => {
 });
 
 // Upload tamamla
-router.post('/video/complete-upload', async (req, res) => {
+router.post('/video/complete-upload', requirePostingEnabled, async (req, res) => {
   try {
     const { uploadId } = req.body;
     const session = uploadSessions.get(uploadId);

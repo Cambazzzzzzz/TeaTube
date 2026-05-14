@@ -3,10 +3,18 @@ const router = express.Router();
 const db = require('./database');
 const multer = require('multer');
 const upload = multer();
+const siteFeatures = require('./site-features');
 
 // Metin paylaşımı (kullanıcı kanalı otomatik)
 router.post('/text-posts', upload.none(), async (req, res) => {
   try {
+    if (!siteFeatures.isEnabled(siteFeatures.KEYS.POSTING)) {
+      return res.status(403).json({
+        error: 'Gönderi ve video yükleme yönetici tarafından geçici olarak kapatıldı.',
+        code: 'POSTING_DISABLED'
+      });
+    }
+
     const { user_id, title, content } = req.body;
     
     if (!content) return res.status(400).json({ error: 'Metin içeriği gerekli' });

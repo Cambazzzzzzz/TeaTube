@@ -949,6 +949,25 @@ if (!existingAdminPw) {
 
 console.log('✓ Admin şifre tablosu hazır!');
 
+// ==================== SİTE ÖZELLİK BAYRAKLARI (anlık kapat/aç) ====================
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS site_feature_flags (
+    key TEXT PRIMARY KEY,
+    value INTEGER NOT NULL DEFAULT 1
+  )
+`);
+
+const siteFlagDefaults = [
+  ['video_watching', 1],
+  ['posting', 1]
+];
+for (const [k, v] of siteFlagDefaults) {
+  db.prepare('INSERT OR IGNORE INTO site_feature_flags (key, value) VALUES (?, ?)').run(k, v);
+}
+
+console.log('✓ Site özellik bayrakları tablosu hazır!');
+
 // ==================== HİSSE SİSTEMİ ====================
 
 // Hisse senetleri tablosu

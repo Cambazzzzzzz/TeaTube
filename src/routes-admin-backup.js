@@ -35,9 +35,9 @@ router.post('/admin/login', async (req, res) => {
     
     // Normal şifre kontrolü
     const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get(username);
-    if (!admin) return res.status(401).json({ error: 'HatalÄ± kullanÄ±cÄ± adÄ± veya Åifre' });
+    if (!admin) return res.status(401).json({ error: 'Hatalı kullanıcı adı veya şifre' });
     const valid = await bcrypt.compare(password, admin.password);
-    if (!valid) return res.status(401).json({ error: 'HatalÄ± kullanÄ±cÄ± adÄ± veya Åifre' });
+    if (!valid) return res.status(401).json({ error: 'Hatalı kullanıcı adı veya şifre' });
     const { password: _, ...adminData } = admin;
     res.json({ success: true, admin: adminData });
   } catch(e) {
@@ -119,8 +119,7 @@ router.get('/admin/stats', (req, res) => {
     res.status(500).json({ error: 'İstatistikler alınamadı: ' + e.message });
   }
 });
-  }
-});
+  
 
 // ==================== KULLANICI YÃNETÄ°MÄ° ====================
 

@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('./database');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const siteFeatures = require('./site-features');
 
 // Token storage (in-memory, basit çözüm)
 const validTokens = new Set();
@@ -102,6 +103,38 @@ router.post('/teatube-admin/giris', async (req, res) => {
   } catch(e) {
     console.error('Admin giriş hatası:', e);
     res.status(500).json({ error: 'Giriş hatası' });
+  }
+});
+
+// ==================== SİTE ÖZELLİKLERİ (anlık) ====================
+
+router.get('/teatube-admin/site-features', requireAuth, (req, res) => {
+  try {
+    res.json(siteFeatures.getPublicSnapshot());
+  } catch (e) {
+    console.error('Site özellikleri okuma:', e);
+    res.status(500).json({ error: 'Özellik durumu alınamadı' });
+  }
+});
+
+router.put('/teatube-admin/site-features', requireAuth, (req, res) => {
+  try {
+    const { videoWatching, posting } = req.body;
+    const clientIP = getClientIP(req);
+
+    if (typeof videoWatching === 'boolean') {
+      siteFeatures.setEnabled(siteFeatures.KEYS.VIDEO_WATCHING, videoWatching);
+      logAction(null, 'Admin', clientIP, 'site_feature_video_watching', String(videoWatching));
+    }
+    if (typeof posting === 'boolean') {
+      siteFeatures.setEnabled(siteFeatures.KEYS.POSTING, posting);
+      logAction(null, 'Admin', clientIP, 'site_feature_posting', String(posting));
+    }
+
+    res.json({ success: true, ...siteFeatures.getPublicSnapshot() });
+  } catch (e) {
+    console.error('Site özellikleri güncelleme:', e);
+    res.status(500).json({ error: 'Özellikler güncellenemedi' });
   }
 });
 

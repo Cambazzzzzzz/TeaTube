@@ -82,6 +82,7 @@ function showAdminPage(page) {
   else if (page === 'groups') renderGroups();
   
   // Ayarlar
+  else if (page === 'anlik-site') renderAnlikSiteOzellikleri();
   else if (page === 'sifreler') renderSifreler();
   else if (page === 'sistem-loglari') renderSistemLoglari();
   else if (page === 'yedek') renderYedekYonetimi();
@@ -184,6 +185,71 @@ function updateUserRoleDisplay() {
       <i class="fas fa-shield-alt" style="margin-right:5px;color:${roleColor}"></i>
       <span style="color:${roleColor};font-weight:600">${roleText}</span>
     `;
+  }
+}
+
+// ==================== ANLIK SİTE ÖZELLİKLERİ ====================
+
+async function renderAnlikSiteOzellikleri() {
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    <div class="page-header">
+      <div class="page-title"><i class="fa-solid fa-power-off"></i> Anlık site özellikleri</div>
+      <div class="page-subtitle">Video izleme ve gönderi atmayı anında kapatıp tekrar açın (sunucu tarafında zorunlu)</div>
+    </div>
+    <div class="card" id="anlik-site-card">
+      <div class="card-title">Durum</div>
+      <p style="color:var(--text3);margin-bottom:16px">Kapalıyken kullanıcılar ilgili işlemi yapamaz; açtığınızda normale döner.</p>
+      <div id="anlik-site-rows">Yükleniyor…</div>
+    </div>
+  `;
+  await refreshAnlikSiteRows();
+}
+
+async function refreshAnlikSiteRows() {
+  const box = document.getElementById('anlik-site-rows');
+  if (!box) return;
+  try {
+    const s = await api('GET', '/teatube-admin/site-features');
+    box.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:20px;max-width:480px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px;background:var(--bg3);border-radius:10px;border:1px solid var(--border)">
+          <div>
+            <div style="font-weight:600;color:var(--text1)">Video izleme</div>
+            <div style="font-size:13px;color:var(--text3);margin-top:4px">İzleme API ve izleme geçmişi kaydı</div>
+          </div>
+          <button type="button" class="btn ${s.videoWatching ? 'btn-success' : 'btn-danger'}" onclick="toggleSiteFeature('videoWatching',${!s.videoWatching})">
+            ${s.videoWatching ? 'Açık' : 'Kapalı'}
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px;background:var(--bg3);border-radius:10px;border:1px solid var(--border)">
+          <div>
+            <div style="font-weight:600;color:var(--text1)">Gönderi atma</div>
+            <div style="font-size:13px;color:var(--text3);margin-top:4px">Video, metin, fotoğraf ve parçalı yükleme</div>
+          </div>
+          <button type="button" class="btn ${s.posting ? 'btn-success' : 'btn-danger'}" onclick="toggleSiteFeature('posting',${!s.posting})">
+            ${s.posting ? 'Açık' : 'Kapalı'}
+          </button>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    box.innerHTML = `<p style="color:var(--danger)">${e.message}</p>`;
+  }
+}
+
+async function toggleSiteFeature(field, value) {
+  try {
+    const cur = await api('GET', '/teatube-admin/site-features');
+    const body = {
+      videoWatching: field === 'videoWatching' ? value : cur.videoWatching,
+      posting: field === 'posting' ? value : cur.posting
+    };
+    await api('PUT', '/teatube-admin/site-features', body);
+    toast(field === 'videoWatching' ? (value ? 'Video izleme açıldı' : 'Video izleme kapatıldı') : (value ? 'Gönderi atma açıldı' : 'Gönderi atma kapatıldı'));
+    await refreshAnlikSiteRows();
+  } catch (e) {
+    toast(e.message, 'error');
   }
 }
 
