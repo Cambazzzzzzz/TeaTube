@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('./database');
 const bcrypt = require('bcrypt');
+const teatubeAdminAuth = require('./teatube-admin-auth');
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -33,14 +34,30 @@ function getClientIP(req) {
 // Auth middleware
 function requireRole(minRole) {
   return (req, res, next) => {
+    const authHeader = req.headers.authorization || '';
+    const bearer =
+      authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+
+    // /admin şifre girişi ile alınan token: paneldeki tüm süper-admin işlemleri için tam yetki
+    if (bearer && teatubeAdminAuth.isValidToken(bearer)) {
+      const adminRow = db
+        .prepare("SELECT id FROM users WHERE lower(username) = 'admin' LIMIT 1")
+        .get();
+      if (adminRow) {
+        req.userId = String(adminRow.id);
+        req.userRole = 'admin';
+        return next();
+      }
+    }
+
     const userId = req.headers['x-user-id'];
     if (!userId) return res.status(401).json({ error: 'Yetkisiz erişim' });
-    
+
     const userRole = getUserRole(userId);
     if (!hasPermission(userRole, minRole)) {
       return res.status(403).json({ error: 'Yeterli yetki yok' });
     }
-    
+
     req.userRole = userRole;
     req.userId = userId;
     next();

@@ -4,9 +4,7 @@ const db = require('./database');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const siteFeatures = require('./site-features');
-
-// Token storage (in-memory, basit çözüm)
-const validTokens = new Set();
+const teatubeAdminAuth = require('./teatube-admin-auth');
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -36,7 +34,7 @@ function logAction(userId, username, ipAddress, action, details = null) {
 // Auth middleware
 function requireAuth(req, res, next) {
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token || !validTokens.has(token)) {
+  if (!token || !teatubeAdminAuth.isValidToken(token)) {
     return res.status(401).json({ error: 'Yetkisiz erişim' });
   }
   next();
@@ -95,7 +93,7 @@ router.post('/teatube-admin/giris', async (req, res) => {
     
     // Token oluştur
     const token = generateToken();
-    validTokens.add(token);
+    teatubeAdminAuth.addToken(token);
     
     logAction(adminUser.id, 'Admin', clientIP, 'admin_login_success', 'Başarılı giriş');
     
